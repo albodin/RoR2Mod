@@ -14,7 +14,9 @@ cmake --build .
 
 ### Method 2: Using VSCode Tasks
 1. In VSCode, press Ctrl+Shift+B to build
+
 or
+
 1. In VSCode, press Ctrl+Shift+P, select "Tasks: Run Task", and select "Build All"
 
 ## Running
