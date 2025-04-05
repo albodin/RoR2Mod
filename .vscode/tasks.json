@@ -1,0 +1,75 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "CMake Configure",
+            "type": "shell",
+            "command": "mkdir -p build && cd build && cmake -DCMAKE_TOOLCHAIN_FILE=../mingw-toolchain.cmake ..",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Build All",
+            "type": "shell",
+            "command": "cd build && cmake --build .",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn": [
+                "CMake Configure"
+            ]
+        },
+        {
+            "label": "Wait for Risk of Rain 2",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "MAX_ATTEMPTS=10; WAIT_SECONDS=10; process_name=\"Risk of Rain 2.exe\"; attempt=1; found=false; while [ $attempt -le $MAX_ATTEMPTS ]; do echo \"Checking for $process_name (attempt $attempt of $MAX_ATTEMPTS)...\"; if ps aux | grep -i \"$process_name\" | grep -v grep > /dev/null; then echo \"Process $process_name found!\"; found=true; break; fi; echo \"Process not found. Waiting $WAIT_SECONDS seconds before retry...\"; sleep $WAIT_SECONDS; attempt=$((attempt + 1)); done; if [ \"$found\" = false ]; then echo \"Process $process_name not found after $MAX_ATTEMPTS attempts. Exiting.\"; exit 1; fi; echo \"Ready to inject!\""
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Inject DLL",
+            "type": "shell",
+            "command": "cd build && protontricks-launch --no-bwrap --appid 632360 ${workspaceFolder}/build/injector.exe \"Risk of Rain 2.exe\" \"Z:${workspaceFolder}/build/RoR2Mod.dll\"",
+            "problemMatcher": [],
+            "dependsOn": [
+                "Build All",
+                "Wait for Risk of Rain 2"
+            ]
+        },
+        {
+            "label": "Inject and Run",
+            "type": "shell",
+            "command": "cd ${workspaceFolder}/build && protontricks-launch --no-bwrap --appid 632360 ${workspaceFolder}/build/injector.exe \"Risk of Rain 2.exe\" \"Z:${workspaceFolder}/build/RoR2Mod.dll\"",
+            "problemMatcher": [],
+            "dependsOn": [
+                "Build All",
+                "Wait for Risk of Rain 2"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        }
+    ]
+}

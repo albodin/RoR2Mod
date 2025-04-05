@@ -1,0 +1,34 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach to Risk of Rain 2",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "${userHome}/.steam/debian-installation/steamapps/common/Risk of Rain 2/Risk of Rain 2.exe",
+            "processId": "${command:pickProcess}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/local/bin/gdb",
+            "logging": {
+                "engineLogging": true
+            },
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Source DLL symbol loader script",
+                    "text": "source ${workspaceFolder}/scripts/load_dll_symbols.py",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Disable breaking on exceptions",
+                    "text": "handle all nostop noprint",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}
