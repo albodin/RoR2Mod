@@ -22,24 +22,24 @@ void __cdecl MonoRuntime::AssemblyIterationCallback(MonoAssembly* assembly, void
     self->m_imageCache[imageName] = image;
     
     // Debug output
-    G::logger.LogInfo("Found assembly: %s\n", imageName);
+    G::logger.LogInfo("Found assembly: %s", imageName);
 }
 
 bool MonoRuntime::Initialize(const char* monoDllName) {
     // Get mono module
     HMODULE monoModule = GetModuleHandleA(monoDllName);
     if (!monoModule) {
-        G::logger.LogError("Failed to get %s handle\n", monoDllName);
+        G::logger.LogError("Failed to get %s handle", monoDllName);
         return false;
     }
     
-    G::logger.LogInfo("%s base address: 0x%p\n", monoDllName, monoModule);
+    G::logger.LogInfo("%s base address: 0x%p", monoDllName, monoModule);
 
     // Get function addresses
     #define GET_MONO_FUNC(name) \
         m_##name = reinterpret_cast<name##_t>(GetProcAddress(monoModule, #name)); \
         if (!m_##name) { \
-            G::logger.LogError("Failed to get %s function\n", #name); \
+            G::logger.LogError("Failed to get %s function", #name); \
             return false; \
         }
 

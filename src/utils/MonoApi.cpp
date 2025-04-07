@@ -38,6 +38,7 @@ bool MonoAPI::Initialize(const std::string& monoDllPath) {
     m_mono_type_get_class = (mono_type_get_class_fn)GetProcAddress(monoModule, "mono_type_get_class");
     m_mono_class_get_image = (mono_class_get_image_fn)GetProcAddress(monoModule, "mono_class_get_image");
     m_mono_field_get_flags = (mono_field_get_flags_fn)GetProcAddress(monoModule, "mono_field_get_flags");
+    m_mono_thread_attach = (mono_thread_attach_fn)GetProcAddress(monoModule, "mono_thread_attach");
 
     G::logger.Log("mono_get_root_domain: 0x%p", m_mono_get_root_domain);
     G::logger.Log("mono_domain_assembly_open: 0x%p", m_mono_domain_assembly_open);
@@ -58,6 +59,7 @@ bool MonoAPI::Initialize(const std::string& monoDllPath) {
     G::logger.Log("mono_type_get_class: 0x%p", m_mono_type_get_class);
     G::logger.Log("mono_class_get_image: 0x%p", m_mono_class_get_image);
     G::logger.Log("mono_field_get_flags: 0x%p", m_mono_field_get_flags);
+    G::logger.Log("mono_thread_attach: 0x%p", m_mono_thread_attach);
 
     // Check if all required functions were loaded
     return m_mono_get_root_domain && m_mono_domain_assembly_open && m_mono_assembly_get_image && 
@@ -66,7 +68,7 @@ bool MonoAPI::Initialize(const std::string& monoDllPath) {
            m_mono_domain_assembly_foreach && m_mono_image_get_name && m_mono_image_get_table_info &&
            m_mono_table_info_get_rows && m_mono_class_get && m_mono_class_get_name && 
            m_mono_class_get_namespace && m_mono_type_get_class && m_mono_class_get_image &&
-           m_mono_field_get_flags;
+           m_mono_field_get_flags && m_mono_thread_attach;
 }
 
 void __cdecl MonoAPI::AssemblyIterationCallback(void* assembly, void* user_data) {
@@ -393,6 +395,16 @@ void MonoAPI::DumpAllClassesToStructs(const std::string& outputDir) {
         G::logger.Log("Failed to get mono domain");
         return;
     }
+    if (!monoThread) {
+        monoThread = m_mono_thread_attach(domain);
+        if (!monoThread) {
+            G::logger.Log("Failed to attach thread to mono domain");
+            return;
+        } else {
+            G::logger.Log("Thread attached to mono runtime: %p", monoThread);
+        }
+    }
+
     CatalogClasses();
 
     // Maps to store assembly-specific details

@@ -7,9 +7,7 @@
 #include <chrono>
 
 #include "hooks/hooks.h"
-
 #include "globals/globals.h"
-#include "utils/MonoApi.h"
 
 #define MAX_STACK_FRAMES 100
 
@@ -145,26 +143,7 @@ LONG WINAPI CrashHandler(EXCEPTION_POINTERS* exceptionInfo) {
     G::logger.LogError("  RBP: 0x" + std::to_string(context->Rbp));
     G::logger.LogError("End Basic Trace");
     
-    // Flush log to ensure it's written before possible termination
-    // Additional stack trace code could be added here
-    
     return EXCEPTION_CONTINUE_SEARCH;
-}
-
-void dumpAllClasses() {
-    //WaitForDebugger();
-    static bool initialized = false;
-    MonoAPI g_mono;
-    if (!initialized) {
-        if (g_mono.Initialize()) {
-            G::logger.LogInfo("Mono runtime initialized successfully");
-            g_mono.DumpAllClassesToStructs("classDump");
-            initialized = true;
-            
-        } else {
-            G::logger.LogError("Failed to initialize Mono API");
-        }
-    }
 }
 
 DWORD WINAPI Run(LPVOID lpParam) {
@@ -172,7 +151,6 @@ DWORD WINAPI Run(LPVOID lpParam) {
     //Init
     Hooks::Init();
 
-    //dumpAllClasses();
 
     while (G::running) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));

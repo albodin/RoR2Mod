@@ -14,6 +14,7 @@ private:
     std::list<void*> m_assemblies;
     std::unordered_map<void*, std::string> classNameMap;
     std::set<std::string> processedClasses;
+    void* monoThread = nullptr;
 
     // Function pointer types for Mono API functions
     typedef void* (*mono_get_root_domain_fn)();
@@ -35,6 +36,7 @@ private:
     typedef void* (*mono_type_get_class_fn)(void* type);
     typedef void* (*mono_class_get_image_fn)(void* klass);
     typedef int (*mono_field_get_flags_fn)(void* field);
+    typedef void* (*mono_thread_attach_fn)(void* domain);
 
     // Function pointers
     mono_get_root_domain_fn m_mono_get_root_domain = nullptr;
@@ -56,6 +58,7 @@ private:
     mono_type_get_class_fn m_mono_type_get_class = nullptr;
     mono_class_get_image_fn m_mono_class_get_image = nullptr;
     mono_field_get_flags_fn m_mono_field_get_flags = nullptr;
+    mono_thread_attach_fn m_mono_thread_attach = nullptr;
 
     // Mono type enum values
     enum MonoTypeEnum {
