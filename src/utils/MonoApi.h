@@ -12,9 +12,12 @@ class MonoAPI {
 private:
     HMODULE monoModule = nullptr;
     std::list<void*> m_assemblies;
-    std::unordered_map<void*, std::string> classNameMap;
     std::set<std::string> processedClasses;
     void* monoThread = nullptr;
+
+    std::unordered_map<void*, size_t> classSizes;
+    std::unordered_map<std::string, size_t> fullNameToSize;
+    std::unordered_map<std::string, std::unordered_map<std::string, size_t>> namespaceClassToSize;
 
     // Function pointer types for Mono API functions
     typedef void* (*mono_get_root_domain_fn)();
@@ -119,9 +122,11 @@ public:
 
     bool Initialize(const std::string& monoDllPath = "mono-2.0-bdwgc.dll");
     std::string GetCppTypeFromMonoType(void* type);
-    void CatalogClasses();
     void* GetTypeClass(void* type);
     std::string GetClassAssemblyName(void* klass);
+    size_t CalculateClassSize(void* klass);
+    void BuildClassSizeMap();
+    size_t GetClassSizeByName(const std::string& className, const std::string& namespaceName = "");
     void GenerateStructFromClass(void* klass, std::ofstream& file, std::set<std::string>& requiredIncludes);
     void DumpAllClassesToStructs(const std::string& outputDir);
 };
