@@ -112,6 +112,27 @@ void Hooks::Init() {
     G::gameFunctions = new GameFunctions(G::g_monoRuntime);
 }
 
+void Hooks::Unhook() {
+    G::oWndProc = (WNDPROC)SetWindowLongPtr(G::windowHwnd, GWLP_WNDPROC, (LONG_PTR)G::oWndProc);
+    ImGui_ImplDX11_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
+
+    for (auto& target: hookTargets) {
+        MH_STATUS disable_status = MH_DisableHook(target.second);
+        if (disable_status == MH_OK) {
+            G::logger.LogInfo("Hook successfully disabled for " + target.first);
+        } else {
+            G::logger.LogError("Hook disabling failed for " + target.first + ", error: " + 
+                             MH_StatusToString(disable_status) + " (code: " + MH_StatusToString(disable_status) + ")");
+        }
+    }
+
+    kiero::shutdown();
+    delete G::g_monoRuntime;
+    delete G::gameFunctions;
+}
+
 bool Hooks::hkRewiredPlayerGetButtonDown(void* instance, int key) {
     if (G::showMenu)
         return false;

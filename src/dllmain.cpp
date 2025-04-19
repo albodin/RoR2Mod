@@ -157,6 +157,7 @@ DWORD WINAPI Run(LPVOID lpParam) {
     }
 
     //Close Hooks
+    Hooks::Unhook();
 
     CloseHandle(G::mainThread);
     FreeLibraryAndExitThread(G::hModule, 0);

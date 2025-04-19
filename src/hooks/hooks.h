@@ -3,6 +3,7 @@
 
 namespace Hooks {
     void Init();
+    void Unhook();
 
     bool hkRewiredPlayerGetButtonDown(void*, int);
     void hkRoR2LocalUserRebuildControlChain(void*);
