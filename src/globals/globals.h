@@ -2,6 +2,8 @@
 #include <windows.h>
 #include <d3d11.h>
 #include <dxgi.h>
+#include <queue>
+#include <functional>
 
 #include "core/MonoRuntime.h"
 #include "game/GameFunctions.h"
@@ -24,6 +26,7 @@ namespace G {
     extern HWND windowHwnd;
     extern Logger logger;
     extern GameFunctions* gameFunctions;
+    extern std::queue<std::function<void()>> queuedActions;
 
     extern bool godMode;
     extern float baseMoveSpeed;

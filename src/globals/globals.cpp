@@ -15,6 +15,7 @@ namespace G {
     HWND windowHwnd = nullptr;
     Logger logger("ror2mod.log");
     GameFunctions* gameFunctions = nullptr;
+    std::queue<std::function<void()>> queuedActions;
 
     bool godMode = false;
     float baseMoveSpeed = 10.0f;

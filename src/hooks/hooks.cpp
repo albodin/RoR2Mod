@@ -75,9 +75,6 @@ bool CreateHook(
     } \
 }
 
-
-//#define UNHOOK(name) (MH_DisableHook(#name))
-
 void Hooks::Init() {
     bool hooked = false;
     while (!hooked)
@@ -95,9 +92,14 @@ void Hooks::Init() {
         Sleep(100);
     }
 
-    
+    HOOK(RoR2, RoR2, RoR2Application, Update, 0, "System.Void", {});
     HOOK(Rewired_Core, Rewired, Player, GetButtonDown, 1, "System.Boolean", {"System.Int32"});
+    HOOK(RoR2, RoR2, RoR2Application, UpdateCursorState, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, MPEventSystemManager, Update, 0, "System.Void", {});
+    HOOK(UnityEngine.CoreModule, UnityEngine, Cursor, set_lockState, 1, "System.Void", {"UnityEngine.CursorLockMode"});
+    HOOK(UnityEngine.CoreModule, UnityEngine, Cursor, set_visible, 1, "System.Void", {"System.Boolean"});
     HOOK(RoR2, RoR2, LocalUser, RebuildControlChain, 0, "System.Void", {});
+    
 
     for (auto& target: hookTargets) {
         MH_STATUS enable_status = MH_EnableHook(target.second);
@@ -133,12 +135,51 @@ void Hooks::Unhook() {
     delete G::gameFunctions;
 }
 
+void Hooks::hkRoR2RoR2ApplicationUpdate(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2RoR2ApplicationUpdate"]);
+    originalFunc(instance);
+    for (; !G::queuedActions.empty(); G::queuedActions.pop()) {
+        auto action = G::queuedActions.front();
+        action();
+    }
+}
+
 bool Hooks::hkRewiredPlayerGetButtonDown(void* instance, int key) {
     if (G::showMenu)
         return false;
     
     static auto originalFunc = reinterpret_cast<bool(*)(void*, int)>(hooks["RewiredPlayerGetButtonDown"]);
     return originalFunc(instance, key);
+}
+
+void Hooks::hkRoR2RoR2ApplicationUpdateCursorState(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2RoR2ApplicationUpdateCursorState"]);
+    if (!G::showMenu) {
+        originalFunc(instance);
+    }
+}
+
+void Hooks::hkRoR2MPEventSystemManagerUpdate(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2MPEventSystemManagerUpdate"]);
+    if (!G::showMenu) {
+        originalFunc(instance);
+    }
+}
+
+void Hooks::hkUnityEngineCursorset_lockState(void* instance, int lockState) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*, int)>(hooks["UnityEngineCursorset_lockState"]);
+    if (G::showMenu) {
+        lockState = 2; // CursorLockMode.Confined
+    }
+    originalFunc(instance, lockState);
+}
+
+void Hooks::hkUnityEngineCursorset_visible(void* instance, bool visible) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*, bool)>(hooks["UnityEngineCursorset_visible"]);
+    if (G::showMenu) {
+        visible = true;
+    }
+    originalFunc(instance, visible);
 }
 
 void Hooks::hkRoR2LocalUserRebuildControlChain(void* instance) {
@@ -212,6 +253,10 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
 
     if (ImGui::IsKeyPressed(ImGuiKey_Insert)) {
         G::showMenu = !G::showMenu;
+        if (G::showMenu) {
+            G::gameFunctions->Cursor_SetLockState(2); // CursorLockMode.Confined
+            G::gameFunctions->Cursor_SetVisible(true);
+        }
     }
 
     if (const auto& displaySize = ImGui::GetIO().DisplaySize; displaySize.x > 0.0f && displaySize.y > 0.0f) {
