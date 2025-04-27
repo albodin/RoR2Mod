@@ -12,6 +12,7 @@ namespace Hooks {
     void hkUnityEngineCursorset_lockState(void*, int);
     void hkUnityEngineCursorset_visible(void*, bool);
     void hkRoR2LocalUserRebuildControlChain(void*);
+    void hkRoR2InventoryHandleInventoryChanged(void*);
 
     long __stdcall hkPresent11(IDXGISwapChain*, UINT, UINT);
 }

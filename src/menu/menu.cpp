@@ -21,6 +21,17 @@ ImVec2 RenderText(ImVec2 pos, ImU32 color, ImU32 shadowColor, bool centered, con
     return textSize;
 }
 
+void DrawItemInputs(ItemTier tier) {
+    for (auto& item : G::items) {
+        if (item.tier != tier) continue;
+        int index = item.index;
+        if (ImGui::InputInt(item.displayName.c_str(), &G::itemStacks[index])) {
+            std::unique_lock<std::mutex> lock(G::queuedGiveItemsMutex);
+            G::queuedGiveItems.push(std::make_tuple(index, G::itemStacks[index]));
+        }
+    }
+}
+
 void DrawPlayerTab() {
     ImGui::Checkbox("Godmode", &G::godMode);
     ImGui::InputFloat("Base Move Speed", &G::baseMoveSpeed, 1.0f, 100.0f);
@@ -28,6 +39,23 @@ void DrawPlayerTab() {
     ImGui::InputFloat("Base Attack Speed", &G::baseAttackSpeed, 10.0f, 1000000000.0f);
     ImGui::InputFloat("Base Crit", &G::baseCrit, 10.0f, 1000000000.0f);
     ImGui::InputInt("Base Jump Count", &G::baseJumpCount);
+    
+    if (ImGui::CollapsingHeader("Items")) {
+        std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
+        if (ImGui::CollapsingHeader("Tier1")) {
+            DrawItemInputs(ItemTier::Tier1);
+        }
+        if (ImGui::CollapsingHeader("Tier2")) {
+            DrawItemInputs(ItemTier::Tier2);
+        }
+        if (ImGui::CollapsingHeader("Tier3")) {
+            DrawItemInputs(ItemTier::Tier3);
+        }
+        if (ImGui::CollapsingHeader("Lunar")) {
+            DrawItemInputs(ItemTier::Lunar);
+        }
+        // Other tiers don't seem to have items, void items use the same tier as the base item
+    }
 }
 
 void DrawESPTab() {

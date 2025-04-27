@@ -41,6 +41,7 @@ private:
     mono_field_get_offset_t m_mono_field_get_offset;
     mono_class_get_fields_t m_mono_class_get_fields;
     mono_field_get_name_t m_mono_field_get_name;
+    mono_array_length_t m_mono_array_length;
 
     // Mono runtime state
     MonoDomain* m_rootDomain;
@@ -62,57 +63,28 @@ public:
     MonoRuntime();
     ~MonoRuntime();
 
-    // Initialize the Mono runtime access
     bool Initialize(const char* monoDllName = "mono-2.0-bdwgc.dll");
-
-    // Attach current thread to Mono runtime
     bool AttachThread();
-    
-    // Detach current thread from Mono runtime
     void DetachThread();
-    
-    // Get a MonoImage by name
     MonoImage* GetImage(const char* assemblyName);
-    
-    // Get a MonoClass by namespace and name
     MonoClass* GetClass(const char* assemblyName, const char* nameSpace, const char* className);
-    
-    // Get a method from a class
     MonoMethod* GetMethod(MonoClass* klass, const char* methodName, int paramCount);
     LPVOID GetMethodAddress(const char* assemblyName, const char* nameSpace, const char* className, const char* methodName, int paramCount);
     LPVOID GetMethodAddress(const char* assemblyName, const char* nameSpace, const char* className, const char* methodName, int paramCount, const char* returnType, const char** paramTypes);
-
-    // Invoke a method
     MonoObject* InvokeMethod(MonoMethod* method, void* obj, void** params);
-    
-    // Get a field from a class
     MonoField* GetField(MonoClass* klass, const char* fieldName);
-    
-    // Get a field value
     template<typename T>
     T GetFieldValue(MonoObject* obj, MonoField* field);
-    
-    // Get a static field value
     template<typename T>
     T GetStaticFieldValue(MonoClass* klass, MonoField* field);
-    
-    // Create a MonoString
     MonoString* CreateString(const char* text);
-    
-    // Convert MonoString to C++ string
     std::string StringToUtf8(MonoString* monoString);
-    
-    // Get a property
     MonoProperty* GetProperty(MonoClass* klass, const char* propertyName);
-    
-    // Get a property's getter method
     MonoMethod* GetPropertyGetMethod(MonoProperty* prop);
-    
-    // Get a property's setter method
     MonoMethod* GetPropertySetMethod(MonoProperty* prop);
-    
-    // Get the root domain
     MonoDomain* GetRootDomain() const;
+    int GetArrayLength(MonoArray* array);
+    MonoClass* GetObjectClass(MonoObject* obj);
 };
 
 // Template method implementations

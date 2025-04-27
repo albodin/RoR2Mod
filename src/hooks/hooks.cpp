@@ -99,6 +99,7 @@ void Hooks::Init() {
     HOOK(UnityEngine.CoreModule, UnityEngine, Cursor, set_lockState, 1, "System.Void", {"UnityEngine.CursorLockMode"});
     HOOK(UnityEngine.CoreModule, UnityEngine, Cursor, set_visible, 1, "System.Void", {"System.Boolean"});
     HOOK(RoR2, RoR2, LocalUser, RebuildControlChain, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, Inventory, HandleInventoryChanged, 0, "System.Void", {});
     
 
     for (auto& target: hookTargets) {
@@ -112,6 +113,28 @@ void Hooks::Init() {
     }
 
     G::gameFunctions = new GameFunctions(G::g_monoRuntime);
+    int itemCount = -1;
+    do {
+        itemCount = G::gameFunctions->LoadItems();
+        Sleep(2000);
+    } while (itemCount == -1);
+    G::logger.LogInfo("Items loaded successfully");
+
+    std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
+    for (auto& item: G::items) {
+        G::logger.LogInfo("Item: " + item.displayName + ", name: " + item.name + ", index: " + std::to_string(item.index) + ", tier: " + std::to_string((int)item.tier) +
+                          ", nameToken: " + item.nameToken + ", pickupToken: " + item.pickupToken +
+                          ", descriptionToken: " + item.descriptionToken + ", loreToken: " + item.loreToken + ", tierName: " + item.tierName + ", isDroppable: " + std::to_string(item.isDroppable) +
+                          ", canScrap: " + std::to_string(item.canScrap) + ", canRestack: " + std::to_string(item.canRestack) +
+                          ", canRemove: " + std::to_string(item.canRemove) + ", isConsumed: " + std::to_string(item.isConsumed) +
+                          ", hidden: " + std::to_string(item.hidden) + ", tags: " + std::to_string(item.tags.size()));
+        for (auto& tag: item.tags) {
+            G::logger.LogInfo("Tag: " + std::to_string(tag));
+        }
+        G::logger.LogInfo("-----------------------------------------------------");
+    }
+    G::itemStacks.resize(itemCount);
+    G::hooksInitialized = true;
 }
 
 void Hooks::Unhook() {
@@ -138,6 +161,7 @@ void Hooks::Unhook() {
 void Hooks::hkRoR2RoR2ApplicationUpdate(void* instance) {
     static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2RoR2ApplicationUpdate"]);
     originalFunc(instance);
+    std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
     for (; !G::queuedActions.empty(); G::queuedActions.pop()) {
         auto action = G::queuedActions.front();
         action();
@@ -199,12 +223,36 @@ void Hooks::hkRoR2LocalUserRebuildControlChain(void* instance) {
     localUser_ptr->cachedBody_backing->baseCrit = G::baseCrit;
     localUser_ptr->cachedBody_backing->baseJumpCount = G::baseJumpCount;
 
-    //const int items_count = 122;
-    //for (int i = 0; i < items_count; i++) {
-    //    localUser_ptr->cachedBody_backing->inventory_backing->itemStacks[i] = 100;
-    //}
+    if (!localUser_ptr->cachedBody_backing->inventory_backing) {
+        return;
+    }
+    G::localInventory_cached = localUser_ptr->cachedBody_backing->inventory_backing;
+
+    std::unique_lock<std::mutex> lock(G::queuedGiveItemsMutex);
+    int* arrayData = (int*)(localUser_ptr->cachedBody_backing->inventory_backing->itemStacks + 8); // Adjusted offset of array with header
+    for (; !G::queuedGiveItems.empty(); G::queuedGiveItems.pop()) {
+        auto item = G::queuedGiveItems.front();
+        int itemIndex = std::get<0>(item);
+        int count = std::get<1>(item) - arrayData[itemIndex];
+        G::gameFunctions->Inventory_GiveItem(localUser_ptr->cachedBody_backing->inventory_backing, itemIndex, count);
+    }
 }
 
+void Hooks::hkRoR2InventoryHandleInventoryChanged(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2InventoryHandleInventoryChanged"]);
+    originalFunc(instance);
+
+    Inventory* inventory_ptr = (Inventory*)instance;
+    if (!inventory_ptr->itemStacks || instance != G::localInventory_cached) {
+        return;
+    }
+    
+    std::unique_lock<std::shared_mutex> lock(G::itemsMutex);
+    int* arrayData = (int*)(inventory_ptr->itemStacks + 8); // Adjusted offset of array with header
+    for (int i = 0; i < G::itemStacks.size(); i++) {
+        G::itemStacks[i] = arrayData[i];
+    }
+}
 
 LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
@@ -251,7 +299,7 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
     ImGuiIO& io = ImGui::GetIO();
     io.MouseDrawCursor = G::showMenu;
 
-    if (ImGui::IsKeyPressed(ImGuiKey_Insert)) {
+    if (ImGui::IsKeyPressed(ImGuiKey_Insert) && G::hooksInitialized) {
         G::showMenu = !G::showMenu;
         if (G::showMenu) {
             G::gameFunctions->Cursor_SetLockState(2); // CursorLockMode.Confined
@@ -272,7 +320,12 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
         window_flags |= ImGuiWindowFlags_NoMove;
         ImGui::SetNextWindowBgAlpha(0.35f);
         ImGui::Begin("Watermark", 0, window_flags);
-        ImGui::Text("RoR2Mod V1.0");
+        if (G::hooksInitialized) {
+            ImGui::Text("RoR2Mod V1.0");
+        }
+        else {
+            ImGui::Text("RoR2Mod V1.0 - NOT READY");
+        }
         ImGui::End();
 
         if (G::showMenu)

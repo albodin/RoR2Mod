@@ -143,7 +143,71 @@ enum class HullClassification : int32_t {
     Count = 3,
 };
 
+enum class ItemTier
+{
+    Tier1 = 0,
+    Tier2 = 1,
+    Tier3 = 2,
+    Lunar = 3,
+    Boss = 4,
+    NoTier = 5,
+    VoidTier1 = 6,
+    VoidTier2 = 7,
+    VoidTier3 = 8,
+    VoidBoss = 9,
+    AssignedAtRuntime = 10,
+};
+
+enum class ItemTag
+{
+    Any = 0,
+    Damage = 1,
+    Healing = 2,
+    Utility = 3,
+    AIBlacklist = 4,
+    Cleansable = 5,
+    OnKillEffect = 6,
+    EquipmentRelated = 7,
+    SprintRelated = 8,
+    WorldUnique = 9,
+    Scrap = 10,
+    BrotherBlacklist = 11,
+    CannotSteal = 12,
+    CannotCopy = 13,
+    PriorityScrap = 14,
+    CannotDuplicate = 15,
+    LowHealth = 16,
+    HoldoutZoneRelated = 17,
+    InteractableRelated = 18,
+    ObliterationRelated = 19,
+    OnStageBeginEffect = 20,
+    HalcyoniteShrine = 21,
+    RebirthBlacklist = 22,
+    DevotionBlacklist = 23,
+    SacrificeBlacklist = 24,
+    Count = 25,
+};
+
 /* No Header Structs */
+
+struct RoR2Item {
+    int index;
+    std::string displayName;
+    std::string name;
+    std::string nameToken;
+    std::string pickupToken;
+    std::string descriptionToken;
+    std::string loreToken;
+    ItemTier tier;
+    std::string tierName;
+    bool isDroppable;
+    bool canScrap;
+    bool canRestack;
+    bool canRemove;
+    bool isConsumed;
+    bool hidden;
+    std::vector<int> tags;
+};
 
 struct Vector2 {
     float x;
@@ -383,7 +447,7 @@ struct EquipmentState {
 // Generated from RoR2.Inventory
 struct Inventory {
     char padding0[48]; // Padding
-    int* itemStacks; // Offset: 48
+    int32_t* itemStacks; // Offset: 48
     void* itemAcquisitionOrder; // Offset: 56
     Action* onInventoryChanged; // Offset: 64
     Action* onEquipmentExternalRestockServer; // Offset: 72

@@ -4,16 +4,19 @@
 #include <dxgi.h>
 #include <queue>
 #include <functional>
+#include <shared_mutex>
 
 #include "core/MonoRuntime.h"
 #include "game/GameFunctions.h"
 #include "utils/Logger.h"
+#include "game/GameStructs.h"
 
 typedef long(__stdcall* Present)(IDXGISwapChain*, UINT, UINT);
 
 namespace G {
     extern bool running;
     extern bool initialized;
+    extern bool hooksInitialized;
     extern bool showMenu;
     extern MonoRuntime* g_monoRuntime;
     extern HMODULE hModule;
@@ -26,7 +29,16 @@ namespace G {
     extern HWND windowHwnd;
     extern Logger logger;
     extern GameFunctions* gameFunctions;
+
+    extern std::mutex queuedActionsMutex;
     extern std::queue<std::function<void()>> queuedActions;
+
+    extern void* localInventory_cached;
+    extern std::mutex queuedGiveItemsMutex;
+    extern std::queue<std::tuple<int, int>> queuedGiveItems;
+    extern std::shared_mutex itemsMutex;
+    extern std::vector<RoR2Item> items;
+    extern std::vector<int> itemStacks;
 
     extern bool godMode;
     extern float baseMoveSpeed;
