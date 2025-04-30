@@ -13,6 +13,7 @@ GameFunctions::GameFunctions(MonoRuntime* runtime) {
     m_itemTierDefClass = runtime->GetClass("Assembly-CSharp", "RoR2", "ItemTierDef");
     m_inventoryClass = runtime->GetClass("Assembly-CSharp", "RoR2", "Inventory");
     m_languageClass = runtime->GetClass("Assembly-CSharp", "RoR2", "Language");
+    m_RoR2ApplicationClass = runtime->GetClass("Assembly-CSharp", "RoR2", "RoR2Application");
 }
 
 
@@ -294,4 +295,40 @@ void GameFunctions::Inventory_GiveItem(void* m_inventory, int itemIndex, int cou
     };
     std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
     G::queuedActions.push(task);
+}
+
+bool GameFunctions::RoR2Application_IsLoading() {
+    if (!m_RoR2ApplicationClass) return false;
+
+    MonoMethod* method = m_runtime->GetMethod(m_RoR2ApplicationClass, "get_isLoading", 0);
+    if (!method) {
+        G::logger.LogError("Failed to find get_isLoading method");
+        return false;
+    }
+
+    MonoObject* result = m_runtime->InvokeMethod(method, nullptr, nullptr);
+    if (!result) {
+        G::logger.LogError("Failed to get loading state");
+        return false;
+    }
+
+    return *(bool*)m_runtime->m_mono_object_unbox(result);
+}
+
+bool GameFunctions::RoR2Application_IsLoadFinished() {
+    if (!m_RoR2ApplicationClass) return false;
+
+    MonoMethod* method = m_runtime->GetMethod(m_RoR2ApplicationClass, "get_loadFinished", 0);
+    if (!method) {
+        G::logger.LogError("Failed to find get_loadFinished method");
+        return false;
+    }
+
+    MonoObject* result = m_runtime->InvokeMethod(method, nullptr, nullptr);
+    if (!result) {
+        G::logger.LogError("Failed to get load finished state");
+        return false;
+    }
+
+    return *(bool*)m_runtime->m_mono_object_unbox(result);
 }

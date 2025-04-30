@@ -122,20 +122,22 @@ DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Transform, get_positio
                    void* transform, Vector3* outPosition);
 
 void Hooks::Init() {
+    G::g_monoRuntime = new MonoRuntime();
+    while (!G::g_monoRuntime->Initialize()) {
+        Sleep(100);
+    }
+    G::gameFunctions = new GameFunctions(G::g_monoRuntime);
+    while (G::gameFunctions->RoR2Application_IsLoading() && !G::gameFunctions->RoR2Application_IsLoadFinished()) {
+        G::logger.LogInfo("Waiting for RoR2 to load...");
+        Sleep(1000);
+    }
+
     bool hooked = false;
-    while (!hooked)
-    {
-        if (kiero::init(kiero::RenderType::D3D11) == kiero::Status::Success)
-        {
+    while (!hooked) {
+        if (kiero::init(kiero::RenderType::D3D11) == kiero::Status::Success) {
             kiero::bind(8, (void**)&G::oPresent, (void*)hkPresent11);
             hooked = true;
         }
-    }
-
-    G::g_monoRuntime = new MonoRuntime();
-    while (!G::g_monoRuntime->Initialize())
-    {
-        Sleep(100);
     }
 
     HOOK(RoR2, RoR2, RoR2Application, Update, 0, "System.Void", {});
@@ -167,7 +169,6 @@ void Hooks::Init() {
         func();
     }
 
-    G::gameFunctions = new GameFunctions(G::g_monoRuntime);
     int itemCount = -1;
     do {
         itemCount = G::gameFunctions->LoadItems();

@@ -15,6 +15,7 @@ private:
     MonoClass* m_itemTierDefClass;
     MonoClass* m_inventoryClass;
     MonoClass* m_languageClass;
+    MonoClass* m_RoR2ApplicationClass;
 
 public:
     GameFunctions(MonoRuntime* runtime);
@@ -26,4 +27,6 @@ public:
     std::string Language_GetString(MonoString* token);
     int LoadItems();
     void Inventory_GiveItem(void* m_inventory, int itemIndex, int count);
+    bool RoR2Application_IsLoading();
+    bool RoR2Application_IsLoadFinished();
 };

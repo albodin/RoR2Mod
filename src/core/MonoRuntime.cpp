@@ -22,7 +22,7 @@ void __cdecl MonoRuntime::AssemblyIterationCallback(MonoAssembly* assembly, void
     self->m_imageCache[imageName] = image;
     
     // Debug output
-    G::logger.LogInfo("Found assembly: %s", imageName);
+    //G::logger.LogInfo("Found assembly: %s", imageName);
 }
 
 bool MonoRuntime::Initialize(const char* monoDllName) {
@@ -91,7 +91,7 @@ bool MonoRuntime::Initialize(const char* monoDllName) {
         return false;
     }
     
-    G::logger.LogInfo("Root domain: 0x%p\n", m_rootDomain);
+    G::logger.LogInfo("Root domain: 0x%p", m_rootDomain);
 
     // Attach the current thread to the Mono runtime
     if (!AttachThread()) {
