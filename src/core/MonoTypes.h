@@ -52,3 +52,4 @@ typedef int (__cdecl *mono_field_get_offset_t)(MonoField* field);
 typedef MonoField* (__cdecl *mono_class_get_fields_t)(MonoClass* klass, void** iter);
 typedef const char* (__cdecl *mono_field_get_name_t)(MonoField* field);
 typedef int (*mono_array_length_t)(MonoArray* array);
+typedef void* (*mono_lookup_internal_call_t)(MonoMethod* method);

@@ -42,6 +42,7 @@ private:
     mono_class_get_fields_t m_mono_class_get_fields;
     mono_field_get_name_t m_mono_field_get_name;
     mono_array_length_t m_mono_array_length;
+    mono_lookup_internal_call_t m_mono_lookup_internal_call;
 
     // Mono runtime state
     MonoDomain* m_rootDomain;
@@ -85,6 +86,7 @@ public:
     MonoDomain* GetRootDomain() const;
     int GetArrayLength(MonoArray* array);
     MonoClass* GetObjectClass(MonoObject* obj);
+    void* GetInternalCallPointer(MonoMethod* method);
 };
 
 // Template method implementations

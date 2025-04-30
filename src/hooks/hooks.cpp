@@ -9,10 +9,13 @@
 #include "menu/menu.h"
 #include "game/GameStructs.h"
 
+//#define DEBUG_PRINT
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam); 
 
 std::map<std::string, LPVOID> hooks;
 std::map<std::string, LPVOID> hookTargets;
+std::queue<std::pair<std::string, std::function<void()>>> internalCallInitQueue;
 
 bool CreateHook(
     const char* assemblyName,
@@ -53,7 +56,7 @@ bool CreateHook(
     if (!hook_success) {
         G::logger.LogError("Hook creation failed for " + std::string(assemblyName) + "::" +
                            std::string(nameSpace) + "::" + std::string(className) + "::" + std::string(methodName));
-        // G::running = false;
+        G::running = false;
         return false;
     }
     
@@ -74,6 +77,49 @@ bool CreateHook(
         G::logger.LogError(STRINGIFY(Failed to hook ns##class##method)); \
     } \
 }
+
+#define DECLARE_INTERNAL_CALL(ReturnType, Name, ...) \
+    typedef ReturnType (*Name##_fn)(__VA_ARGS__); \
+    extern Name##_fn Name
+
+#define DEFINE_INTERNAL_CALL(Assembly, Namespace, Class, Method, ParamCount, ReturnType, ...) \
+    typedef ReturnType (*Class##_##Method##_fn)(__VA_ARGS__); \
+    Class##_##Method##_fn Class##_##Method = nullptr; \
+    \
+    void Init##Class##_##Method() { \
+        if (Class##_##Method) return; \
+        \
+        MonoClass* klass = G::g_monoRuntime->GetClass(#Assembly, #Namespace, #Class); \
+        if (!klass) { \
+            G::logger.LogError("Failed to find class " #Namespace "." #Class); \
+            G::running = false; \
+            return; \
+        } \
+        \
+        MonoMethod* method = G::g_monoRuntime->GetMethod(klass, #Method, ParamCount); \
+        if (!method) { \
+            G::logger.LogError("Failed to find method " #Namespace "." #Class "::" #Method); \
+            G::running = false; \
+            return; \
+        } \
+        \
+        void* funcPtr = G::g_monoRuntime->GetInternalCallPointer(method); \
+        if (!funcPtr) { \
+            G::logger.LogError("Failed to get internal call pointer for " #Namespace "." #Class "::" #Method); \
+            G::running = false; \
+            return; \
+        } \
+        \
+        Class##_##Method = (Class##_##Method##_fn)funcPtr; \
+        G::logger.LogInfo("Successfully initialized " #Namespace "." #Class "::" #Method " at %p", funcPtr); \
+    } \
+    static const bool Class##_##Method##_registered = []() { \
+        internalCallInitQueue.push(std::make_pair(#Namespace "." #Class "::" #Method, Init##Class##_##Method)); \
+        return true; \
+    }()
+
+DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Transform, get_position_Injected, 1, void, 
+                   void* transform, Vector3* outPosition);
 
 void Hooks::Init() {
     bool hooked = false;
@@ -112,6 +158,15 @@ void Hooks::Init() {
         }
     }
 
+    G::logger.LogInfo("Initializing %zu internal calls", internalCallInitQueue.size());
+    while (!internalCallInitQueue.empty()) {
+        auto [name, func] = internalCallInitQueue.front();
+        internalCallInitQueue.pop();
+        
+        G::logger.LogInfo("Initializing internal call: %s", name.c_str());
+        func();
+    }
+
     G::gameFunctions = new GameFunctions(G::g_monoRuntime);
     int itemCount = -1;
     do {
@@ -120,6 +175,7 @@ void Hooks::Init() {
     } while (itemCount == -1);
     G::logger.LogInfo("Items loaded successfully");
 
+#ifdef DEBUG_PRINT
     std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
     for (auto& item: G::items) {
         G::logger.LogInfo("Item: " + item.displayName + ", name: " + item.name + ", index: " + std::to_string(item.index) + ", tier: " + std::to_string((int)item.tier) +
@@ -133,6 +189,7 @@ void Hooks::Init() {
         }
         G::logger.LogInfo("-----------------------------------------------------");
     }
+#endif // DEBUG_PRINT
     G::itemStacks.resize(itemCount);
     G::hooksInitialized = true;
 }

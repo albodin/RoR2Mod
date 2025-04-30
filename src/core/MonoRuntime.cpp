@@ -71,6 +71,7 @@ bool MonoRuntime::Initialize(const char* monoDllName) {
     GET_MONO_FUNC(mono_class_get_fields);
     GET_MONO_FUNC(mono_field_get_name);
     GET_MONO_FUNC(mono_array_length);
+    GET_MONO_FUNC(mono_lookup_internal_call);
     
     // These might not exist in all Mono versions, so don't fail if not found
     m_mono_free = reinterpret_cast<mono_free_t>(GetProcAddress(monoModule, "mono_free"));
@@ -289,4 +290,9 @@ int MonoRuntime::GetArrayLength(MonoArray* array) {
 MonoClass* MonoRuntime::GetObjectClass(MonoObject* obj) {
     if (!AttachThread() || !obj || !m_mono_object_get_class) return nullptr;
     return m_mono_object_get_class(obj);
+}
+
+void* MonoRuntime::GetInternalCallPointer(MonoMethod* method) {
+    if (!AttachThread() || !method || !m_mono_lookup_internal_call) return nullptr;
+    return m_mono_lookup_internal_call(method);
 }
