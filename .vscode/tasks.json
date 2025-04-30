@@ -12,9 +12,15 @@
             }
         },
         {
+            "label": "Clean",
+            "type": "shell",
+            "command": "cd build && cmake --build . --target clean",
+            "problemMatcher": []
+        },
+        {
             "label": "Build All",
             "type": "shell",
-            "command": "cd build && cmake --build .",
+            "command": "cd build && cmake --build . -- -j$(nproc)",
             "problemMatcher": [
                 "$gcc"
             ],
