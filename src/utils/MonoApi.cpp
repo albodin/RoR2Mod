@@ -39,6 +39,13 @@ bool MonoAPI::Initialize(const std::string& monoDllPath) {
     m_mono_class_get_image = (mono_class_get_image_fn)GetProcAddress(monoModule, "mono_class_get_image");
     m_mono_field_get_flags = (mono_field_get_flags_fn)GetProcAddress(monoModule, "mono_field_get_flags");
     m_mono_thread_attach = (mono_thread_attach_fn)GetProcAddress(monoModule, "mono_thread_attach");
+    m_mono_class_get_methods = (mono_class_get_methods_fn)GetProcAddress(monoModule, "mono_class_get_methods");
+    m_mono_method_get_name = (mono_method_get_name_fn)GetProcAddress(monoModule, "mono_method_get_name");
+    m_mono_method_signature = (mono_method_signature_fn)GetProcAddress(monoModule, "mono_method_signature");
+    m_mono_signature_get_param_count = (mono_signature_get_param_count_fn)GetProcAddress(monoModule, "mono_signature_get_param_count");
+    m_mono_signature_get_return_type = (mono_signature_get_return_type_fn)GetProcAddress(monoModule, "mono_signature_get_return_type");
+    m_mono_signature_get_params = (mono_signature_get_params_fn)GetProcAddress(monoModule, "mono_signature_get_params");
+    m_mono_method_get_flags = (mono_method_get_flags_fn)GetProcAddress(monoModule, "mono_method_get_flags");
 
     G::logger.LogInfo("mono_get_root_domain: 0x%p", m_mono_get_root_domain);
     G::logger.LogInfo("mono_domain_assembly_open: 0x%p", m_mono_domain_assembly_open);
@@ -60,6 +67,13 @@ bool MonoAPI::Initialize(const std::string& monoDllPath) {
     G::logger.LogInfo("mono_class_get_image: 0x%p", m_mono_class_get_image);
     G::logger.LogInfo("mono_field_get_flags: 0x%p", m_mono_field_get_flags);
     G::logger.LogInfo("mono_thread_attach: 0x%p", m_mono_thread_attach);
+    G::logger.LogInfo("mono_class_get_methods: 0x%p", m_mono_class_get_methods);
+    G::logger.LogInfo("mono_method_get_name: 0x%p", m_mono_method_get_name);
+    G::logger.LogInfo("mono_method_signature: 0x%p", m_mono_method_signature);
+    G::logger.LogInfo("mono_signature_get_param_count: 0x%p", m_mono_signature_get_param_count);
+    G::logger.LogInfo("mono_signature_get_return_type: 0x%p", m_mono_signature_get_return_type);
+    G::logger.LogInfo("mono_signature_get_params: 0x%p", m_mono_signature_get_params);
+    G::logger.LogInfo("mono_method_get_flags: 0x%p", m_mono_method_get_flags);
 
     // Check if all required functions were loaded
     return m_mono_get_root_domain && m_mono_domain_assembly_open && m_mono_assembly_get_image && 
@@ -68,7 +82,9 @@ bool MonoAPI::Initialize(const std::string& monoDllPath) {
            m_mono_domain_assembly_foreach && m_mono_image_get_name && m_mono_image_get_table_info &&
            m_mono_table_info_get_rows && m_mono_class_get && m_mono_class_get_name && 
            m_mono_class_get_namespace && m_mono_type_get_class && m_mono_class_get_image &&
-           m_mono_field_get_flags && m_mono_thread_attach;
+           m_mono_field_get_flags && m_mono_thread_attach && m_mono_class_get_methods &&
+           m_mono_method_get_name && m_mono_method_signature &&m_mono_signature_get_param_count &&
+           m_mono_signature_get_return_type && m_mono_signature_get_params && m_mono_method_get_flags;
 }
 
 void __cdecl MonoAPI::AssemblyIterationCallback(void* assembly, void* user_data) {
@@ -137,7 +153,14 @@ std::string MonoAPI::GetCppTypeFromMonoType(void* type) {
         case MONO_TYPE_GENERICINST: return "MONO_TYPE_GENERICINST"; // Need type args
         case MONO_TYPE_TYPEDBYREF: return "MONO_TYPE_TYPEDBYREF"; // Custom struct
         case MONO_TYPE_FNPTR: return "MONO_TYPE_FNPTR"; // Generic function pointer, needs signature
-        default: return "/* Unknown type */";
+        case MONO_TYPE_MVAR: return "MONO_TYPE_MVAR";
+        case MONO_TYPE_CMOD_REQD: return "MONO_TYPE_CMOD_REQD";
+        case MONO_TYPE_CMOD_OPT: return "MONO_TYPE_CMOD_OPT";
+        case MONO_TYPE_INTERNAL: return "MONO_TYPE_INTERNAL";
+        case MONO_TYPE_MODIFIER: return "MONO_TYPE_MODIFIER";
+        case MONO_TYPE_SENTINEL: return "MONO_TYPE_SENTINEL";
+        case MONO_TYPE_PINNED: return "MONO_TYPE_PINNED";
+        default: return "UNKNOWN_ENUM_" + std::to_string(type_enum);
     }
 }
 
@@ -401,6 +424,117 @@ size_t MonoAPI::GetClassSizeByName(const std::string& className, const std::stri
     return 8;
 }
 
+bool MonoAPI::IsInternalOrExternalMethod(void* method) {
+    if (!method || !m_mono_method_get_flags) {
+        return false;
+    }
+    
+    uint32_t iflags = 0;
+    uint32_t flags = 0;
+    
+    try {
+        flags = m_mono_method_get_flags(method, &iflags);
+    }
+    catch (...) {
+        G::logger.LogError("Exception getting method flags");
+        return false;
+    }
+    
+    // Method attribute flags
+    // 0x0800 = METHOD_ATTRIBUTE_PINVOKE_IMPL (external method)
+    // 0x1000 = METHOD_ATTRIBUTE_ICALL (internal call)
+    bool isExternal = (flags & 0x0800) != 0;
+    bool isInternal = (flags & 0x1000) != 0;
+    
+    return isExternal || isInternal;
+}
+
+std::string MonoAPI::GetMethodSignature(void* method) {
+    if (!method || !m_mono_method_get_name || !m_mono_method_signature) {
+        return "unknown()";
+    }
+    
+    const char* methodName = m_mono_method_get_name(method);
+    void* signature = m_mono_method_signature(method);
+    if (!signature) {
+        return std::string(methodName) + "()";
+    }
+    
+    void* returnType = m_mono_signature_get_return_type(signature);
+    std::string returnTypeName = GetCppTypeFromMonoType(returnType);
+    
+    int paramCount = m_mono_signature_get_param_count(signature);
+    std::string signatureStr = returnTypeName + " " + methodName + "(";
+    
+    void* iter = nullptr;
+    for (int i = 0; i < paramCount; i++) {
+        void* paramType = m_mono_signature_get_params(signature, &iter);
+        std::string paramTypeName = GetCppTypeFromMonoType(paramType);
+        
+        signatureStr += paramTypeName;
+        signatureStr += " param" + std::to_string(i);
+        
+        if (i < paramCount - 1) {
+            signatureStr += ", ";
+        }
+    }
+    
+    signatureStr += ")";
+    return signatureStr;
+}
+
+void MonoAPI::ExtractMethodInformation(void* klass, std::ofstream& file) {
+    if (!klass || !m_mono_class_get_methods || !m_mono_method_get_name) {
+        return;
+    }
+    
+    const char* className = nullptr;
+    try {
+        className = m_mono_class_get_name(klass);
+        if (!className) className = "UnknownClass";
+    }
+    catch (...) {
+        G::logger.LogError("Exception getting class name");
+        return;
+    }
+    
+    G::logger.LogInfo("Extracting methods for class: %s", className);
+    
+    file << "// Method signatures for " << className << std::endl;
+    file << "/*" << std::endl;
+    
+    try {
+        void* iter = nullptr;
+        void* method = nullptr;
+        
+        while ((method = m_mono_class_get_methods(klass, &iter))) {
+            try {
+                const char* methodName = m_mono_method_get_name(method);
+                if (!methodName) methodName = "unnamed_method";
+                
+                std::string signature = GetMethodSignature(method);
+                file << "    " << signature << ";";
+                
+                bool isNative = IsInternalOrExternalMethod(method);
+                if (isNative) {
+                    file << " // Native method (internal call or P/Invoke)";
+                }
+                file << std::endl;
+            }
+            catch (...) {
+                G::logger.LogError("Exception processing method");
+                file << "    // Error processing method" << std::endl;
+            }
+        }
+    }
+    catch (...) {
+        G::logger.LogError("Exception in method extraction for %s", className);
+        file << "    // Fatal error in method extraction" << std::endl;
+    }
+    
+    file << "*/" << std::endl << std::endl;
+}
+
 void MonoAPI::GenerateStructFromClass(void* klass, std::ofstream& file, std::set<std::string>& requiredIncludes) {
     if (!klass || !m_mono_class_get_name || !m_mono_class_get_namespace || !m_mono_class_get_fields) {
         return;
@@ -601,6 +735,9 @@ void MonoAPI::DumpAllClassesToStructs(const std::string& outputDir) {
         }
     }
 
+    m_assemblies.clear();
+    m_mono_domain_assembly_foreach(domain, (void (*)(void*, void*))(AssemblyIterationCallback), this);
+
     BuildClassSizeMap();
 
     // Maps to store assembly-specific details
@@ -648,6 +785,7 @@ void MonoAPI::DumpAllClassesToStructs(const std::string& outputDir) {
         for (void* klass : classes) {
             std::set<std::string> requiredIncludes;
             GenerateStructFromClass(klass, file, requiredIncludes);
+            ExtractMethodInformation(klass, file);
             
             // Add dependencies to the assembly
             for (const auto& include : requiredIncludes) {

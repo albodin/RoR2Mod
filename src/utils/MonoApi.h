@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <list>
 #include <set>
+#include <cstdint>
 
 class MonoAPI {
 private:
@@ -40,6 +41,13 @@ private:
     typedef void* (*mono_class_get_image_fn)(void* klass);
     typedef int (*mono_field_get_flags_fn)(void* field);
     typedef void* (*mono_thread_attach_fn)(void* domain);
+    typedef void* (*mono_class_get_methods_fn)(void* klass, void** iter);
+    typedef const char* (*mono_method_get_name_fn)(void* method);
+    typedef void* (*mono_method_signature_fn)(void* method);
+    typedef int (*mono_signature_get_param_count_fn)(void* sig);
+    typedef void* (*mono_signature_get_return_type_fn)(void* sig);
+    typedef void* (*mono_signature_get_params_fn)(void* sig, void** iter);
+    typedef uint32_t (*mono_method_get_flags_fn)(void* method, uint32_t* iflags);
 
     // Function pointers
     mono_get_root_domain_fn m_mono_get_root_domain = nullptr;
@@ -62,6 +70,13 @@ private:
     mono_class_get_image_fn m_mono_class_get_image = nullptr;
     mono_field_get_flags_fn m_mono_field_get_flags = nullptr;
     mono_thread_attach_fn m_mono_thread_attach = nullptr;
+    mono_class_get_methods_fn m_mono_class_get_methods = nullptr;
+    mono_method_get_name_fn m_mono_method_get_name = nullptr;
+    mono_method_signature_fn m_mono_method_signature = nullptr;
+    mono_signature_get_param_count_fn m_mono_signature_get_param_count = nullptr;
+    mono_signature_get_return_type_fn m_mono_signature_get_return_type = nullptr;
+    mono_signature_get_params_fn m_mono_signature_get_params = nullptr;
+    mono_method_get_flags_fn m_mono_method_get_flags = nullptr;
 
     // Mono type enum values
     enum MonoTypeEnum {
@@ -127,6 +142,9 @@ public:
     size_t CalculateClassSize(void* klass);
     void BuildClassSizeMap();
     size_t GetClassSizeByName(const std::string& className, const std::string& namespaceName = "");
+    bool IsInternalOrExternalMethod(void* method);
+    void ExtractMethodInformation(void* klass, std::ofstream& file);
+    std::string GetMethodSignature(void* method);
     void GenerateStructFromClass(void* klass, std::ofstream& file, std::set<std::string>& requiredIncludes);
     void DumpAllClassesToStructs(const std::string& outputDir);
 };
