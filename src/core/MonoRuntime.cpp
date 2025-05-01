@@ -53,6 +53,7 @@ bool MonoRuntime::Initialize(const char* monoDllName) {
     GET_MONO_FUNC(mono_class_get_field_from_name);
     GET_MONO_FUNC(mono_field_get_value);
     GET_MONO_FUNC(mono_field_static_get_value);
+    GET_MONO_FUNC(mono_field_static_set_value);
     GET_MONO_FUNC(mono_string_new);
     GET_MONO_FUNC(mono_string_to_utf8);
     GET_MONO_FUNC(mono_thread_attach);

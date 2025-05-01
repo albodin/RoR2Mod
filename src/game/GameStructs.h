@@ -386,6 +386,14 @@ struct HealthComponent_ItemCounts {
     int32_t unstableTransmitter;
 };
 
+struct KeyValueSplitter_Value {
+    void* baseKey;
+    int32_t maxKeyLength;
+    int32_t maxValueLength;
+    void* currentSubKeys;
+    void* keyValueSetter;
+};
+
 /* Normal Class Objects with headers */
 
 // Generated from RoR2.HealthComponent
@@ -934,6 +942,26 @@ struct LocalUser {
     void* onNetworkUserFound; // Offset: 144
     void* onNetworkUserLost; // Offset: 152
     int32_t id; // Offset: 160
+};
+
+// Generated from RoR2.RuleBook
+struct RuleBook {
+    char padding0[16]; // Padding
+    byte* ruleValues; // Offset: 16
+};
+
+// Generated from RoR2.ServerManagerBase`1
+struct ServerManagerBase {
+    char padding0[32]; // Padding
+    void* collectAdditionalTags; // Offset: 32
+    void* tags; // Offset: 40
+    RuleBook* currentRuleBook; // Offset: 48
+    KeyValueSplitter_Value ruleBookKvHelper; // Offset: 56
+    KeyValueSplitter_Value modListKvHelper; // Offset: 88
+    bool disposed; // Offset: 120
+    char padding6[3]; // Padding
+    float playerUpdateTimer; // Offset: 124
+    float playerUpdateInterval; // Offset: 128
 };
 
 #pragma pack(pop)

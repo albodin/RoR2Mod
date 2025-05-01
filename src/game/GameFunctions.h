@@ -29,4 +29,7 @@ public:
     void Inventory_GiveItem(void* m_inventory, int itemIndex, int count);
     bool RoR2Application_IsLoading();
     bool RoR2Application_IsLoadFinished();
+    bool RoR2Application_IsModded();
+    void RoR2Application_SetModded(bool modded);
+    int RoR2Application_GetLoadGameContentPercentage();
 };

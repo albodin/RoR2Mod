@@ -332,3 +332,56 @@ bool GameFunctions::RoR2Application_IsLoadFinished() {
 
     return *(bool*)m_runtime->m_mono_object_unbox(result);
 }
+
+bool GameFunctions::RoR2Application_IsModded() {
+    if (!m_RoR2ApplicationClass) return false;
+
+    MonoField* field = m_runtime->GetField(m_RoR2ApplicationClass, "isModded");
+    if (!field) {
+        G::logger.LogError("Failed to find isModded field");
+        return false;
+    }
+    bool isModded = m_runtime->GetStaticFieldValue<bool>(m_RoR2ApplicationClass, field);
+    return isModded;
+}
+
+void GameFunctions::RoR2Application_SetModded(bool modded) {
+    if (!m_RoR2ApplicationClass) return;
+
+    MonoField* field = m_runtime->GetField(m_RoR2ApplicationClass, "isModded");
+    if (!field) {
+        G::logger.LogError("Failed to find isModded field");
+        return;
+    }
+    m_runtime->SetStaticFieldValue<bool>(m_RoR2ApplicationClass, field, modded);
+}
+
+int GameFunctions::RoR2Application_GetLoadGameContentPercentage() {
+    if (!m_RoR2ApplicationClass) return 0;
+
+    MonoProperty* instanceProperty = m_runtime->GetProperty(m_RoR2ApplicationClass, "instance");
+    if (!instanceProperty) {
+        G::logger.LogError("Failed to find instance property in RoR2Application");
+        return 0;
+    }
+    
+    MonoMethod* getInstanceMethod = m_runtime->GetPropertyGetMethod(instanceProperty);
+    if (!getInstanceMethod) {
+        G::logger.LogError("Failed to get instance getter method");
+        return 0;
+    }
+    
+    MonoObject* instance = m_runtime->InvokeMethod(getInstanceMethod, nullptr, nullptr);
+    if (!instance) {
+        G::logger.LogError("Failed to get RoR2Application instance");
+        return 0;
+    }
+    
+    MonoField* percentageField = m_runtime->GetField(m_RoR2ApplicationClass, "loadGameContentPercentage");
+    if (!percentageField) {
+        G::logger.LogError("Failed to find loadGameContentPercentage field");
+        return 0;
+    }
+    
+    return m_runtime->GetFieldValue<int>(instance, percentageField);
+}

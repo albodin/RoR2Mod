@@ -30,6 +30,7 @@ typedef MonoObject* (__cdecl *mono_runtime_invoke_t)(MonoMethod* method, void* o
 typedef MonoField* (__cdecl *mono_class_get_field_from_name_t)(MonoClass* klass, const char* name);
 typedef void (__cdecl *mono_field_get_value_t)(MonoObject* obj, MonoField* field, void* value);
 typedef void (__cdecl *mono_field_static_get_value_t)(MonoVTable* vt, MonoField* field, void* value);
+typedef void (__cdecl *mono_field_static_set_value_t)(MonoVTable* vt, MonoField* field, void* value);
 typedef MonoString* (__cdecl *mono_string_new_t)(MonoDomain* domain, const char* text);
 typedef char* (__cdecl *mono_string_to_utf8_t)(MonoString* string_obj);
 typedef void (__cdecl *mono_free_t)(void* ptr);

@@ -8,6 +8,7 @@
 #include "minhook/include/MinHook.h"
 #include "menu/menu.h"
 #include "game/GameStructs.h"
+#include "core/MonoList.h"
 
 //#define DEBUG_PRINT
 
@@ -56,7 +57,6 @@ bool CreateHook(
     if (!hook_success) {
         G::logger.LogError("Hook creation failed for " + std::string(assemblyName) + "::" +
                            std::string(nameSpace) + "::" + std::string(className) + "::" + std::string(methodName));
-        G::running = false;
         return false;
     }
     
@@ -75,6 +75,7 @@ bool CreateHook(
     } \
     else { \
         G::logger.LogError(STRINGIFY(Failed to hook ns##class##method)); \
+        G::running = false; \
     } \
 }
 
@@ -127,7 +128,8 @@ void Hooks::Init() {
         Sleep(100);
     }
     G::gameFunctions = new GameFunctions(G::g_monoRuntime);
-    while (G::gameFunctions->RoR2Application_IsLoading() && !G::gameFunctions->RoR2Application_IsLoadFinished()) {
+    while (G::gameFunctions->RoR2Application_IsLoading() && !G::gameFunctions->RoR2Application_IsLoadFinished() &&
+            G::gameFunctions->RoR2Application_GetLoadGameContentPercentage() < 10) {
         G::logger.LogInfo("Waiting for RoR2 to load...");
         Sleep(1000);
     }
@@ -148,6 +150,7 @@ void Hooks::Init() {
     HOOK(UnityEngine.CoreModule, UnityEngine, Cursor, set_visible, 1, "System.Void", {"System.Boolean"});
     HOOK(RoR2, RoR2, LocalUser, RebuildControlChain, 0, "System.Void", {});
     HOOK(RoR2, RoR2, Inventory, HandleInventoryChanged, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, SteamworksServerManager, TagsStringUpdated, 0, "System.Void", {});
     
 
     for (auto& target: hookTargets) {
@@ -193,6 +196,9 @@ void Hooks::Init() {
 #endif // DEBUG_PRINT
     G::itemStacks.resize(itemCount);
     G::hooksInitialized = true;
+
+    G::gameFunctions->RoR2Application_SetModded(true);
+    G::logger.LogInfo("Modded: " + std::to_string(G::gameFunctions->RoR2Application_IsModded()));
 }
 
 void Hooks::Unhook() {
@@ -309,6 +315,17 @@ void Hooks::hkRoR2InventoryHandleInventoryChanged(void* instance) {
     int* arrayData = (int*)(inventory_ptr->itemStacks + 8); // Adjusted offset of array with header
     for (int i = 0; i < G::itemStacks.size(); i++) {
         G::itemStacks[i] = arrayData[i];
+    }
+}
+
+void Hooks::hkRoR2SteamworksServerManagerTagsStringUpdated(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2SteamworksServerManagerTagsStringUpdated"]);
+    originalFunc(instance);
+
+    ServerManagerBase* serverManager_ptr = (ServerManagerBase*)instance;
+    if (serverManager_ptr && serverManager_ptr->tags) {
+        MonoList list((MonoObject*)serverManager_ptr->tags);
+        list.AddItem("ror2mod");
     }
 }
 

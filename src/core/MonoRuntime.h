@@ -20,6 +20,7 @@ private:
     mono_class_get_field_from_name_t m_mono_class_get_field_from_name;
     mono_field_get_value_t m_mono_field_get_value;
     mono_field_static_get_value_t m_mono_field_static_get_value;
+    mono_field_static_set_value_t m_mono_field_static_set_value;
     mono_string_new_t m_mono_string_new;
     mono_string_to_utf8_t m_mono_string_to_utf8;
     mono_free_t m_mono_free;
@@ -78,6 +79,8 @@ public:
     T GetFieldValue(MonoObject* obj, MonoField* field);
     template<typename T>
     T GetStaticFieldValue(MonoClass* klass, MonoField* field);
+    template<typename T>
+    void SetStaticFieldValue(MonoClass* klass, MonoField* field, T value);
     MonoString* CreateString(const char* text);
     std::string StringToUtf8(MonoString* monoString);
     MonoProperty* GetProperty(MonoClass* klass, const char* propertyName);
@@ -119,4 +122,18 @@ T MonoRuntime::GetStaticFieldValue(MonoClass* klass, MonoField* field) {
     T value;
     m_mono_field_static_get_value(vtable, field, &value);
     return value;
+}
+
+template<typename T>
+void MonoRuntime::SetStaticFieldValue(MonoClass* klass, MonoField* field, T value) {
+    if (!klass || !field) {
+        return;
+    }
+    
+    MonoVTable* vtable = m_mono_class_vtable(m_rootDomain, klass);
+    if (!vtable) {
+        return;
+    }
+    
+    m_mono_field_static_set_value(vtable, field, &value);
 }
