@@ -9,10 +9,11 @@
 #include "menu/menu.h"
 #include "game/GameStructs.h"
 #include "core/MonoList.h"
+#include "fonts/FontManager.h"
 
 //#define DEBUG_PRINT
 
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam); 
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 std::map<std::string, LPVOID> hooks;
 std::map<std::string, LPVOID> hookTargets;
@@ -31,11 +32,11 @@ bool CreateHook(
 ) {
     std::string hookName = std::string(nameSpace) + std::string(className) + std::string(methodName);
     bool hook_success = false;
-    
+
     while (true) {
         LPVOID pTarget = G::g_monoRuntime->GetMethodAddress(
             assemblyName, nameSpace, className, methodName, paramCount, returnType, paramTypes);
-        
+
         if (!pTarget) {
             G::logger.LogError("Failed to get method address for " + std::string(assemblyName) + "::" +
                                std::string(nameSpace) + "::" + std::string(className) + "::" + std::string(methodName));
@@ -53,13 +54,13 @@ bool CreateHook(
         hook_success = true;
         break;
     }
-    
+
     if (!hook_success) {
         G::logger.LogError("Hook creation failed for " + std::string(assemblyName) + "::" +
                            std::string(nameSpace) + "::" + std::string(className) + "::" + std::string(methodName));
         return false;
     }
-    
+
     return true;
 }
 
@@ -123,6 +124,13 @@ DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Transform, get_positio
                    void* transform, Vector3* outPosition);
 
 void Hooks::Init() {
+    MH_STATUS status = MH_Initialize();
+    if (status != MH_OK) {
+        G::logger.LogError("Failed to initialize MinHook: %s", MH_StatusToString(status));
+        G::running = false;
+        return;
+    }
+
     G::g_monoRuntime = new MonoRuntime();
     while (!G::g_monoRuntime->Initialize()) {
         Sleep(100);
@@ -151,14 +159,14 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, LocalUser, RebuildControlChain, 0, "System.Void", {});
     HOOK(RoR2, RoR2, Inventory, HandleInventoryChanged, 0, "System.Void", {});
     HOOK(RoR2, RoR2, SteamworksServerManager, TagsStringUpdated, 0, "System.Void", {});
-    
+
 
     for (auto& target: hookTargets) {
         MH_STATUS enable_status = MH_EnableHook(target.second);
         if (enable_status == MH_OK) {
             G::logger.LogInfo("Hook successfully enabled for " + target.first);
         } else {
-            G::logger.LogError("Hook enabling failed for " + target.first + ", error: " + 
+            G::logger.LogError("Hook enabling failed for " + target.first + ", error: " +
                              MH_StatusToString(enable_status) + " (code: " + MH_StatusToString(enable_status) + ")");
         }
     }
@@ -167,7 +175,7 @@ void Hooks::Init() {
     while (!internalCallInitQueue.empty()) {
         auto [name, func] = internalCallInitQueue.front();
         internalCallInitQueue.pop();
-        
+
         G::logger.LogInfo("Initializing internal call: %s", name.c_str());
         func();
     }
@@ -175,7 +183,9 @@ void Hooks::Init() {
     int itemCount = -1;
     do {
         itemCount = G::gameFunctions->LoadItems();
-        Sleep(2000);
+        if (itemCount == -1) {
+            Sleep(2000);
+        }
     } while (itemCount == -1);
     G::logger.LogInfo("Items loaded successfully");
 
@@ -202,24 +212,77 @@ void Hooks::Init() {
 }
 
 void Hooks::Unhook() {
-    G::oWndProc = (WNDPROC)SetWindowLongPtr(G::windowHwnd, GWLP_WNDPROC, (LONG_PTR)G::oWndProc);
-    ImGui_ImplDX11_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
+    G::logger.LogInfo("Starting unhook process...");
 
+    if (G::oWndProc && G::windowHwnd) {
+        G::logger.LogInfo("Restoring window procedure...");
+        G::oWndProc = (WNDPROC)SetWindowLongPtr(G::windowHwnd, GWLP_WNDPROC, (LONG_PTR)G::oWndProc);
+    }
+
+    if (G::initialized) {
+        G::logger.LogInfo("Shutting down ImGui...");
+        ImGui_ImplDX11_Shutdown();
+        ImGui_ImplWin32_Shutdown();
+        ImGui::DestroyContext();
+    }
+
+    if (G::mainRenderTargetView) {
+        G::mainRenderTargetView->Release();
+        G::mainRenderTargetView = nullptr;
+    }
+    if (G::pContext) {
+        G::pContext->Release();
+        G::pContext = nullptr;
+    }
+    if (G::pDevice) {
+        G::pDevice->Release();
+        G::pDevice = nullptr;
+    }
+
+    G::logger.LogInfo("Disabling all hooks...");
     for (auto& target: hookTargets) {
         MH_STATUS disable_status = MH_DisableHook(target.second);
         if (disable_status == MH_OK) {
             G::logger.LogInfo("Hook successfully disabled for " + target.first);
         } else {
-            G::logger.LogError("Hook disabling failed for " + target.first + ", error: " + 
+            G::logger.LogError("Hook disabling failed for " + target.first + ", error: " +
                              MH_StatusToString(disable_status) + " (code: " + MH_StatusToString(disable_status) + ")");
         }
     }
+    G::logger.LogInfo("All hooks disabled");
+
+    G::logger.LogInfo("Removing all hooks...");
+    for (auto& target: hookTargets) {
+        MH_STATUS remove_status = MH_RemoveHook(target.second);
+        if (remove_status == MH_OK) {
+            G::logger.LogInfo("Hook successfully removed for " + target.first);
+        } else {
+            G::logger.LogError("Hook removal failed for " + target.first + ", error: " +
+                             MH_StatusToString(remove_status) + " (code: " + MH_StatusToString(remove_status) + ")");
+        }
+    }
+    G::logger.LogInfo("All hooks removed");
 
     kiero::shutdown();
+    G::logger.LogInfo("Kiero successfully shut down");
+
+    MH_STATUS uninit_status = MH_Uninitialize();
+    if (uninit_status == MH_OK) {
+        G::logger.LogInfo("MinHook successfully uninitialized");
+    } else {
+        G::logger.LogError(std::string("MinHook uninitialization failed, error: ") +
+                         MH_StatusToString(uninit_status) + " (code: " + MH_StatusToString(uninit_status) + ")");
+    }
+
     delete G::g_monoRuntime;
     delete G::gameFunctions;
+    delete G::runningButtonControl;
+    delete G::godModeControl;
+    delete G::baseMoveSpeedControl;
+    delete G::baseDamageControl;
+    delete G::baseAttackSpeedControl;
+    delete G::baseCritControl;
+    delete G::baseJumpCountControl;
 }
 
 void Hooks::hkRoR2RoR2ApplicationUpdate(void* instance) {
@@ -310,7 +373,7 @@ void Hooks::hkRoR2InventoryHandleInventoryChanged(void* instance) {
     if (!inventory_ptr->itemStacks || instance != G::localInventory_cached) {
         return;
     }
-    
+
     std::unique_lock<std::shared_mutex> lock(G::itemsMutex);
     int* arrayData = (int*)(inventory_ptr->itemStacks + 8); // Adjusted offset of array with header
     for (int i = 0; i < G::itemStacks.size(); i++) {
@@ -338,6 +401,10 @@ LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 }
 
 long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags) {
+    if (!G::running) {
+        return G::oPresent(pSwapChain, SyncInterval, Flags);
+    }
+
     if (!G::initialized) {
         if (SUCCEEDED(pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&G::pDevice))) {
             ImGui::CreateContext();
@@ -360,9 +427,9 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
             ImGui_ImplDX11_CreateDeviceObjects();
 
             io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-            
+
             G::oWndProc = (WNDPROC)SetWindowLongPtr(G::windowHwnd, GWLP_WNDPROC, (__int3264)(LONG_PTR)WndProc);
-            G::initialized = true;    
+            G::initialized = true;
         }
         else {
             return G::oPresent(pSwapChain, SyncInterval, Flags);

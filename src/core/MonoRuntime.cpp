@@ -17,10 +17,10 @@ void __cdecl MonoRuntime::AssemblyIterationCallback(MonoAssembly* assembly, void
     auto* self = static_cast<MonoRuntime*>(user_data);
     MonoImage* image = self->m_mono_assembly_get_image(assembly);
     const char* imageName = self->m_mono_image_get_name(image);
-    
+
     // Add to image cache
     self->m_imageCache[imageName] = image;
-    
+
     // Debug output
     //G::logger.LogInfo("Found assembly: %s", imageName);
 }
@@ -32,7 +32,7 @@ bool MonoRuntime::Initialize(const char* monoDllName) {
         G::logger.LogError("Failed to get %s handle", monoDllName);
         return false;
     }
-    
+
     G::logger.LogInfo("%s base address: 0x%p", monoDllName, monoModule);
 
     // Get function addresses
@@ -73,7 +73,7 @@ bool MonoRuntime::Initialize(const char* monoDllName) {
     GET_MONO_FUNC(mono_field_get_name);
     GET_MONO_FUNC(mono_array_length);
     GET_MONO_FUNC(mono_lookup_internal_call);
-    
+
     // These might not exist in all Mono versions, so don't fail if not found
     m_mono_free = reinterpret_cast<mono_free_t>(GetProcAddress(monoModule, "mono_free"));
     m_mono_class_get_property_from_name = reinterpret_cast<mono_class_get_property_from_name_t>(
@@ -91,7 +91,7 @@ bool MonoRuntime::Initialize(const char* monoDllName) {
         G::logger.LogError("Failed to get Mono root domain");
         return false;
     }
-    
+
     G::logger.LogInfo("Root domain: 0x%p", m_rootDomain);
 
     // Attach the current thread to the Mono runtime
@@ -111,19 +111,19 @@ bool MonoRuntime::AttachThread() {
     if (m_thread) {
         return true;
     }
-    
+
     if (!m_rootDomain || !m_mono_thread_attach) {
         G::logger.LogError("Cannot attach thread - root domain or thread_attach function not available");
         return false;
     }
-    
+
     // Attach the current thread to the Mono runtime
     m_thread = m_mono_thread_attach(m_rootDomain);
     if (!m_thread) {
         G::logger.LogInfo("Failed to attach thread to Mono runtime");
         return false;
     }
-    
+
     G::logger.LogInfo("Thread attached to Mono runtime: %p", m_thread);
     return true;
 }
@@ -132,7 +132,7 @@ void MonoRuntime::DetachThread() {
     if (m_thread && m_mono_thread_detach) {
         m_mono_thread_detach(m_thread);
         m_thread = nullptr;
-        G::logger.Log("Thread detached from Mono runtime");
+        G::logger.LogInfo("Thread detached from Mono runtime");
     }
 }
 
@@ -151,20 +151,20 @@ MonoClass* MonoRuntime::GetClass(const char* assemblyName, const char* nameSpace
     if (it != m_classCache.end()) {
         return it->second;
     }
-    
+
     // Find the class
     MonoImage* image = GetImage(assemblyName);
     if (!image) {
         G::logger.LogError("Failed to find assembly: %s", assemblyName);
         return nullptr;
     }
-    
+
     MonoClass* klass = m_mono_class_from_name(image, nameSpace, className);
     if (klass) {
         // Add to cache
         m_classCache[cacheKey] = klass;
     }
-    
+
     return klass;
 }
 
@@ -235,7 +235,7 @@ MonoObject* MonoRuntime::InvokeMethod(MonoMethod* method, void* obj, void** para
         G::logger.LogError("Exception occurred during Mono method invocation, method pointer: %p", method);
         return nullptr;
     }
-    
+
     return result;
 }
 
@@ -250,17 +250,17 @@ MonoString* MonoRuntime::CreateString(const char* text) {
 
 std::string MonoRuntime::StringToUtf8(MonoString* monoString) {
     if (!AttachThread() || !monoString) return "";
-    
+
     char* utf8 = m_mono_string_to_utf8(monoString);
     if (!utf8) return "";
-    
+
     std::string result(utf8);
-    
+
     // Free the string if the function is available
     if (m_mono_free) {
         m_mono_free(utf8);
     }
-    
+
     return result;
 }
 
