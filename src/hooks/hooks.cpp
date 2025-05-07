@@ -342,6 +342,9 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
         if (SUCCEEDED(pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&G::pDevice))) {
             ImGui::CreateContext();
 
+            ImGuiIO& io = ImGui::GetIO();
+            FontManager::InitializeFonts(io.Fonts);
+
             G::pDevice->GetImmediateContext(&G::pContext);
             DXGI_SWAP_CHAIN_DESC sd;
             pSwapChain->GetDesc(&sd);
@@ -356,7 +359,6 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
             ImGui_ImplDX11_Init(G::pDevice, G::pContext);
             ImGui_ImplDX11_CreateDeviceObjects();
 
-            ImGuiIO& io = ImGui::GetIO();
             io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
             
             G::oWndProc = (WNDPROC)SetWindowLongPtr(G::windowHwnd, GWLP_WNDPROC, (__int3264)(LONG_PTR)WndProc);

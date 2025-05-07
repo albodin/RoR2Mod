@@ -57,6 +57,7 @@ file(GLOB_RECURSE GLOBAL_SOURCES ${SRC_DIR}/globals/*.cpp)
 file(GLOB_RECURSE HOOK_SOURCES ${SRC_DIR}/hooks/*.cpp)
 file(GLOB_RECURSE UTILS_SOURCES ${SRC_DIR}/utils/*.cpp)
 file(GLOB_RECURSE MENU_SOURCES ${SRC_DIR}/menu/*.cpp)
+file(GLOB_RECURSE FONT_SOURCES ${SRC_DIR}/fonts/*.cpp)
 
 # DLL
 add_library(RoR2ModDLL SHARED
@@ -69,6 +70,7 @@ add_library(RoR2ModDLL SHARED
     ${MENU_SOURCES}
     ${IMGUI_SOURCES}
     ${IMGUI_BACKEND_SOURCES}
+    ${FONT_SOURCES}
 )
 
 target_link_libraries(RoR2ModDLL PRIVATE
