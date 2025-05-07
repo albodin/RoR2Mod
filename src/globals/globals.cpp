@@ -25,11 +25,12 @@ namespace G {
     std::shared_mutex itemsMutex;
     std::vector<RoR2Item> items;
     std::vector<int> itemStacks;
+    std::map<int, IntControl*> itemControls;
 
     ToggleControl* showMenuControl = new ToggleControl("Show Menu", "showMenu");
     ButtonControl* runningButtonControl = new ButtonControl("Running", "running", "Unload Menu", [](){G::running = false;});
 
-    ToggleControl* godModeControl = new ToggleControl("Godmode", "godMode");
+    ToggleControl* godModeControl = new ToggleControl("Godmode", "godMode", true);
     FloatControl* baseMoveSpeedControl = new FloatControl("Base Move Speed", "baseMoveSpeed", 10.0f);
     FloatControl* baseDamageControl = new FloatControl("Base Damage", "baseDamage", 10.0f, 0.0f, FLT_MAX, 10.0f);
     FloatControl* baseAttackSpeedControl = new FloatControl("Base Attack Speed", "baseAttackSpeed", 10.0f, 0.0f, FLT_MAX, 10.0f);

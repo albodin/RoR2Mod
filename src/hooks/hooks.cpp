@@ -292,6 +292,11 @@ void Hooks::Unhook() {
     delete G::baseAttackSpeedControl;
     delete G::baseCritControl;
     delete G::baseJumpCountControl;
+
+    for (auto& [index, control] : G::itemControls) {
+        delete control;
+    }
+    G::itemControls.clear();
 }
 
 void Hooks::hkRoR2RoR2ApplicationUpdate(void* instance) {
@@ -351,10 +356,8 @@ void Hooks::hkRoR2LocalUserRebuildControlChain(void* instance) {
         return;
     }
 
-    if (G::godModeControl->IsEnabled()) {
-        localUser_ptr->cachedMaster_backing->godMode = true;
-        localUser_ptr->cachedBody_backing->healthComponent_backing->godMode_backing = true;
-    }
+    localUser_ptr->cachedMaster_backing->godMode = G::godModeControl->IsEnabled();
+    localUser_ptr->cachedBody_backing->healthComponent_backing->godMode_backing = G::godModeControl->IsEnabled();
 
     if (G::baseMoveSpeedControl->IsEnabled()) {
         localUser_ptr->cachedBody_backing->baseMoveSpeed = G::baseMoveSpeedControl->GetValue();
@@ -472,6 +475,10 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
     G::baseAttackSpeedControl->Update();
     G::baseCritControl->Update();
     G::baseJumpCountControl->Update();
+
+    for (auto& [index, control] : G::itemControls) {
+        control->Update();
+    }
 
     ImGuiIO& io = ImGui::GetIO();
     io.MouseDrawCursor = G::showMenuControl->IsEnabled();

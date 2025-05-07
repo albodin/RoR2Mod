@@ -5,6 +5,7 @@
 #include <queue>
 #include <functional>
 #include <shared_mutex>
+#include <map>
 
 #include "core/MonoRuntime.h"
 #include "game/GameStructs.h"
@@ -39,6 +40,7 @@ namespace G {
     extern std::shared_mutex itemsMutex;
     extern std::vector<RoR2Item> items;
     extern std::vector<int> itemStacks;
+    extern std::map<int, IntControl*> itemControls;
 
     extern ToggleControl* showMenuControl;
     extern ButtonControl* runningButtonControl;

@@ -21,14 +21,31 @@ ImVec2 RenderText(ImVec2 pos, ImU32 color, ImU32 shadowColor, bool centered, con
     return textSize;
 }
 
-void DrawItemInputs(ItemTier tier) {
+void DrawItemInputs(ItemTier_Value tier) {
     for (auto& item : G::items) {
         if (item.tier != tier) continue;
         int index = item.index;
-        if (ImGui::InputInt(item.displayName.c_str(), &G::itemStacks[index])) {
-            std::unique_lock<std::mutex> lock(G::queuedGiveItemsMutex);
-            G::queuedGiveItems.push(std::make_tuple(index, G::itemStacks[index]));
+
+        // Initialize control if it doesn't exist
+        if (G::itemControls.count(index) == 0) {
+            auto control = new IntControl(item.displayName, "item_" + std::to_string(index),
+                                         G::itemStacks[index], 0, INT_MAX, 1, false, false);
+            control->SetValueProtected(true);
+
+            control->SetOnChange([index](int newValue) {
+                G::itemStacks[index] = newValue;
+                std::unique_lock<std::mutex> lock(G::queuedGiveItemsMutex);
+                G::queuedGiveItems.push(std::make_tuple(index, newValue));
+            });
+
+            G::itemControls[index] = control;
+        } else {
+            if (G::itemControls[index]->GetValue() != G::itemStacks[index]) {
+                G::itemControls[index]->SetValue(G::itemStacks[index]);
+            }
         }
+
+        G::itemControls[index]->Draw();
     }
 }
 

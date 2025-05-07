@@ -21,7 +21,7 @@ protected:
     bool isCapturingHotkey;
 
 public:
-    InputControl(const std::string& label, const std::string& id);
+    InputControl(const std::string& label, const std::string& id, bool enabled = false);
     virtual ~InputControl() = default;
 
     virtual void Draw() = 0;
@@ -40,7 +40,7 @@ private:
     std::function<void(bool)> onChange;
 
 public:
-    ToggleControl(const std::string& label, const std::string& id);
+    ToggleControl(const std::string& label, const std::string& id, bool enabled = false);
 
     void Draw() override;
     void Update() override;
@@ -58,13 +58,15 @@ private:
     ImGuiKey decHotkey;
     bool isCapturingIncHotkey;
     bool isCapturingDecHotkey;
-    bool enabled;
+    bool disableValueOnToggle;
+    bool valueProtected;
     std::function<void(int)> onChange;
     std::function<void(bool)> onToggle;
 
 public:
     IntControl(const std::string& label, const std::string& id, int value,
-              int minValue, int maxValue, int step = 1, bool enabled = false);
+              int minValue, int maxValue, int step = 1, bool enabled = false,
+              bool disableValueOnToggle = true);
 
     void Draw() override;
     void Update() override;
@@ -72,10 +74,13 @@ public:
     void Decrement();
     int GetValue() const { return value; }
     void SetValue(int newValue);
+    void SetValue(int newValue, bool bypassProtection);
     void SetOnChange(std::function<void(int)> callback) { onChange = callback; }
     void SetOnToggle(std::function<void(bool)> callback) { onToggle = callback; }
-    bool IsValueEnabled() const { return enabled; }
-    void SetValueEnabled(bool newEnabled) { enabled = newEnabled; }
+    void SetDisableValueOnToggle(bool disable) { disableValueOnToggle = disable; }
+    bool GetDisableValueOnToggle() const { return disableValueOnToggle; }
+    void SetValueProtected(bool isProtected) { valueProtected = isProtected; }
+    bool IsValueProtected() const { return valueProtected; }
 };
 
 // Float input control
@@ -89,13 +94,14 @@ private:
     ImGuiKey decHotkey;
     bool isCapturingIncHotkey;
     bool isCapturingDecHotkey;
-    bool enabled;
+    bool disableValueOnToggle;
     std::function<void(float)> onChange;
     std::function<void(bool)> onToggle;
 
 public:
     FloatControl(const std::string& label, const std::string& id, float value,
-                float minValue = 0.0f, float maxValue = FLT_MAX, float step = 1.0f, bool enabled = false);
+                float minValue = 0.0f, float maxValue = FLT_MAX, float step = 1.0f,
+                bool enabled = false, bool disableValueOnToggle = true);
 
     void Draw() override;
     void Update() override;
@@ -105,8 +111,8 @@ public:
     void SetValue(float newValue);
     void SetOnChange(std::function<void(float)> callback) { onChange = callback; }
     void SetOnToggle(std::function<void(bool)> callback) { onToggle = callback; }
-    bool IsValueEnabled() const { return enabled; }
-    void SetValueEnabled(bool newEnabled) { enabled = newEnabled; }
+    void SetDisableValueOnToggle(bool disable) { disableValueOnToggle = disable; }
+    bool GetDisableValueOnToggle() const { return disableValueOnToggle; }
 };
 
 class ButtonControl : public InputControl {

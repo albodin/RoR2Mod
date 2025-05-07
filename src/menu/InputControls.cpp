@@ -74,8 +74,8 @@ bool InputHelper::DrawHotkeyButton(const char* id, ImGuiKey* key) {
 }
 
 // InputControl implementation
-InputControl::InputControl(const std::string& label, const std::string& id)
-    : label(label), id(id), enabled(false), hotkey(ImGuiKey_None), isCapturingHotkey(false)
+InputControl::InputControl(const std::string& label, const std::string& id, bool enabled)
+    : label(label), id(id), enabled(enabled), hotkey(ImGuiKey_None), isCapturingHotkey(false)
 {
 }
 
@@ -84,8 +84,8 @@ bool InputControl::DrawHotkeyButton() {
 }
 
 // ToggleControl implementation
-ToggleControl::ToggleControl(const std::string& label, const std::string& id)
-    : InputControl(label, id), onChange(nullptr)
+ToggleControl::ToggleControl(const std::string& label, const std::string& id, bool enabled)
+    : InputControl(label, id, enabled), onChange(nullptr)
 {
 }
 
@@ -117,10 +117,10 @@ void ToggleControl::Update() {
 
 // IntControl implementation
 IntControl::IntControl(const std::string& label, const std::string& id, int value,
-                      int minValue, int maxValue, int step, bool enabled)
+                      int minValue, int maxValue, int step, bool enabled, bool disableValueOnToggle)
     : InputControl(label, id), value(value), minValue(minValue), maxValue(maxValue), step(step),
       incHotkey(ImGuiKey_None), decHotkey(ImGuiKey_None), isCapturingIncHotkey(false), isCapturingDecHotkey(false),
-      enabled(enabled), onChange(nullptr), onToggle(nullptr)
+      disableValueOnToggle(disableValueOnToggle), valueProtected(false), onChange(nullptr), onToggle(nullptr)
 {
 }
 
@@ -133,6 +133,11 @@ void IntControl::Draw() {
             onToggle(enabled);
         }
     }
+    if (valueProtected && ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("When checked, the game cannot reduce this item's count");
+        ImGui::EndTooltip();
+    }
     ImGui::SameLine();
 
     // Main input with - and + buttons in a more compact form
@@ -143,12 +148,16 @@ void IntControl::Draw() {
     ImGui::Text("%s", label.c_str());
     ImGui::SameLine();
 
-    ImGui::BeginDisabled(!enabled);
+    if (disableValueOnToggle && !enabled) {
+        ImGui::BeginDisabled();
+    }
 
     ImGui::PushItemWidth(inputWidth);
-    if (ImGui::InputInt("##value", &value, step, step * 10)) { // No step buttons in input
-        SetValue(value);
-        if (onChange) onChange(value);
+    int tempValue = value;
+    if (ImGui::InputInt("##value", &value, step, step * 10)) {
+        if (tempValue != value && onChange) {
+            onChange(value);
+        }
     }
     ImGui::PopItemWidth();
 
@@ -165,7 +174,9 @@ void IntControl::Draw() {
         ImGui::EndTooltip();
     }
 
-    ImGui::EndDisabled();
+    if (disableValueOnToggle && !enabled) {
+        ImGui::EndDisabled();
+    }
 
     // Popup for settings
     if (showSettings)
@@ -238,6 +249,13 @@ void IntControl::Update() {
 }
 
 void IntControl::SetValue(int newValue) {
+    SetValue(newValue, false);
+}
+
+void IntControl::SetValue(int newValue, bool bypassProtection) {
+    if (valueProtected && newValue < value && !bypassProtection) {
+        return;
+    }
     // Clamp to min/max range
     value = std::min(std::max(newValue, minValue), maxValue);
 }
@@ -252,10 +270,10 @@ void IntControl::Decrement() {
 
 // FloatControl implementation
 FloatControl::FloatControl(const std::string& label, const std::string& id, float value,
-                         float minValue, float maxValue, float step, bool enabled)
+                         float minValue, float maxValue, float step, bool enabled, bool disableValueOnToggle)
     : InputControl(label, id), value(value), minValue(minValue), maxValue(maxValue), step(step),
       incHotkey(ImGuiKey_None), decHotkey(ImGuiKey_None), isCapturingIncHotkey(false), isCapturingDecHotkey(false),
-      enabled(enabled), onChange(nullptr), onToggle(nullptr)
+      disableValueOnToggle(disableValueOnToggle), onChange(nullptr), onToggle(nullptr)
 {
 }
 
@@ -278,7 +296,9 @@ void FloatControl::Draw() {
     ImGui::Text("%s", label.c_str());
     ImGui::SameLine();
 
-    ImGui::BeginDisabled(!enabled);
+    if (disableValueOnToggle && !enabled) {
+        ImGui::BeginDisabled();
+    }
 
     ImGui::PushItemWidth(inputWidth);
     if (ImGui::InputFloat("##value", &value, step, step * 10)) {
@@ -300,7 +320,9 @@ void FloatControl::Draw() {
         ImGui::EndTooltip();
     }
 
-    ImGui::EndDisabled();
+    if (disableValueOnToggle && !enabled) {
+        ImGui::EndDisabled();
+    }
 
     // Popup for settings
     if (showSettings)
