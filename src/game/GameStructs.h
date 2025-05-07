@@ -64,44 +64,11 @@ typedef void* IOnTakeDamageServerReceiver;
 typedef void* ScreenDamageCalculator;
 typedef void* RepeatHealComponent;
 typedef void* EquipmentDef;
-
-template <typename T>
-struct MonoArray_ {
-    int length;  // The array length stored at the beginning
-    T data[1];   // Flexible array member for the elements
-    
-    // Helper methods
-    int Length() const {
-        return length;
-    }
-    
-    // Access elements with bounds checking
-    T& operator[](int index) {
-        if (index < 0 || index >= length) {
-            static T defaultValue{};
-            return defaultValue;
-        }
-        return data[index];
-    }
-    
-    const T& operator[](int index) const {
-        if (index < 0 || index >= length) {
-            static T defaultValue{};
-            return defaultValue;
-        }
-        return data[index];
-    }
-    
-    // Allow iteration
-    T* begin() { return data; }
-    T* end() { return data + length; }
-    const T* begin() const { return data; }
-    const T* end() const { return data + length; }
-};
+typedef int32_t Int32;
 
 #pragma pack(push, 1)
 
-enum class TeamIndex : int8_t {
+enum class TeamIndex_Value : int8_t {
     None = -1,
     Neutral = 0,
     Player = 1,
@@ -111,7 +78,7 @@ enum class TeamIndex : int8_t {
     Count = 5
 };
 
-enum class CharacterBody_BodyFlags : uint32_t {
+enum class BodyFlags_Value : uint32_t {
     None = 0,
     IgnoreFallDamage = 1,
     Mechanical = 2,
@@ -132,18 +99,18 @@ enum class CharacterBody_BodyFlags : uint32_t {
     UsesAmbientLevel = 65536, // 0x00010000
 };
 
-enum class EquipmentIndex : int32_t {
+enum class EquipmentIndex_Value : int32_t {
     None = -1, // 0xFFFFFFFF
 };
 
-enum class HullClassification : int32_t {
+enum class HullClassification_Value : int32_t {
     Human = 0,
     Golem = 1,
     BeetleQueen = 2,
     Count = 3,
 };
 
-enum class ItemTier
+enum class ItemTier_Value
 {
     Tier1 = 0,
     Tier2 = 1,
@@ -158,7 +125,7 @@ enum class ItemTier
     AssignedAtRuntime = 10,
 };
 
-enum class ItemTag
+enum class ItemTag_Value
 {
     Any = 0,
     Damage = 1,
@@ -198,7 +165,7 @@ struct RoR2Item {
     std::string pickupToken;
     std::string descriptionToken;
     std::string loreToken;
-    ItemTier tier;
+    ItemTier_Value tier;
     std::string tierName;
     bool isDroppable;
     bool canScrap;
@@ -234,51 +201,51 @@ struct Rect {
     float m_Height;
 }; // Size: 16
 
-struct CameraState {
+struct CameraState_Value {
     Vector3 position;
     Quaternion rotation;
     float fov;
 }; // Size: 32
 
-struct AimAssistInfo
+struct AimAssistInfo_Value
 {
     void* aimAssistHurtbox;
     Vector3 localPositionOnHurtbox;
     Vector3 worldPosition;
 }; // Size: 32
 
-struct BlendableFloat {
+struct BlendableFloat_Value {
     float value;
     float alpha;
 };
 
-struct BlendableVector3 {
+struct BlendableVector3_Value {
     Vector3 value;
     float alpha;
 };
 
-struct BlendableBool {
+struct BlendableBool_Value {
     bool value;
     char padding0[3]; // Padding
     float alpha;
 };
 
-struct CameraInfo {
+struct CameraInfo_Value {
     CameraRigController* cameraRigController;
     Camera* sceneCam;
     ICameraStateProvider* overrideCam;
-    CameraState previousCameraState;
+    CameraState_Value previousCameraState;
     float baseFov;
     char padding4[4];
 }; // Size: 64
 
-struct TargetInfo
+struct TargetInfo_Value
 {
     GameObject* target;
     CharacterBody* body;
     InputBankTest* inputBank;
     CameraTargetParams* targetParams;
-    TeamIndex teamIndex;
+    TeamIndex_Value teamIndex;
     bool isSprinting;
     bool skillsAreDisabled;
     bool showSecondaryElectricity;
@@ -289,7 +256,7 @@ struct TargetInfo
     NetworkedViewAngles* networkedViewAngles;
 }; // Size: 64
 
-struct ViewerInfo
+struct ViewerInfo_Value
 {
     LocalUser* localUser;
     UserProfile* userProfile;
@@ -297,71 +264,69 @@ struct ViewerInfo
     MPEventSystem* eventSystem;
     bool hasCursor;
     bool isUIFocused;
-    char padding5[6];
 }; // Size: 40
 
-struct CameraModeContext {
-    CameraInfo cameraInfo;
-    TargetInfo targetInfo;
-    ViewerInfo viewerInfo;
+struct CameraModeContext_Value {
+    CameraInfo_Value cameraInfo;
+    TargetInfo_Value targetInfo;
+    ViewerInfo_Value viewerInfo;
 }; // Size: 168
 
-struct CharacterCameraParamsData {
-    BlendableFloat minPitch;
-    BlendableFloat maxPitch;
-    BlendableFloat wallCushion;
-    BlendableFloat pivotVerticalOffset;
-    BlendableVector3 idealLocalCameraPos;
-    BlendableFloat fov;
-    BlendableBool isFirstPerson;
+struct CharacterCameraParamsData_Value {
+    BlendableFloat_Value minPitch;
+    BlendableFloat_Value maxPitch;
+    BlendableFloat_Value wallCushion;
+    BlendableFloat_Value pivotVerticalOffset;
+    BlendableVector3_Value idealLocalCameraPos;
+    BlendableFloat_Value fov;
+    BlendableBool_Value isFirstPerson;
     float overrideFirstPersonFadeDuration;
 };
 
-struct NetworkInstanceId {
+struct NetworkInstanceId_Value {
     uint32_t m_Value;
 }; // Size: 4
 
-struct BodyIndex {
+struct BodyIndex_Value {
     uint32_t value__;
 }; // Size: 4
 
-struct CharacterMaster_SEEKER_REVIVE_STATUS {
+struct CharacterMaster_SEEKER_REVIVE_STATUS_Value {
     uint32_t value__;
 }; // Size: 4
 
-struct ItemIndex {
+struct ItemIndex_Value {
     uint32_t value__;
 }; // Size: 4
 
-struct Type {
+struct Type_Value {
     int32_t value__;
 }; // Size: 4
 
-struct SerializableEntityStateType {
-    Type* _stateType;
+struct SerializableEntityStateType_Value {
+    Type_Value* _stateType;
     void* _typeName;
 }; // Size: 16
 
-struct ItemAvailability {
+struct ItemAvailability_Value {
     int32_t helfireCount;
     bool hasFireTrail;
     bool hasAffixLunar;
     bool hasAffixPoison;
-    char padding3[1]; // Padding
-}; // Size: 8
+}; // Size: 7
 
-struct Color {
+struct Color_Value {
     float r;
     float g;
     float b;
     float a;
 }; // Size: 8
 
-struct FixedTimeStamp {
+struct FixedTimeStamp_Value {
     float t;
 }; // Size: 4
 
-struct HealthComponent_ItemCounts {
+struct ItemCounts_Value {
     int32_t bear;
     int32_t armorPlate;
     int32_t goldOnHit;
@@ -418,8 +383,8 @@ struct HealthComponent {
     float recentlyTookDamageCoyoteTimer; // Offset: 136
     float globalDeathEventChanceCoefficient; // Offset: 140
     uint32_t _killingDamageType; // Offset: 144
-    FixedTimeStamp lastHitTime_backing; // Offset: 148
-    FixedTimeStamp lastHealTime_backing; // Offset: 152
+    FixedTimeStamp_Value lastHitTime_backing; // Offset: 148
+    FixedTimeStamp_Value lastHealTime_backing; // Offset: 152
     bool godMode_backing; // Offset: 156
     char padding21[3]; // Padding
     float potionReserve_backing; // Offset: 160
@@ -436,15 +401,15 @@ struct HealthComponent {
     char padding30[2]; // Padding
     float ospTimer; // Offset: 192
     float serverDamageTakenThisUpdate; // Offset: 196
-    HealthComponent_ItemCounts itemCounts; // Offset: 200
-    EquipmentIndex currentEquipmentIndex; // Offset: 288
+    ItemCounts_Value itemCounts; // Offset: 200
+    EquipmentIndex_Value currentEquipmentIndex; // Offset: 288
 };
 
 // Generated from RoR2.EquipmentState
 struct EquipmentState {
     char padding0[16]; // Padding
-    EquipmentIndex equipmentIndex; // Offset: 16
-    FixedTimeStamp chargeFinishTime; // Offset: 20
+    EquipmentIndex_Value equipmentIndex; // Offset: 16
+    FixedTimeStamp_Value chargeFinishTime; // Offset: 20
     uint8_t charges; // Offset: 24
     bool isDisabled; // Offset: 25
     bool dirty; // Offset: 26
@@ -455,11 +420,11 @@ struct EquipmentState {
 // Generated from RoR2.Inventory
 struct Inventory {
     char padding0[48]; // Padding
-    int32_t* itemStacks; // Offset: 48
+    Int32* itemStacks; // Offset: 48
     void* itemAcquisitionOrder; // Offset: 56
     Action* onInventoryChanged; // Offset: 64
     Action* onEquipmentExternalRestockServer; // Offset: 72
-    MonoArray_<EquipmentState>* equipmentStateSlots; // Offset: 80
+    EquipmentState* equipmentStateSlots; // Offset: 80
     void* onItemAddedClient; // Offset: 88
     void* onEquipmentChangedClient; // Offset: 96
     uint8_t activeEquipmentSlot_backing; // Offset: 104
@@ -478,7 +443,7 @@ struct CharacterBody {
     void* baseNameToken; // Offset: 48
     void* subtitleNameToken; // Offset: 56
     BuffIndex* activeBuffsList; // Offset: 64
-    MonoArray_<int>* buffs; // Offset: 72
+    Int32* buffs; // Offset: 72
     void* timedBuffs; // Offset: 80
     JumpDelegate* onJump; // Offset: 88
     GameObject* warCryEffectInstance; // Offset: 96
@@ -551,188 +516,177 @@ struct CharacterBody {
     TemporaryVisualEffect* growthNectarMaxGlowInstance; // Offset: 632
     TemporaryVisualEffect* delayedDamageBuffUpInstance; // Offset: 640
     TemporaryVisualEffect* knockbackHitEnemiesVulnerableInstance; // Offset: 648
-    AnimationCurve* spreadBloomCurve; // Offset: 656
-    GameObject* _defaultCrosshairPrefab; // Offset: 664
-    DamageInfo* secondHalfOfDamage; // Offset: 672
-    void* incomingDamageList; // Offset: 680
-    DamageInfo* runicLensDamageInfo; // Offset: 688
-    CharacterBody* meteorVictimBody; // Offset: 696
-    OnShardSpawned* onShardSpawnedEvent; // Offset: 704
-    Transform* aimOriginTransform; // Offset: 712
-    Texture* portraitIcon; // Offset: 720
-    VehicleSeat* currentVehicle; // Offset: 728
-    GameObject* preferredPodPrefab; // Offset: 736
-    SerializableEntityStateType preferredInitialStateType; // Offset: 744
-    void* customKillTotalStatName; // Offset: 760
-    Transform* overrideCoreTransform; // Offset: 768
-    BodyIndex bodyIndex; // Offset: 776
-    bool CharacterIsVisible; // Offset: 780
-    char padding92[3]; // Padding
-    float cost; // Offset: 784
-    bool dontCull; // Offset: 788
-    char padding94[3]; // Padding
-    int32_t BaseImportance; // Offset: 792
-    int32_t Importance; // Offset: 796
-    bool inLava; // Offset: 800
-    char padding97[3]; // Padding
-    int32_t activeBuffsListCount; // Offset: 804
-    int32_t eliteBuffCount; // Offset: 808
-    int32_t pendingTonicAfflictionCount; // Offset: 812
-    int32_t previousMultiKillBuffCount; // Offset: 816
-    CharacterBody_BodyFlags bodyFlags; // Offset: 820
-    NetworkInstanceId masterObjectId; // Offset: 824
-    bool linkedToMaster; // Offset: 828
-    bool isPlayerControlled_backing; // Offset: 829
-    bool disablingHurtBoxes; // Offset: 830
-    char padding106[1]; // Padding
-    EquipmentIndex previousEquipmentIndex; // Offset: 832
-    float executeEliteHealthFraction_backing; // Offset: 836
-    float lavaCooldown; // Offset: 840
-    float lavaTimer; // Offset: 844
-    ItemAvailability itemAvailability; // Offset: 848
-    bool hasEffectiveAuthority_backing; // Offset: 856
-    bool _isSprinting; // Offset: 857
-    char padding113[2]; // Padding
-    float outOfCombatStopwatch; // Offset: 860
-    float outOfDangerStopwatch; // Offset: 864
-    bool outOfCombat_backing; // Offset: 868
-    bool _outOfDanger; // Offset: 869
-    char padding117[2]; // Padding
-    Vector3 previousPosition; // Offset: 872
-    float notMovingStopwatch; // Offset: 884
-    bool rootMotionInMainState; // Offset: 888
-    char padding120[3]; // Padding
-    float mainRootSpeed; // Offset: 892
-    float baseMaxHealth; // Offset: 896
-    float baseRegen; // Offset: 900
-    float baseMaxShield; // Offset: 904
-    float baseMoveSpeed; // Offset: 908
-    float baseAcceleration; // Offset: 912
-    float baseJumpPower; // Offset: 916
-    float baseDamage; // Offset: 920
-    float baseAttackSpeed; // Offset: 924
-    float baseCrit; // Offset: 928
-    float baseArmor; // Offset: 932
-    float baseVisionDistance; // Offset: 936
-    int32_t baseJumpCount; // Offset: 940
-    float sprintingSpeedMultiplier; // Offset: 944
-    bool autoCalculateLevelStats; // Offset: 948
-    char padding135[3]; // Padding
-    float levelMaxHealth; // Offset: 952
-    float levelRegen; // Offset: 956
-    float levelMaxShield; // Offset: 960
-    float levelMoveSpeed; // Offset: 964
-    float levelJumpPower; // Offset: 968
-    float levelDamage; // Offset: 972
-    float levelAttackSpeed; // Offset: 976
-    float levelCrit; // Offset: 980
-    float levelArmor; // Offset: 984
-    float experience_backing; // Offset: 988
-    float level_backing; // Offset: 992
-    float maxHealth_backing; // Offset: 996
-    float maxBarrier_backing; // Offset: 1000
-    float barrierDecayRate_backing; // Offset: 1004
-    float regen_backing; // Offset: 1008
-    float maxShield_backing; // Offset: 1012
-    float moveSpeed_backing; // Offset: 1016
-    float acceleration_backing; // Offset: 1020
-    float m_surfaceSpeedBoost; // Offset: 1024
-    float jumpPower_backing; // Offset: 1028
-    int32_t maxJumpCount_backing; // Offset: 1032
-    float maxJumpHeight_backing; // Offset: 1036
-    float damage_backing; // Offset: 1040
-    float attackSpeed_backing; // Offset: 1044
-    float crit_backing; // Offset: 1048
-    float critMultiplier_backing; // Offset: 1052
-    float bleedChance_backing; // Offset: 1056
-    float armor_backing; // Offset: 1060
-    float visionDistance_backing; // Offset: 1064
-    float critHeal_backing; // Offset: 1068
-    float cursePenalty_backing; // Offset: 1072
-    bool hasOneShotProtection_backing; // Offset: 1076
-    bool isGlass_backing; // Offset: 1077
-    char padding168[2]; // Padding
-    float oneShotProtectionFraction_backing; // Offset: 1080
-    bool canPerformBackstab_backing; // Offset: 1084
-    bool canReceiveBackstab_backing; // Offset: 1085
-    char padding171[2]; // Padding
-    float amputatedMaxHealth; // Offset: 1088
-    float amputateMaxHealthMinimum; // Offset: 1092
-    bool statsDirty; // Offset: 1096
-    char padding174[3]; // Padding
-    int32_t currentHealthLevel; // Offset: 1100
-    int32_t oldHealthLevel; // Offset: 1104
-    float damageFromRecalculateStats; // Offset: 1108
-    int32_t numberOfKills; // Offset: 1112
-    bool canCleanInventory; // Offset: 1116
-    char padding179[3]; // Padding
-    int32_t extraSecondaryFromSkill; // Offset: 1120
-    int32_t extraSpecialFromSkill; // Offset: 1124
-    float maxBonusHealth_backing; // Offset: 1128
-    int32_t extraStatsOnLevelUpCount_CachedLastApplied; // Offset: 1132
-    bool lowerPricedChestsActive; // Offset: 1136
-    bool canPurchaseLoweredPricedChests; // Offset: 1137
-    bool allSkillsDisabled; // Offset: 1138
-    bool isTeleporting; // Offset: 1139
-    int32_t currentGrowthNectarBuffCount; // Offset: 1140
-    int32_t prevGrowthNectarBuffCount; // Offset: 1144
-    int32_t maxGrowthNectarBuffCount; // Offset: 1148
-    float growthNectarRemovalTimer; // Offset: 1152
-    float aimTimer; // Offset: 1156
-    int32_t killCountServer_backing; // Offset: 1160
-    float helfireLifetime; // Offset: 1164
-    bool wasLucky; // Offset: 1168
-    char padding195[3]; // Padding
-    float poisonballTimer; // Offset: 1172
-    float lunarMissileRechargeTimer; // Offset: 1176
-    float lunarMissileTimerBetweenShots; // Offset: 1180
-    int32_t remainingMissilesToFire; // Offset: 1184
-    float spreadBloomDecayTime; // Offset: 1188
-    float spreadBloomInternal; // Offset: 1192
-    bool hideCrosshair; // Offset: 1196
+    TemporaryVisualEffect* falseSonMeridianWillCoreBuffInstance; // Offset: 656
+    AnimationCurve* spreadBloomCurve; // Offset: 664
+    GameObject* _defaultCrosshairPrefab; // Offset: 672
+    DamageInfo* secondHalfOfDamage; // Offset: 680
+    void* incomingDamageList; // Offset: 688
+    DamageInfo* runicLensDamageInfo; // Offset: 696
+    CharacterBody* meteorVictimBody; // Offset: 704
+    OnShardSpawned* onShardSpawnedEvent; // Offset: 712
+    Transform* aimOriginTransform; // Offset: 720
+    Texture* portraitIcon; // Offset: 728
+    VehicleSeat* currentVehicle; // Offset: 736
+    GameObject* preferredPodPrefab; // Offset: 744
+    SerializableEntityStateType_Value preferredInitialStateType; // Offset: 752
+    void* customKillTotalStatName; // Offset: 768
+    Transform* overrideCoreTransform; // Offset: 776
+    BodyIndex_Value bodyIndex; // Offset: 784
+    bool CharacterIsVisible; // Offset: 788
+    char padding93[3]; // Padding
+    float cost; // Offset: 792
+    bool dontCull; // Offset: 796
+    char padding95[3]; // Padding
+    int32_t BaseImportance; // Offset: 800
+    int32_t Importance; // Offset: 804
+    bool inLava; // Offset: 808
+    char padding98[3]; // Padding
+    int32_t activeBuffsListCount; // Offset: 812
+    int32_t eliteBuffCount; // Offset: 816
+    int32_t pendingTonicAfflictionCount; // Offset: 820
+    int32_t previousMultiKillBuffCount; // Offset: 824
+    BodyFlags_Value bodyFlags; // Offset: 828
+    NetworkInstanceId_Value masterObjectId; // Offset: 832
+    bool linkedToMaster; // Offset: 836
+    bool isPlayerControlled_backing; // Offset: 837
+    bool disablingHurtBoxes; // Offset: 838
+    char padding107[1]; // Padding
+    EquipmentIndex_Value previousEquipmentIndex; // Offset: 840
+    float executeEliteHealthFraction_backing; // Offset: 844
+    float lavaCooldown; // Offset: 848
+    float lavaTimer; // Offset: 852
+    ItemAvailability_Value itemAvailability; // Offset: 856
+    char padding112[1]; // Padding
+    bool hasEffectiveAuthority_backing; // Offset: 864
+    bool _isSprinting; // Offset: 865
+    char padding114[2]; // Padding
+    float outOfCombatStopwatch; // Offset: 868
+    float outOfDangerStopwatch; // Offset: 872
+    bool outOfCombat_backing; // Offset: 876
+    bool _outOfDanger; // Offset: 877
+    char padding118[2]; // Padding
+    Vector3 previousPosition; // Offset: 880
+    float notMovingStopwatch; // Offset: 892
+    bool rootMotionInMainState; // Offset: 896
+    char padding121[3]; // Padding
+    float mainRootSpeed; // Offset: 900
+    float baseMaxHealth; // Offset: 904
+    float baseRegen; // Offset: 908
+    float baseMaxShield; // Offset: 912
+    float baseMoveSpeed; // Offset: 916
+    float baseAcceleration; // Offset: 920
+    float baseJumpPower; // Offset: 924
+    float baseDamage; // Offset: 928
+    float baseAttackSpeed; // Offset: 932
+    float baseCrit; // Offset: 936
+    float baseArmor; // Offset: 940
+    float baseVisionDistance; // Offset: 944
+    int32_t baseJumpCount; // Offset: 948
+    float sprintingSpeedMultiplier; // Offset: 952
+    bool autoCalculateLevelStats; // Offset: 956
+    char padding136[3]; // Padding
+    float levelMaxHealth; // Offset: 960
+    float levelRegen; // Offset: 964
+    float levelMaxShield; // Offset: 968
+    float levelMoveSpeed; // Offset: 972
+    float levelJumpPower; // Offset: 976
+    float levelDamage; // Offset: 980
+    float levelAttackSpeed; // Offset: 984
+    float levelCrit; // Offset: 988
+    float levelArmor; // Offset: 992
+    float experience_backing; // Offset: 996
+    float level_backing; // Offset: 1000
+    float maxHealth_backing; // Offset: 1004
+    float maxBarrier_backing; // Offset: 1008
+    float barrierDecayRate_backing; // Offset: 1012
+    float regen_backing; // Offset: 1016
+    float maxShield_backing; // Offset: 1020
+    float moveSpeed_backing; // Offset: 1024
+    float acceleration_backing; // Offset: 1028
+    float m_surfaceSpeedBoost; // Offset: 1032
+    float jumpPower_backing; // Offset: 1036
+    int32_t maxJumpCount_backing; // Offset: 1040
+    float maxJumpHeight_backing; // Offset: 1044
+    float damage_backing; // Offset: 1048
+    float attackSpeed_backing; // Offset: 1052
+    float crit_backing; // Offset: 1056
+    float critMultiplier_backing; // Offset: 1060
+    float bleedChance_backing; // Offset: 1064
+    float armor_backing; // Offset: 1068
+    float visionDistance_backing; // Offset: 1072
+    float critHeal_backing; // Offset: 1076
+    float cursePenalty_backing; // Offset: 1080
+    bool hasOneShotProtection_backing; // Offset: 1084
+    bool isGlass_backing; // Offset: 1085
+    char padding169[2]; // Padding
+    float oneShotProtectionFraction_backing; // Offset: 1088
+    bool canPerformBackstab_backing; // Offset: 1092
+    bool canReceiveBackstab_backing; // Offset: 1093
+    char padding172[2]; // Padding
+    float amputatedMaxHealth; // Offset: 1096
+    float amputateMaxHealthMinimum; // Offset: 1100
+    bool statsDirty; // Offset: 1104
+    char padding175[3]; // Padding
+    int32_t extraSecondaryFromSkill; // Offset: 1108
+    int32_t extraSpecialFromSkill; // Offset: 1112
+    float maxBonusHealth_backing; // Offset: 1116
+    int32_t extraStatsOnLevelUpCount_CachedLastApplied; // Offset: 1120
+    bool lowerPricedChestsActive; // Offset: 1124
+    bool canPurchaseLoweredPricedChests; // Offset: 1125
+    bool allSkillsDisabled; // Offset: 1126
+    bool isTeleporting; // Offset: 1127
+    int32_t currentGrowthNectarBuffCount; // Offset: 1128
+    int32_t prevGrowthNectarBuffCount; // Offset: 1132
+    int32_t maxGrowthNectarBuffCount; // Offset: 1136
+    float growthNectarRemovalTimer; // Offset: 1140
+    float aimTimer; // Offset: 1144
+    int32_t killCountServer_backing; // Offset: 1148
+    float helfireLifetime; // Offset: 1152
+    bool wasLucky; // Offset: 1156
+    char padding191[3]; // Padding
+    float poisonballTimer; // Offset: 1160
+    float lunarMissileRechargeTimer; // Offset: 1164
+    float lunarMissileTimerBetweenShots; // Offset: 1168
+    int32_t remainingMissilesToFire; // Offset: 1172
+    float spreadBloomDecayTime; // Offset: 1176
+    float spreadBloomInternal; // Offset: 1180
+    bool hideCrosshair; // Offset: 1184
+    char padding198[3]; // Padding
+    float multiKillTimer; // Offset: 1188
+    int32_t multiKillCount_backing; // Offset: 1192
+    float increasedDamageKillTimer; // Offset: 1196
+    bool increasedDamageKillCountDirty; // Offset: 1200
     char padding202[3]; // Padding
-    float multiKillTimer; // Offset: 1200
-    int32_t multiKillCount_backing; // Offset: 1204
-    float increasedDamageKillTimer; // Offset: 1208
-    bool increasedDamageKillCountDirty; // Offset: 1212
-    char padding206[3]; // Padding
-    int32_t _increasedDamageKillCount; // Offset: 1216
-    int32_t increasedDamageKillCountBuff_backing; // Offset: 1220
-    bool canAddIncrasePrimaryDamage; // Offset: 1224
-    char padding209[3]; // Padding
-    float delayedDamageRefreshTime; // Offset: 1228
-    float delayedDamageRefreshTimer; // Offset: 1232
-    float secondHalfOfDamageTime; // Offset: 1236
-    int32_t oldDelayedDamageCount; // Offset: 1240
-    bool halfDamageReady; // Offset: 1244
-    char padding214[3]; // Padding
-    float halfDamageTimer; // Offset: 1248
-    float knockBackFinGroundedTimer; // Offset: 1252
-    Vector3 runicLensPosition; // Offset: 1256
-    float runicLensStartTime; // Offset: 1268
-    float runicLensImpactTime; // Offset: 1272
-    bool runicLensMeteorReady; // Offset: 1276
-    char padding220[3]; // Padding
-    int32_t spawnedPickupCount; // Offset: 1280
-    bool tamperedHeartActive; // Offset: 1284
-    char padding222[3]; // Padding
-    float tamperedHeartRegenBonus; // Offset: 1288
-    float tamperedHeartMSpeedBonus; // Offset: 1292
-    float tamperedHeartDamageBonus; // Offset: 1296
-    float tamperedHeartAttackSpeedBonus; // Offset: 1300
-    float tamperedHeartArmorBonus; // Offset: 1304
-    float radius_backing; // Offset: 1308
-    HullClassification hullClassification; // Offset: 1312
-    Color bodyColor; // Offset: 1316
-    bool doNotReassignToTeamBasedCollisionLayer; // Offset: 1332
-    bool isChampion; // Offset: 1333
-    bool isElite_backing; // Offset: 1334
-    char padding233[1]; // Padding
-    uint32_t skinIndex; // Offset: 1336
-    FixedTimeStamp localStartTime_backing; // Offset: 1340
-    bool requestEquipmentFire; // Offset: 1344
-    char padding236[3]; // Padding
-    int32_t increaseDamageOnMultiKillItemCount; // Offset: 1348
+    int32_t _increasedDamageKillCount; // Offset: 1204
+    int32_t increasedDamageKillCountBuff_backing; // Offset: 1208
+    bool canAddIncrasePrimaryDamage; // Offset: 1212
+    char padding205[3]; // Padding
+    float delayedDamageRefreshTime; // Offset: 1216
+    float delayedDamageRefreshTimer; // Offset: 1220
+    float secondHalfOfDamageTime; // Offset: 1224
+    int32_t oldDelayedDamageCount; // Offset: 1228
+    bool halfDamageReady; // Offset: 1232
+    char padding210[3]; // Padding
+    float halfDamageTimer; // Offset: 1236
+    float knockBackFinGroundedTimer; // Offset: 1240
+    Vector3 runicLensPosition; // Offset: 1244
+    float runicLensStartTime; // Offset: 1256
+    float runicLensImpactTime; // Offset: 1260
+    bool runicLensMeteorReady; // Offset: 1264
+    char padding216[3]; // Padding
+    int32_t spawnedPickupCount; // Offset: 1268
+    float radius_backing; // Offset: 1272
+    HullClassification_Value hullClassification; // Offset: 1276
+    Color_Value bodyColor; // Offset: 1280
+    bool doNotReassignToTeamBasedCollisionLayer; // Offset: 1296
+    bool isChampion; // Offset: 1297
+    bool isElite_backing; // Offset: 1298
+    char padding223[1]; // Padding
+    uint32_t skinIndex; // Offset: 1300
+    FixedTimeStamp_Value localStartTime_backing; // Offset: 1304
+    bool requestEquipmentFire; // Offset: 1308
+    char padding226[3]; // Padding
+    int32_t increaseDamageOnMultiKillItemCount; // Offset: 1312
 };
 
 // Generated from RoR2.PlayerCharacterMasterController
@@ -750,7 +704,7 @@ struct PlayerCharacterMasterController {
     GameObject* crosshair; // Offset: 120
     NetworkIdentity* netid; // Offset: 128
     Action* onLinkedToNetworkUserServer; // Offset: 136
-    NetworkInstanceId networkUserInstanceId; // Offset: 144
+    NetworkInstanceId_Value networkUserInstanceId; // Offset: 144
     bool networkUserResolved; // Offset: 148
     bool alreadyLinkedToNetworkUserOnce; // Offset: 149
     char padding15[2]; // Padding
@@ -789,14 +743,14 @@ struct CharacterMaster {
     Interactor* summonerRef; // Offset: 200
     int32_t _masterIndex; // Offset: 208
     bool spawnOnStart; // Offset: 212
-    TeamIndex _teamIndex; // Offset: 213
+    TeamIndex_Value _teamIndex; // Offset: 213
     bool hasEffectiveAuthority_backing; // Offset: 214
     bool destroyOnBodyDeath; // Offset: 215
-    NetworkInstanceId _bodyInstanceId; // Offset: 216
+    NetworkInstanceId_Value _bodyInstanceId; // Offset: 216
     bool bodyResolved; // Offset: 220
     char padding27[3]; // Padding
-    BodyIndex backupBodyIndex_backing; // Offset: 224
-    NetworkInstanceId _combatSquadInstanceId; // Offset: 228
+    BodyIndex_Value backupBodyIndex_backing; // Offset: 224
+    NetworkInstanceId_Value _combatSquadInstanceId; // Offset: 228
     int32_t numberOfBeadStatsGained_XPGainNerf; // Offset: 232
     char padding30[4]; // Padding
     uint64_t beadExperience; // Offset: 240
@@ -818,15 +772,18 @@ struct CharacterMaster {
     bool killedByUnsafeArea; // Offset: 320
     char padding46[3]; // Padding
     float _internalSurvivalTime; // Offset: 324
-    BodyIndex killerBodyIndex; // Offset: 328
+    BodyIndex_Value killerBodyIndex; // Offset: 328
     bool preventRespawnUntilNextStageServer; // Offset: 332
-    char padding49[3]; // Padding
-    CharacterMaster_SEEKER_REVIVE_STATUS seekerUsedRevive; // Offset: 336
-    ItemIndex devotionItem; // Offset: 340
+    uint8_t _seekerChakraGate; // Offset: 333
+    bool _seekerRevivedOnce; // Offset: 334
+    bool _seekerRevitalize; // Offset: 335
+    bool seekerSelfRevive; // Offset: 336
+    char padding53[3]; // Padding
+    ItemIndex_Value devotionItem; // Offset: 340
     int32_t devotedEvolutionTracker; // Offset: 344
     bool isDevotedMinion; // Offset: 348
     bool godMode; // Offset: 349
-    char padding54[2]; // Padding
+    char padding57[2]; // Padding
     uint32_t lostBodyToDeathFlag; // Offset: 352
     uint32_t _miscFlags; // Offset: 356
 };
@@ -836,7 +793,7 @@ struct CameraTargetParams {
     char padding0[24]; // Padding
     CharacterCameraParams* cameraParams; // Offset: 24
     Transform* cameraPivotTransform; // Offset: 32
-    void* aimRequestStack; // Offset: 40
+    void* cameraLerpRequests; // Offset: 40
     void* cameraParamsOverrides; // Offset: 48
     float fovOverride; // Offset: 56
     Vector2 recoil; // Offset: 60
@@ -845,7 +802,7 @@ struct CameraTargetParams {
     Vector2 targetRecoil; // Offset: 72
     Vector2 recoilVelocity; // Offset: 80
     Vector2 targetRecoilVelocity; // Offset: 88
-    CharacterCameraParamsData _currentCameraParamsData; // Offset: 96
+    CharacterCameraParamsData_Value _currentCameraParamsData; // Offset: 96
 };
 
 // Generated from RoR2.CameraRigController
@@ -864,12 +821,13 @@ struct CameraRigController {
     CharacterBody* targetBody_backing; // Offset: 104
     GameObject* _target; // Offset: 112
     ICameraStateProvider* overrideCam; // Offset: 120
-    CameraModeContext cameraModeContext; // Offset: 128
+    CameraModeContext_Value cameraModeContext; // Offset: 128
+    char padding14[6]; // Padding
     NetworkUser* _viewer; // Offset: 296
     LocalUser* _localUserViewer; // Offset: 304
     CameraTargetParams* targetParams; // Offset: 312
-    AimAssistInfo lastAimAssist; // Offset: 320
-    AimAssistInfo aimAssist; // Offset: 352
+    AimAssistInfo_Value lastAimAssist; // Offset: 320
+    AimAssistInfo_Value aimAssist; // Offset: 352
     HurtBox* lastCrosshairHurtBox_backing; // Offset: 384
     float baseFov; // Offset: 392
     Rect viewport; // Offset: 396
@@ -882,23 +840,20 @@ struct CameraRigController {
     bool createHud; // Offset: 428
     bool suppressPlayerCameras; // Offset: 429
     bool enableMusic; // Offset: 430
-    char padding30[1]; // Padding
-    uint64_t musicListenerId; // Offset: 432
-    bool musicEnabled; // Offset: 440
-    bool disableSpectating_backing; // Offset: 441
-    TeamIndex targetTeamIndex_backing; // Offset: 442
-    char padding34[1]; // Padding
-    Vector3 rawScreenShakeDisplacement_backing; // Offset: 444
-    Vector3 crosshairWorldPosition_backing; // Offset: 456
-    CameraState desiredCameraState; // Offset: 468
-    CameraState currentCameraState; // Offset: 500
-    bool doNotOverrideCameraState; // Offset: 532
-    char padding39[3]; // Padding
-    CameraState lerpCameraState; // Offset: 536
-    float lerpCameraTime; // Offset: 568
-    float lerpCameraTimeScale; // Offset: 572
-    float hitmarkerAlpha; // Offset: 576
-    float hitmarkerTimer; // Offset: 580
+    bool disableSpectating_backing; // Offset: 431
+    TeamIndex_Value targetTeamIndex_backing; // Offset: 432
+    char padding32[3]; // Padding
+    Vector3 rawScreenShakeDisplacement_backing; // Offset: 436
+    Vector3 crosshairWorldPosition_backing; // Offset: 448
+    CameraState_Value desiredCameraState; // Offset: 460
+    CameraState_Value currentCameraState; // Offset: 492
+    bool doNotOverrideCameraState; // Offset: 524
+    char padding37[3]; // Padding
+    CameraState_Value lerpCameraState; // Offset: 528
+    float lerpCameraTime; // Offset: 560
+    float lerpCameraTimeScale; // Offset: 564
+    float hitmarkerAlpha; // Offset: 568
+    float hitmarkerTimer; // Offset: 572
 };
 
 // Generated from RoR2.Stats.PlayerStatsComponent

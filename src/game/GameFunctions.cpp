@@ -145,7 +145,7 @@ int GameFunctions::LoadItems() {
         void* params[1] = { &i };
         MonoObject* itemDefObj = m_runtime->InvokeMethod(getItemMethod, itemDefsArray, params);
         if (!itemDefObj) continue;
-        
+
         RoR2Item item;
         item.index = -1;
         if (itemIndexField) {
@@ -155,7 +155,7 @@ int GameFunctions::LoadItems() {
             G::logger.LogError("Item index is negative, failing");
             return -1;
         }
-        
+
         MonoClass* objClass = m_runtime->GetObjectClass(itemDefObj);
         MonoProperty* nameProp = m_runtime->GetProperty(objClass, "name");
         if (nameProp) {
@@ -167,7 +167,7 @@ int GameFunctions::LoadItems() {
                 }
             }
         }
-        
+
         if (nameTokenField) {
             MonoString* str = m_runtime->GetFieldValue<MonoString*>(itemDefObj, nameTokenField);
             if (str) {
@@ -175,46 +175,46 @@ int GameFunctions::LoadItems() {
                 item.displayName = Language_GetString(str);
             }
         }
-        
+
         if (pickupTokenField) {
             MonoString* str = m_runtime->GetFieldValue<MonoString*>(itemDefObj, pickupTokenField);
             if (str) item.pickupToken = m_runtime->StringToUtf8(str);
         }
-        
+
         if (descTokenField) {
             MonoString* str = m_runtime->GetFieldValue<MonoString*>(itemDefObj, descTokenField);
             if (str) item.descriptionToken = m_runtime->StringToUtf8(str);
         }
-        
+
         if (loreTokenField) {
             MonoString* str = m_runtime->GetFieldValue<MonoString*>(itemDefObj, loreTokenField);
             if (str) item.loreToken = m_runtime->StringToUtf8(str);
         }
-        
+
         if (itemTierDefField) {
             MonoObject* tierDefObj = m_runtime->GetFieldValue<MonoObject*>(itemDefObj, itemTierDefField);
-            
+
             if (tierDefObj) {
                 MonoField* tierField = m_runtime->GetField(m_itemTierDefClass, "_tier");
                 if (tierField) {
                     int tierValue = m_runtime->GetFieldValue<int>(tierDefObj, tierField);
-                    item.tier = static_cast<ItemTier>(tierValue);
+                    item.tier = static_cast<ItemTier_Value>(tierValue);
                     MonoField* isDroppableField = m_runtime->GetField(m_itemTierDefClass, "isDroppable");
                     MonoField* canScrapField = m_runtime->GetField(m_itemTierDefClass, "canScrap");
                     MonoField* canRestackField = m_runtime->GetField(m_itemTierDefClass, "canRestack");
-                    
+
                     if (isDroppableField) {
                         item.isDroppable = m_runtime->GetFieldValue<bool>(tierDefObj, isDroppableField);
                     }
-                    
+
                     if (canScrapField) {
                         item.canScrap = m_runtime->GetFieldValue<bool>(tierDefObj, canScrapField);
                     }
-                    
+
                     if (canRestackField) {
                         item.canRestack = m_runtime->GetFieldValue<bool>(tierDefObj, canRestackField);
                     }
-                    
+
                     // Get the tier name
                     MonoClass* objClass = m_runtime->GetObjectClass(tierDefObj);
                     MonoProperty* nameProp = m_runtime->GetProperty(objClass, "name");
@@ -230,19 +230,19 @@ int GameFunctions::LoadItems() {
                 }
             }
         }
-        
+
         if (canRemoveField) {
             item.canRemove = m_runtime->GetFieldValue<bool>(itemDefObj, canRemoveField);
         }
-        
+
         if (isConsumedField) {
             item.isConsumed = m_runtime->GetFieldValue<bool>(itemDefObj, isConsumedField);
         }
-        
+
         if (hiddenField) {
             item.hidden = m_runtime->GetFieldValue<bool>(itemDefObj, hiddenField);
         }
-        
+
         if (tagsField) {
             MonoArray* tagsArray = m_runtime->GetFieldValue<MonoArray*>(itemDefObj, tagsField);
             if (tagsArray) {
@@ -262,7 +262,7 @@ int GameFunctions::LoadItems() {
                 }
             }
         }
-        
+
         if (item.displayName == item.nameToken && !item.nameToken.empty()) {
             G::logger.LogError("Item displayName '%s' is the same as nameToken '%s', skipping", item.displayName.c_str(), item.nameToken.c_str());
         } else if (item.displayName.empty()) {
@@ -364,24 +364,24 @@ int GameFunctions::RoR2Application_GetLoadGameContentPercentage() {
         G::logger.LogError("Failed to find instance property in RoR2Application");
         return 0;
     }
-    
+
     MonoMethod* getInstanceMethod = m_runtime->GetPropertyGetMethod(instanceProperty);
     if (!getInstanceMethod) {
         G::logger.LogError("Failed to get instance getter method");
         return 0;
     }
-    
+
     MonoObject* instance = m_runtime->InvokeMethod(getInstanceMethod, nullptr, nullptr);
     if (!instance) {
         G::logger.LogError("Failed to get RoR2Application instance");
         return 0;
     }
-    
+
     MonoField* percentageField = m_runtime->GetField(m_RoR2ApplicationClass, "loadGameContentPercentage");
     if (!percentageField) {
         G::logger.LogError("Failed to find loadGameContentPercentage field");
         return 0;
     }
-    
+
     return m_runtime->GetFieldValue<int>(instance, percentageField);
 }

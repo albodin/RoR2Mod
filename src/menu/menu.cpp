@@ -43,16 +43,16 @@ void DrawPlayerTab() {
     if (ImGui::CollapsingHeader("Items")) {
         std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
         if (ImGui::CollapsingHeader("Tier1")) {
-            DrawItemInputs(ItemTier::Tier1);
+            DrawItemInputs(ItemTier_Value::Tier1);
         }
         if (ImGui::CollapsingHeader("Tier2")) {
-            DrawItemInputs(ItemTier::Tier2);
+            DrawItemInputs(ItemTier_Value::Tier2);
         }
         if (ImGui::CollapsingHeader("Tier3")) {
-            DrawItemInputs(ItemTier::Tier3);
+            DrawItemInputs(ItemTier_Value::Tier3);
         }
         if (ImGui::CollapsingHeader("Lunar")) {
-            DrawItemInputs(ItemTier::Lunar);
+            DrawItemInputs(ItemTier_Value::Lunar);
         }
         // Other tiers don't seem to have items, void items use the same tier as the base item
     }
