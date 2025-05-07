@@ -7,9 +7,10 @@
 #include <shared_mutex>
 
 #include "core/MonoRuntime.h"
+#include "game/GameStructs.h"
 #include "game/GameFunctions.h"
 #include "utils/Logger.h"
-#include "game/GameStructs.h"
+#include "menu/InputControls.h"
 
 typedef long(__stdcall* Present)(IDXGISwapChain*, UINT, UINT);
 
@@ -17,7 +18,6 @@ namespace G {
     extern bool running;
     extern bool initialized;
     extern bool hooksInitialized;
-    extern bool showMenu;
     extern MonoRuntime* g_monoRuntime;
     extern HMODULE hModule;
     extern HANDLE mainThread;
@@ -40,10 +40,13 @@ namespace G {
     extern std::vector<RoR2Item> items;
     extern std::vector<int> itemStacks;
 
-    extern bool godMode;
-    extern float baseMoveSpeed;
-    extern float baseDamage;
-    extern float baseAttackSpeed;
-    extern float baseCrit;
-    extern int32_t baseJumpCount;
+    extern ToggleControl* showMenuControl;
+    extern ButtonControl* runningButtonControl;
+
+    extern ToggleControl* godModeControl;
+    extern FloatControl* baseMoveSpeedControl;
+    extern FloatControl* baseDamageControl;
+    extern FloatControl* baseAttackSpeedControl;
+    extern FloatControl* baseCritControl;
+    extern IntControl* baseJumpCountControl;
 }

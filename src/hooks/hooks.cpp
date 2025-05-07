@@ -120,7 +120,7 @@ bool CreateHook(
         return true; \
     }()
 
-DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Transform, get_position_Injected, 1, void, 
+DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Transform, get_position_Injected, 1, void,
                    void* transform, Vector3* outPosition);
 
 void Hooks::Init() {
@@ -205,6 +205,15 @@ void Hooks::Init() {
     }
 #endif // DEBUG_PRINT
     G::itemStacks.resize(itemCount);
+
+    G::showMenuControl->SetOnChange([](bool enabled) {
+        if (enabled) {
+            G::gameFunctions->Cursor_SetLockState(2); // CursorLockMode.Confined
+            G::gameFunctions->Cursor_SetVisible(true);
+        }
+    });
+    G::showMenuControl->SetHotkey(ImGuiKey_Insert);
+
     G::hooksInitialized = true;
 
     G::gameFunctions->RoR2Application_SetModded(true);
@@ -296,30 +305,30 @@ void Hooks::hkRoR2RoR2ApplicationUpdate(void* instance) {
 }
 
 bool Hooks::hkRewiredPlayerGetButtonDown(void* instance, int key) {
-    if (G::showMenu)
+    if (G::showMenuControl->IsEnabled())
         return false;
-    
+
     static auto originalFunc = reinterpret_cast<bool(*)(void*, int)>(hooks["RewiredPlayerGetButtonDown"]);
     return originalFunc(instance, key);
 }
 
 void Hooks::hkRoR2RoR2ApplicationUpdateCursorState(void* instance) {
     static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2RoR2ApplicationUpdateCursorState"]);
-    if (!G::showMenu) {
+    if (!G::showMenuControl->IsEnabled()) {
         originalFunc(instance);
     }
 }
 
 void Hooks::hkRoR2MPEventSystemManagerUpdate(void* instance) {
     static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2MPEventSystemManagerUpdate"]);
-    if (!G::showMenu) {
+    if (!G::showMenuControl->IsEnabled()) {
         originalFunc(instance);
     }
 }
 
 void Hooks::hkUnityEngineCursorset_lockState(void* instance, int lockState) {
     static auto originalFunc = reinterpret_cast<void(*)(void*, int)>(hooks["UnityEngineCursorset_lockState"]);
-    if (G::showMenu) {
+    if (G::showMenuControl->IsEnabled()) {
         lockState = 2; // CursorLockMode.Confined
     }
     originalFunc(instance, lockState);
@@ -327,7 +336,7 @@ void Hooks::hkUnityEngineCursorset_lockState(void* instance, int lockState) {
 
 void Hooks::hkUnityEngineCursorset_visible(void* instance, bool visible) {
     static auto originalFunc = reinterpret_cast<void(*)(void*, bool)>(hooks["UnityEngineCursorset_visible"]);
-    if (G::showMenu) {
+    if (G::showMenuControl->IsEnabled()) {
         visible = true;
     }
     originalFunc(instance, visible);
@@ -341,14 +350,28 @@ void Hooks::hkRoR2LocalUserRebuildControlChain(void* instance) {
     if (!localUser_ptr->cachedMaster_backing || !localUser_ptr->cachedBody_backing || !localUser_ptr->cachedBody_backing->healthComponent_backing) {
         return;
     }
-    localUser_ptr->cachedMaster_backing->godMode = G::godMode;
-    localUser_ptr->cachedBody_backing->healthComponent_backing->godMode_backing = G::godMode;
 
-    localUser_ptr->cachedBody_backing->baseMoveSpeed = G::baseMoveSpeed;
-    localUser_ptr->cachedBody_backing->baseDamage = G::baseDamage;
-    localUser_ptr->cachedBody_backing->baseAttackSpeed = G::baseAttackSpeed;
-    localUser_ptr->cachedBody_backing->baseCrit = G::baseCrit;
-    localUser_ptr->cachedBody_backing->baseJumpCount = G::baseJumpCount;
+    if (G::godModeControl->IsEnabled()) {
+        localUser_ptr->cachedMaster_backing->godMode = true;
+        localUser_ptr->cachedBody_backing->healthComponent_backing->godMode_backing = true;
+    }
+
+    if (G::baseMoveSpeedControl->IsEnabled()) {
+        localUser_ptr->cachedBody_backing->baseMoveSpeed = G::baseMoveSpeedControl->GetValue();
+    }
+    if (G::baseDamageControl->IsEnabled()) {
+        localUser_ptr->cachedBody_backing->baseDamage = G::baseDamageControl->GetValue();
+    }
+    if (G::baseAttackSpeedControl->IsEnabled()) {
+        localUser_ptr->cachedBody_backing->baseAttackSpeed = G::baseAttackSpeedControl->GetValue();
+    }
+    if (G::baseCritControl->IsEnabled()) {
+        localUser_ptr->cachedBody_backing->baseCrit = G::baseCritControl->GetValue();
+    }
+    if (G::baseJumpCountControl->IsEnabled()) {
+        localUser_ptr->cachedBody_backing->baseJumpCount = G::baseJumpCountControl->GetValue();
+    }
+
 
     if (!localUser_ptr->cachedBody_backing->inventory_backing) {
         return;
@@ -394,9 +417,9 @@ void Hooks::hkRoR2SteamworksServerManagerTagsStringUpdated(void* instance) {
 
 LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
-    if (G::showMenu)
+    if (G::showMenuControl->IsEnabled()) {
         return TRUE;
-    
+    }
     return CallWindowProc(G::oWndProc, hWnd, uMsg, wParam, lParam);
 }
 
@@ -440,16 +463,18 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
     ImGui_ImplDX11_NewFrame();
     ImGui::NewFrame();
 
-    ImGuiIO& io = ImGui::GetIO();
-    io.MouseDrawCursor = G::showMenu;
+    G::showMenuControl->Update();
+    G::runningButtonControl->Update();
 
-    if (ImGui::IsKeyPressed(ImGuiKey_Insert) && G::hooksInitialized) {
-        G::showMenu = !G::showMenu;
-        if (G::showMenu) {
-            G::gameFunctions->Cursor_SetLockState(2); // CursorLockMode.Confined
-            G::gameFunctions->Cursor_SetVisible(true);
-        }
-    }
+    G::godModeControl->Update();
+    G::baseMoveSpeedControl->Update();
+    G::baseDamageControl->Update();
+    G::baseAttackSpeedControl->Update();
+    G::baseCritControl->Update();
+    G::baseJumpCountControl->Update();
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.MouseDrawCursor = G::showMenuControl->IsEnabled();
 
     if (const auto& displaySize = ImGui::GetIO().DisplaySize; displaySize.x > 0.0f && displaySize.y > 0.0f) {
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
@@ -472,8 +497,9 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
         }
         ImGui::End();
 
-        if (G::showMenu)
+        if (G::showMenuControl->IsEnabled()) {
             DrawMenu();
+        }
     }
 
     ImGui::Render();

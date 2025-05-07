@@ -33,13 +33,13 @@ void DrawItemInputs(ItemTier tier) {
 }
 
 void DrawPlayerTab() {
-    ImGui::Checkbox("Godmode", &G::godMode);
-    ImGui::InputFloat("Base Move Speed", &G::baseMoveSpeed, 1.0f, 100.0f);
-    ImGui::InputFloat("Base Damage", &G::baseDamage, 10.0f, 1000000000.0f);
-    ImGui::InputFloat("Base Attack Speed", &G::baseAttackSpeed, 10.0f, 1000000000.0f);
-    ImGui::InputFloat("Base Crit", &G::baseCrit, 10.0f, 1000000000.0f);
-    ImGui::InputInt("Base Jump Count", &G::baseJumpCount);
-    
+    G::godModeControl->Draw();
+    G::baseMoveSpeedControl->Draw();
+    G::baseDamageControl->Draw();
+    G::baseAttackSpeedControl->Draw();
+    G::baseCritControl->Draw();
+    G::baseJumpCountControl->Draw();
+
     if (ImGui::CollapsingHeader("Items")) {
         std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
         if (ImGui::CollapsingHeader("Tier1")) {
@@ -179,6 +179,11 @@ void DrawConfigTab() {
             }
         }
     }
+
+    ImGui::Separator();
+
+    G::showMenuControl->Draw();
+    G::runningButtonControl->Draw();
 }
 
 void DrawMenu() {
