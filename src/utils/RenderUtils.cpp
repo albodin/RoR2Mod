@@ -31,21 +31,29 @@ namespace RenderUtils {
         vsnprintf(buffer, sizeof(buffer), text, args);
         va_end(args);
 
+        ImFont* font = FontManager::GetESPFont();
+        float scale = FontManager::ESPFontSize / font->FontSize;
+
         ImVec2 textSize = ImGui::CalcTextSize(buffer);
+        textSize.x *= scale;
+        textSize.y *= scale;
         if (centered) {
             pos.x -= textSize.x / 2;
         }
 
-        ImGui::PushFont(FontManager::JetBrainsMono);
         if (shadow) {
-            ImGui::GetBackgroundDrawList()->AddText(ImVec2(pos.x + 1, pos.y), shadowColor, buffer);
-            ImGui::GetBackgroundDrawList()->AddText(ImVec2(pos.x - 1, pos.y), shadowColor, buffer);
-            ImGui::GetBackgroundDrawList()->AddText(ImVec2(pos.x, pos.y + 1), shadowColor, buffer);
-            ImGui::GetBackgroundDrawList()->AddText(ImVec2(pos.x, pos.y - 1), shadowColor, buffer);
+            float offset = 1.0f * scale;
+            ImGui::GetBackgroundDrawList()->AddText(font, FontManager::ESPFontSize,
+                ImVec2(pos.x + offset, pos.y + offset), shadowColor, buffer);
+            ImGui::GetBackgroundDrawList()->AddText(font, FontManager::ESPFontSize,
+                ImVec2(pos.x - offset, pos.y - offset), shadowColor, buffer);
+            ImGui::GetBackgroundDrawList()->AddText(font, FontManager::ESPFontSize,
+                ImVec2(pos.x + offset, pos.y - offset), shadowColor, buffer);
+            ImGui::GetBackgroundDrawList()->AddText(font, FontManager::ESPFontSize,
+                ImVec2(pos.x - offset, pos.y + offset), shadowColor, buffer);
         }
 
-        ImGui::GetBackgroundDrawList()->AddText(pos, color, buffer);
-        ImGui::PopFont();
+        ImGui::GetBackgroundDrawList()->AddText(font, FontManager::ESPFontSize, pos, color, buffer);
 
         return textSize;
     }

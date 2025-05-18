@@ -1,7 +1,8 @@
 #include "menu.h"
 #include "globals/globals.h"
-#include <imgui.h>
 #include "utils/MonoApi.h"
+#include "fonts/FontManager.h"
+#include <imgui.h>
 #include <filesystem>
 
 void DrawPlayerTab() {
@@ -42,7 +43,41 @@ void DumpGameToDirectory(std::string directoryName) {
 }
 
 void DrawConfigTab() {
-    if (ImGui::CollapsingHeader("Dump Game", ImGuiTreeNodeFlags_DefaultOpen)) {
+    G::showMenuControl->Draw();
+    G::runningButtonControl->Draw();
+
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("ESP Font Settings", ImGuiTreeNodeFlags_None)) {
+        if (ImGui::BeginCombo("Font", FontManager::AvailableFonts[FontManager::CurrentFontIndex].name.c_str())) {
+            for (int i = 0; i < FontManager::AvailableFonts.size(); i++) {
+                const bool is_selected = (FontManager::CurrentFontIndex == i);
+                if (ImGui::Selectable(FontManager::AvailableFonts[i].name.c_str(), is_selected)) {
+                    FontManager::CurrentFontIndex = i;
+                }
+                if (is_selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        ImGui::SliderFloat("Font Size", &FontManager::ESPFontSize, 1.0f, 100.0f, "%.1fx");
+
+        ImGui::TextWrapped("Place .ttf or .otf font files in the 'ror2modfonts' folder to add more fonts.");
+
+        ImGui::Text("Preview:");
+        ImGui::PushFont(FontManager::GetESPFont());
+        float scale = FontManager::ESPFontSize / FontManager::GetESPFont()->FontSize;
+        ImGui::SetWindowFontScale(scale);
+        ImGui::Text("This is how ESP text will appear");
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopFont();
+    }
+
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Dump Game", ImGuiTreeNodeFlags_None)) {
         static char directoryName[256] = "gameDump";
         static bool showSuccessMessage = false;
         static bool showErrorMessage = false;
@@ -136,8 +171,7 @@ void DrawConfigTab() {
 
     ImGui::Separator();
 
-    G::showMenuControl->Draw();
-    G::runningButtonControl->Draw();
+
 }
 
 void DrawMenu() {
