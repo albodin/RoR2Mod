@@ -7,5 +7,8 @@
 
 class FontManager {
 public:
+    static ImFont* JetBrainsMono;
+    static ImFont* FontAwesomeSolid;
+    static ImFont* DefaultFont;
     static void InitializeFonts(ImFontAtlas* atlas);
 };
