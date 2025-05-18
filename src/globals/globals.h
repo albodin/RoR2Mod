@@ -12,6 +12,9 @@
 #include "game/GameFunctions.h"
 #include "utils/Logger.h"
 #include "menu/InputControls.h"
+#include "modules/PlayerModule.h"
+#include "modules/ESPModule.h"
+#include "modules/WorldModule.h"
 
 typedef long(__stdcall* Present)(IDXGISwapChain*, UINT, UINT);
 
@@ -34,21 +37,13 @@ namespace G {
     extern std::mutex queuedActionsMutex;
     extern std::queue<std::function<void()>> queuedActions;
 
-    extern void* localInventory_cached;
-    extern std::mutex queuedGiveItemsMutex;
-    extern std::queue<std::tuple<int, int>> queuedGiveItems;
     extern std::shared_mutex itemsMutex;
     extern std::vector<RoR2Item> items;
-    extern std::vector<int> itemStacks;
-    extern std::map<int, IntControl*> itemControls;
 
     extern ToggleControl* showMenuControl;
     extern ButtonControl* runningButtonControl;
 
-    extern ToggleControl* godModeControl;
-    extern FloatControl* baseMoveSpeedControl;
-    extern FloatControl* baseDamageControl;
-    extern FloatControl* baseAttackSpeedControl;
-    extern FloatControl* baseCritControl;
-    extern IntControl* baseJumpCountControl;
+    extern PlayerModule* localPlayer;
+    extern ESPModule* espModule;
+    extern WorldModule* worldModule;
 }

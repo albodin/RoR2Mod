@@ -131,3 +131,32 @@ public:
     void SetOnClick(std::function<void()> callback) { onClick = callback; }
     void SetButtonText(const std::string& text) { buttonText = text; }
 };
+
+class ESPControl : public InputControl {
+private:
+    float distance;
+    float maxDistance;
+    ImVec4 color;
+    ImVec4 outlineColor;
+    bool enableOutline;
+
+public:
+    ESPControl(const std::string& label, const std::string& id,
+              bool enabled = false, float defaultDistance = 100.0f,
+              float maxDistance = 500.0f, ImVec4 defaultColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
+              ImVec4 outlineColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f), bool enableOutline = true);
+
+    void Draw() override;
+    void Update() override;
+
+    float GetDistance() const { return distance; }
+    ImVec4 GetColor() const { return color; }
+    ImU32 GetColorU32() const { return ImGui::ColorConvertFloat4ToU32(color); }
+    ImU32 GetOutlineColorU32() const { return ImGui::ColorConvertFloat4ToU32(outlineColor); }
+    bool IsOutlineEnabled() const { return enableOutline; }
+
+    void SetDistance(float newDistance);
+    void SetColor(const ImVec4& newColor);
+    void SetOutlineColor(const ImVec4& newOutlineColor);
+    void SetEnableOutline(bool enable);
+};

@@ -9,6 +9,7 @@
 #include "menu/menu.h"
 #include "game/GameStructs.h"
 #include "core/MonoList.h"
+#include "utils/Math.h"
 #include "fonts/FontManager.h"
 
 //#define DEBUG_PRINT
@@ -80,16 +81,12 @@ bool CreateHook(
     } \
 }
 
-#define DECLARE_INTERNAL_CALL(ReturnType, Name, ...) \
-    typedef ReturnType (*Name##_fn)(__VA_ARGS__); \
-    extern Name##_fn Name
-
 #define DEFINE_INTERNAL_CALL(Assembly, Namespace, Class, Method, ParamCount, ReturnType, ...) \
     typedef ReturnType (*Class##_##Method##_fn)(__VA_ARGS__); \
-    Class##_##Method##_fn Class##_##Method = nullptr; \
+    Class##_##Method##_fn Hooks::Class##_##Method = nullptr; \
     \
-    void Init##Class##_##Method() { \
-        if (Class##_##Method) return; \
+    static void Init##Class##_##Method() { \
+        if (Hooks::Class##_##Method) return; \
         \
         MonoClass* klass = G::g_monoRuntime->GetClass(#Assembly, #Namespace, #Class); \
         if (!klass) { \
@@ -112,7 +109,7 @@ bool CreateHook(
             return; \
         } \
         \
-        Class##_##Method = (Class##_##Method##_fn)funcPtr; \
+        Hooks::Class##_##Method = (Class##_##Method##_fn)funcPtr; \
         G::logger.LogInfo("Successfully initialized " #Namespace "." #Class "::" #Method " at %p", funcPtr); \
     } \
     static const bool Class##_##Method##_registered = []() { \
@@ -122,6 +119,9 @@ bool CreateHook(
 
 DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Transform, get_position_Injected, 1, void,
                    void* transform, Vector3* outPosition);
+DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Camera, get_main, 0, Camera*, void);
+DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Camera, WorldToScreenPoint_Injected, 3, void,
+                   void* camera, Vector3* position, MonoOrStereoscopicEye eye, Vector3* outPosition);
 
 void Hooks::Init() {
     MH_STATUS status = MH_Initialize();
@@ -159,6 +159,8 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, LocalUser, RebuildControlChain, 0, "System.Void", {});
     HOOK(RoR2, RoR2, Inventory, HandleInventoryChanged, 0, "System.Void", {});
     HOOK(RoR2, RoR2, SteamworksServerManager, TagsStringUpdated, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, TeleporterInteraction, Awake, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, TeleporterInteraction, FixedUpdate, 0, "System.Void", {});
 
 
     for (auto& target: hookTargets) {
@@ -180,14 +182,7 @@ void Hooks::Init() {
         func();
     }
 
-    int itemCount = -1;
-    do {
-        itemCount = G::gameFunctions->LoadItems();
-        if (itemCount == -1) {
-            Sleep(2000);
-        }
-    } while (itemCount == -1);
-    G::logger.LogInfo("Items loaded successfully");
+    G::localPlayer->InitializeItems();
 
 #ifdef DEBUG_PRINT
     std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
@@ -204,7 +199,6 @@ void Hooks::Init() {
         G::logger.LogInfo("-----------------------------------------------------");
     }
 #endif // DEBUG_PRINT
-    G::itemStacks.resize(itemCount);
 
     G::showMenuControl->SetOnChange([](bool enabled) {
         if (enabled) {
@@ -286,27 +280,27 @@ void Hooks::Unhook() {
     delete G::g_monoRuntime;
     delete G::gameFunctions;
     delete G::runningButtonControl;
-    delete G::godModeControl;
-    delete G::baseMoveSpeedControl;
-    delete G::baseDamageControl;
-    delete G::baseAttackSpeedControl;
-    delete G::baseCritControl;
-    delete G::baseJumpCountControl;
 
-    for (auto& [index, control] : G::itemControls) {
-        delete control;
-    }
-    G::itemControls.clear();
+    delete G::localPlayer;
+    delete G::espModule;
 }
+
 
 void Hooks::hkRoR2RoR2ApplicationUpdate(void* instance) {
     static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2RoR2ApplicationUpdate"]);
     originalFunc(instance);
+
+    if (!G::hooksInitialized) {
+        return;
+    }
+
     std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
     for (; !G::queuedActions.empty(); G::queuedActions.pop()) {
         auto action = G::queuedActions.front();
         action();
     }
+
+    G::espModule->OnGameUpdate();
 }
 
 bool Hooks::hkRewiredPlayerGetButtonDown(void* instance, int key) {
@@ -351,60 +345,22 @@ void Hooks::hkRoR2LocalUserRebuildControlChain(void* instance) {
     static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2LocalUserRebuildControlChain"]);
     originalFunc(instance);
 
-    LocalUser* localUser_ptr = (LocalUser*)instance;
-    if (!localUser_ptr->cachedMaster_backing || !localUser_ptr->cachedBody_backing || !localUser_ptr->cachedBody_backing->healthComponent_backing) {
+    if (!G::hooksInitialized) {
         return;
     }
 
-    localUser_ptr->cachedMaster_backing->godMode = G::godModeControl->IsEnabled();
-    localUser_ptr->cachedBody_backing->healthComponent_backing->godMode_backing = G::godModeControl->IsEnabled();
-
-    if (G::baseMoveSpeedControl->IsEnabled()) {
-        localUser_ptr->cachedBody_backing->baseMoveSpeed = G::baseMoveSpeedControl->GetValue();
-    }
-    if (G::baseDamageControl->IsEnabled()) {
-        localUser_ptr->cachedBody_backing->baseDamage = G::baseDamageControl->GetValue();
-    }
-    if (G::baseAttackSpeedControl->IsEnabled()) {
-        localUser_ptr->cachedBody_backing->baseAttackSpeed = G::baseAttackSpeedControl->GetValue();
-    }
-    if (G::baseCritControl->IsEnabled()) {
-        localUser_ptr->cachedBody_backing->baseCrit = G::baseCritControl->GetValue();
-    }
-    if (G::baseJumpCountControl->IsEnabled()) {
-        localUser_ptr->cachedBody_backing->baseJumpCount = G::baseJumpCountControl->GetValue();
-    }
-
-
-    if (!localUser_ptr->cachedBody_backing->inventory_backing) {
-        return;
-    }
-    G::localInventory_cached = localUser_ptr->cachedBody_backing->inventory_backing;
-
-    std::unique_lock<std::mutex> lock(G::queuedGiveItemsMutex);
-    int* arrayData = (int*)(localUser_ptr->cachedBody_backing->inventory_backing->itemStacks + 8); // Adjusted offset of array with header
-    for (; !G::queuedGiveItems.empty(); G::queuedGiveItems.pop()) {
-        auto item = G::queuedGiveItems.front();
-        int itemIndex = std::get<0>(item);
-        int count = std::get<1>(item) - arrayData[itemIndex];
-        G::gameFunctions->Inventory_GiveItem(localUser_ptr->cachedBody_backing->inventory_backing, itemIndex, count);
-    }
+    G::localPlayer->OnLocalUserUpdate(instance);
 }
 
 void Hooks::hkRoR2InventoryHandleInventoryChanged(void* instance) {
     static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2InventoryHandleInventoryChanged"]);
     originalFunc(instance);
 
-    Inventory* inventory_ptr = (Inventory*)instance;
-    if (!inventory_ptr->itemStacks || instance != G::localInventory_cached) {
+    if (!G::hooksInitialized) {
         return;
     }
 
-    std::unique_lock<std::shared_mutex> lock(G::itemsMutex);
-    int* arrayData = (int*)(inventory_ptr->itemStacks + 8); // Adjusted offset of array with header
-    for (int i = 0; i < G::itemStacks.size(); i++) {
-        G::itemStacks[i] = arrayData[i];
-    }
+    G::localPlayer->OnInventoryChanged(instance);
 }
 
 void Hooks::hkRoR2SteamworksServerManagerTagsStringUpdated(void* instance) {
@@ -416,6 +372,28 @@ void Hooks::hkRoR2SteamworksServerManagerTagsStringUpdated(void* instance) {
         MonoList list((MonoObject*)serverManager_ptr->tags);
         list.AddItem("ror2mod");
     }
+}
+
+void Hooks::hkRoR2TeleporterInteractionAwake(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2TeleporterInteractionAwake"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) {
+        return;
+    }
+
+    G::espModule->OnTeleporterAwake(instance);
+}
+
+void Hooks::hkRoR2TeleporterInteractionFixedUpdate(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2TeleporterInteractionFixedUpdate"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) {
+        return;
+    }
+
+    G::worldModule->OnTeleporterInteractionFixedUpdate(instance);
 }
 
 LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -469,16 +447,8 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
     G::showMenuControl->Update();
     G::runningButtonControl->Update();
 
-    G::godModeControl->Update();
-    G::baseMoveSpeedControl->Update();
-    G::baseDamageControl->Update();
-    G::baseAttackSpeedControl->Update();
-    G::baseCritControl->Update();
-    G::baseJumpCountControl->Update();
-
-    for (auto& [index, control] : G::itemControls) {
-        control->Update();
-    }
+    G::localPlayer->Update();
+    G::espModule->Update();
 
     ImGuiIO& io = ImGui::GetIO();
     io.MouseDrawCursor = G::showMenuControl->IsEnabled();
@@ -503,10 +473,12 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
             ImGui::Text("RoR2Mod V1.0 - NOT READY");
         }
         ImGui::End();
+    }
 
-        if (G::showMenuControl->IsEnabled()) {
-            DrawMenu();
-        }
+    G::espModule->OnFrameRender();
+
+    if (G::showMenuControl->IsEnabled()) {
+        DrawMenu();
     }
 
     ImGui::Render();

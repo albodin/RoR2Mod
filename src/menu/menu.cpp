@@ -4,79 +4,16 @@
 #include "utils/MonoApi.h"
 #include <filesystem>
 
-ImVec2 RenderText(ImVec2 pos, ImU32 color, ImU32 shadowColor, bool centered, const char* text, ...) {
-    va_list args;
-    va_start(args, text);
-    char buffer[1024];
-    vsnprintf(buffer, sizeof(buffer), text, args);
-    va_end(args);
-
-    ImVec2 textSize = ImGui::CalcTextSize(buffer);
-    if (centered) {
-        pos.x -= textSize.x / 2;
-    }
-
-    ImGui::GetBackgroundDrawList()->AddText(pos, shadowColor, buffer);
-
-    return textSize;
-}
-
-void DrawItemInputs(ItemTier_Value tier) {
-    for (auto& item : G::items) {
-        if (item.tier != tier) continue;
-        int index = item.index;
-
-        // Initialize control if it doesn't exist
-        if (G::itemControls.count(index) == 0) {
-            auto control = new IntControl(item.displayName, "item_" + std::to_string(index),
-                                         G::itemStacks[index], 0, INT_MAX, 1, false, false);
-            control->SetValueProtected(true);
-
-            control->SetOnChange([index](int newValue) {
-                G::itemStacks[index] = newValue;
-                std::unique_lock<std::mutex> lock(G::queuedGiveItemsMutex);
-                G::queuedGiveItems.push(std::make_tuple(index, newValue));
-            });
-
-            G::itemControls[index] = control;
-        } else {
-            if (G::itemControls[index]->GetValue() != G::itemStacks[index]) {
-                G::itemControls[index]->SetValue(G::itemStacks[index]);
-            }
-        }
-
-        G::itemControls[index]->Draw();
-    }
-}
-
 void DrawPlayerTab() {
-    G::godModeControl->Draw();
-    G::baseMoveSpeedControl->Draw();
-    G::baseDamageControl->Draw();
-    G::baseAttackSpeedControl->Draw();
-    G::baseCritControl->Draw();
-    G::baseJumpCountControl->Draw();
+    G::localPlayer->DrawUI();
+}
 
-    if (ImGui::CollapsingHeader("Items")) {
-        std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
-        if (ImGui::CollapsingHeader("Tier1")) {
-            DrawItemInputs(ItemTier_Value::Tier1);
-        }
-        if (ImGui::CollapsingHeader("Tier2")) {
-            DrawItemInputs(ItemTier_Value::Tier2);
-        }
-        if (ImGui::CollapsingHeader("Tier3")) {
-            DrawItemInputs(ItemTier_Value::Tier3);
-        }
-        if (ImGui::CollapsingHeader("Lunar")) {
-            DrawItemInputs(ItemTier_Value::Lunar);
-        }
-        // Other tiers don't seem to have items, void items use the same tier as the base item
-    }
+void DrawWorldTab() {
+    G::worldModule->DrawUI();
 }
 
 void DrawESPTab() {
-
+    G::espModule->DrawUI();
 }
 
 void DrawAimbotTab() {
@@ -209,6 +146,10 @@ void DrawMenu() {
     if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_DrawSelectedOverline)) {
         if (ImGui::BeginTabItem("Player")) {
             DrawPlayerTab();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("World")) {
+            DrawWorldTab();
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("ESP")) {

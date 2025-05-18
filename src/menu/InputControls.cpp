@@ -6,6 +6,7 @@
 // Static key state arrays
 static bool s_capturingKey = false;
 static ImGuiKey* s_captureTargetKey = nullptr;
+static float s_labelWidth = 180.0f;
 
 // InputHelper implementation
 bool InputHelper::IsKeyPressed(ImGuiKey key) {
@@ -140,18 +141,19 @@ void IntControl::Draw() {
     }
     ImGui::SameLine();
 
-    // Main input with - and + buttons in a more compact form
-    float availWidth = ImGui::GetContentRegionAvail().x;
-    float labelWidth = ImGui::CalcTextSize(label.c_str()).x;
-    float inputWidth = std::min(200.0f, (availWidth - labelWidth - 70.0f)); // Reserve space for buttons
-
+    float curPosX = ImGui::GetCursorPosX();
+    ImGui::SetCursorPosX(curPosX);
     ImGui::Text("%s", label.c_str());
-    ImGui::SameLine();
 
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(curPosX + s_labelWidth);
     if (disableValueOnToggle && !enabled) {
         ImGui::BeginDisabled();
     }
 
+    float availWidth = ImGui::GetContentRegionAvail().x;
+    float rightControlsWidth = 30.0f;
+    float inputWidth = availWidth - rightControlsWidth;
     ImGui::PushItemWidth(inputWidth);
     int tempValue = value;
     if (ImGui::InputInt("##value", &value, step, step * 10)) {
@@ -288,18 +290,19 @@ void FloatControl::Draw() {
     }
     ImGui::SameLine();
 
-    // Main input with - and + buttons in a more compact form
-    float availWidth = ImGui::GetContentRegionAvail().x;
-    float labelWidth = ImGui::CalcTextSize(label.c_str()).x;
-    float inputWidth = std::min(200.0f, (availWidth - labelWidth - 70.0f)); // Reserve space for buttons
-
+    float curPosX = ImGui::GetCursorPosX();
+    ImGui::SetCursorPosX(curPosX);
     ImGui::Text("%s", label.c_str());
-    ImGui::SameLine();
 
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(curPosX + s_labelWidth);
     if (disableValueOnToggle && !enabled) {
         ImGui::BeginDisabled();
     }
 
+    float availWidth = ImGui::GetContentRegionAvail().x;
+    float rightControlsWidth = 30.0f;
+    float inputWidth = availWidth - rightControlsWidth;
     ImGui::PushItemWidth(inputWidth);
     if (ImGui::InputFloat("##value", &value, step, step * 10)) {
         SetValue(value);
@@ -458,4 +461,83 @@ void ButtonControl::Update() {
             highlightTimer = 0.2f; // Highlight for 0.2 seconds
         }
     }
+}
+
+// ESP Control implementation
+ESPControl::ESPControl(const std::string& label, const std::string& id,
+                     bool enabled, float defaultDistance,
+                     float maxDistance, ImVec4 defaultColor,
+                     ImVec4 defaultOutlineColor, bool defaultEnableOutline)
+    : InputControl(label, id, enabled),
+      distance(defaultDistance),
+      maxDistance(maxDistance),
+      color(defaultColor),
+      outlineColor(defaultOutlineColor),
+      enableOutline(defaultEnableOutline)
+{
+}
+
+void ESPControl::Draw() {
+    ImGui::PushID(id.c_str());
+
+    ImGui::Checkbox(("##" + id + "_enable").c_str(), &enabled);
+    ImGui::SameLine();
+
+    float curPosX = ImGui::GetCursorPosX();
+    ImGui::SetCursorPosX(curPosX);
+    ImGui::Text("%s", label.c_str());
+
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(curPosX + s_labelWidth);
+
+    float availWidth = ImGui::GetContentRegionAvail().x;
+    float rightControlsWidth = 180.0f; // Color pickers + hotkey + spacing
+    float sliderWidth = availWidth - rightControlsWidth;
+
+    ImGui::PushItemWidth(sliderWidth);
+    ImGui::SliderFloat(("##" + id + "_distance").c_str(), &distance, 0.0f, maxDistance, "%.0f");
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+
+    ImGui::ColorEdit4(("##" + id + "_color").c_str(), (float*)&color,
+                     ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+    ImGui::SameLine();
+
+    ImGui::Checkbox(("O##" + id + "_outline_toggle").c_str(), &enableOutline);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Toggle outline");
+    ImGui::SameLine();
+
+    if (enableOutline) {
+        ImGui::ColorEdit4(("##" + id + "_outline_color").c_str(), (float*)&outlineColor,
+                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::SameLine();
+    }
+
+    InputHelper::DrawHotkeyButton((id + "_hotkey").c_str(), &hotkey);
+
+    ImGui::PopID();
+}
+
+void ESPControl::Update() {
+    if (hotkey != ImGuiKey_None && InputHelper::IsKeyPressed(hotkey)) {
+        enabled = !enabled;
+    }
+}
+
+void ESPControl::SetDistance(float newDistance) {
+    distance = std::min(std::max(newDistance, 0.0f), maxDistance);
+}
+
+void ESPControl::SetColor(const ImVec4& newColor) {
+    color = newColor;
+}
+
+
+void ESPControl::SetOutlineColor(const ImVec4& newOutlineColor) {
+    outlineColor = newOutlineColor;
+}
+
+void ESPControl::SetEnableOutline(bool enable) {
+    enableOutline = enable;
 }
