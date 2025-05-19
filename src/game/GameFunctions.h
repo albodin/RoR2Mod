@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/MonoRuntime.h"
+#include "utils/Math.h"
 
 class GameFunctions {
 private:
@@ -16,6 +17,7 @@ private:
     MonoClass* m_inventoryClass;
     MonoClass* m_languageClass;
     MonoClass* m_RoR2ApplicationClass;
+    MonoClass* m_teleportHelperClass;
 
 public:
     GameFunctions(MonoRuntime* runtime);
@@ -32,4 +34,5 @@ public:
     bool RoR2Application_IsModded();
     void RoR2Application_SetModded(bool modded);
     int RoR2Application_GetLoadGameContentPercentage();
+    void TeleportHelper_TeleportBody(void* m_characterBody, Vector3 position);
 };

@@ -15,6 +15,7 @@ private:
     FloatControl* baseAttackSpeedControl;
     FloatControl* baseCritControl;
     IntControl* baseJumpCountControl;
+    ToggleButtonControl* teleportToCursorControl;
 
     std::mutex queuedGiveItemsMutex;
     std::queue<std::tuple<int, int>> queuedGiveItems;
@@ -24,6 +25,7 @@ private:
 
     std::map<int, IntControl*> itemControls;
     void* localInventory_cached;
+    LocalUser* localUser_cached;
 
     Vector3 playerPosition;
 

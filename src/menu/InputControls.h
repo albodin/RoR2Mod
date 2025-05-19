@@ -160,3 +160,26 @@ public:
     void SetOutlineColor(const ImVec4& newOutlineColor);
     void SetEnableOutline(bool enable);
 };
+
+class ToggleButtonControl : public InputControl {
+private:
+    std::function<void()> onAction;
+    std::string buttonText;
+    ImGuiKey actionHotkey;
+    bool isCapturingActionHotkey;
+    bool actionHighlighted;
+    float actionHighlightTimer;
+
+public:
+    ToggleButtonControl(const std::string& label, const std::string& id,
+                      const std::string& buttonText = "Execute",
+                      bool enabled = false);
+
+    void Draw() override;
+    void Update() override;
+
+    void SetOnAction(std::function<void()> callback) { onAction = callback; }
+    void SetActionHotkey(ImGuiKey key) { actionHotkey = key; }
+    ImGuiKey GetActionHotkey() const { return actionHotkey; }
+    void ExecuteAction();
+};

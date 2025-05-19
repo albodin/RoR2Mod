@@ -14,6 +14,7 @@ GameFunctions::GameFunctions(MonoRuntime* runtime) {
     m_inventoryClass = runtime->GetClass("Assembly-CSharp", "RoR2", "Inventory");
     m_languageClass = runtime->GetClass("Assembly-CSharp", "RoR2", "Language");
     m_RoR2ApplicationClass = runtime->GetClass("Assembly-CSharp", "RoR2", "RoR2Application");
+    m_teleportHelperClass = runtime->GetClass("Assembly-CSharp", "RoR2", "TeleportHelper");
 }
 
 
@@ -384,4 +385,23 @@ int GameFunctions::RoR2Application_GetLoadGameContentPercentage() {
     }
 
     return m_runtime->GetFieldValue<int>(instance, percentageField);
+}
+
+void GameFunctions::TeleportHelper_TeleportBody(void* m_characterBody, Vector3 position) {
+    std::function<void()> task = [this, m_characterBody, position]() {
+        if (!m_teleportHelperClass) return;
+
+        MonoMethod* method = m_runtime->GetMethod(m_teleportHelperClass, "TeleportBody", 3);
+        if (!method) {
+            G::logger.LogError("Failed to find TeleportBody method");
+            return;
+        }
+
+        Vector3 localPosition = position;
+        bool forceOutOfVehicle = false;
+        void* params[3] = { m_characterBody, &localPosition, &forceOutOfVehicle };
+        m_runtime->InvokeMethod(method, nullptr, params);
+    };
+    std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
+    G::queuedActions.push(task);
 }

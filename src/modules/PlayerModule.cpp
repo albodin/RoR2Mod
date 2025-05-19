@@ -10,7 +10,9 @@ PlayerModule::PlayerModule() : ModuleBase(),
     baseAttackSpeedControl(nullptr),
     baseCritControl(nullptr),
     baseJumpCountControl(nullptr),
-    localInventory_cached(nullptr) {
+    teleportToCursorControl(nullptr),
+    localInventory_cached(nullptr),
+    localUser_cached(nullptr) {
     Initialize();
 }
 
@@ -21,6 +23,7 @@ PlayerModule::~PlayerModule() {
     delete baseAttackSpeedControl;
     delete baseCritControl;
     delete baseJumpCountControl;
+    delete teleportToCursorControl;
 
     for (auto& [index, control] : itemControls) {
         delete control;
@@ -44,6 +47,13 @@ void PlayerModule::Initialize() {
     baseAttackSpeedControl = new FloatControl("Base Attack Speed", "baseAttackSpeed", 10.0f, 0.0f, FLT_MAX, 10.0f);
     baseCritControl = new FloatControl("Base Crit", "baseCrit", 10.0f, 0.0f, FLT_MAX, 10.0f);
     baseJumpCountControl = new IntControl("Base Jump Count", "baseJumpCount", 1, 0, INT_MAX, 10);
+    teleportToCursorControl = new ToggleButtonControl("Teleport to Cursor", "teleportToCursor", "Teleport", false);
+    teleportToCursorControl->SetOnAction([this]() {
+        if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->_cameraRigController) {
+            G::gameFunctions->TeleportHelper_TeleportBody(localUser_cached->cachedBody_backing,
+                                                          localUser_cached->_cameraRigController->crosshairWorldPosition_backing);
+        }
+    });
 }
 
 void PlayerModule::Update() {
@@ -53,6 +63,7 @@ void PlayerModule::Update() {
     baseAttackSpeedControl->Update();
     baseCritControl->Update();
     baseJumpCountControl->Update();
+    teleportToCursorControl->Update();
 
     for (auto& [index, control] : itemControls) {
         control->Update();
@@ -66,6 +77,7 @@ void PlayerModule::DrawUI() {
     baseAttackSpeedControl->Draw();
     baseCritControl->Draw();
     baseJumpCountControl->Draw();
+    teleportToCursorControl->Draw();
 
     if (ImGui::CollapsingHeader("Items")) {
         std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
@@ -90,6 +102,7 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
         !localUser_ptr->cachedBody_backing->healthComponent_backing) {
         return;
     }
+    localUser_cached = localUser_ptr;
 
     Hooks::Transform_get_position_Injected(localUser_ptr->cachedBody_backing->transform, &playerPosition);
 

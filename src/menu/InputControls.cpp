@@ -74,6 +74,7 @@ bool InputHelper::DrawHotkeyButton(const char* id, ImGuiKey* key) {
     return s_capturingKey && s_captureTargetKey == key;
 }
 
+
 // InputControl implementation
 InputControl::InputControl(const std::string& label, const std::string& id, bool enabled)
     : label(label), id(id), enabled(enabled), hotkey(ImGuiKey_None), isCapturingHotkey(false)
@@ -83,6 +84,7 @@ InputControl::InputControl(const std::string& label, const std::string& id, bool
 bool InputControl::DrawHotkeyButton() {
     return InputHelper::DrawHotkeyButton((id + "_hotkey").c_str(), &hotkey);
 }
+
 
 // ToggleControl implementation
 ToggleControl::ToggleControl(const std::string& label, const std::string& id, bool enabled)
@@ -115,6 +117,7 @@ void ToggleControl::Update() {
         }
     }
 }
+
 
 // IntControl implementation
 IntControl::IntControl(const std::string& label, const std::string& id, int value,
@@ -270,6 +273,7 @@ void IntControl::Decrement() {
     SetValue(value - step);
 }
 
+
 // FloatControl implementation
 FloatControl::FloatControl(const std::string& label, const std::string& id, float value,
                          float minValue, float maxValue, float step, bool enabled, bool disableValueOnToggle)
@@ -410,6 +414,7 @@ void FloatControl::Decrement() {
     SetValue(value - step);
 }
 
+
 // ButtonControl implementation
 ButtonControl::ButtonControl(const std::string& label, const std::string& id, const std::string& buttonText, std::function<void()> callback)
     : InputControl(label, id), buttonText(buttonText.empty() ? label : buttonText),
@@ -462,6 +467,7 @@ void ButtonControl::Update() {
         }
     }
 }
+
 
 // ESP Control implementation
 ESPControl::ESPControl(const std::string& label, const std::string& id,
@@ -540,4 +546,85 @@ void ESPControl::SetOutlineColor(const ImVec4& newOutlineColor) {
 
 void ESPControl::SetEnableOutline(bool enable) {
     enableOutline = enable;
+}
+
+
+// ToggleButtonControl implementation
+ToggleButtonControl::ToggleButtonControl(const std::string& label, const std::string& id,
+                                     const std::string& buttonText, bool enabled)
+    : InputControl(label, id, enabled), buttonText(buttonText), actionHotkey(ImGuiKey_None),
+      isCapturingActionHotkey(false), actionHighlighted(false), actionHighlightTimer(0.0f),
+      onAction(nullptr)
+{
+}
+
+void ToggleButtonControl::Draw() {
+    ImGui::PushID(id.c_str());
+
+    ImGui::Checkbox(("##" + id + "_toggle").c_str(), &enabled);
+    ImGui::SameLine();
+
+    float curPosX = ImGui::GetCursorPosX();
+    ImGui::Text("%s", label.c_str());
+
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(curPosX + s_labelWidth);
+
+    if (!enabled) {
+        ImGui::BeginDisabled();
+    }
+
+    // Highlight effect for action button
+    bool pushedColor = false;
+    if (actionHighlighted) {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.5f, 0.2f, 1.0f));
+        pushedColor = true;
+        actionHighlightTimer -= ImGui::GetIO().DeltaTime;
+        if (actionHighlightTimer <= 0.0f) {
+            actionHighlighted = false;
+        }
+    }
+
+    if (ImGui::Button(buttonText.c_str())) {
+        ExecuteAction();
+    }
+
+    if (pushedColor) {
+        ImGui::PopStyleColor();
+    }
+
+    ImGui::SameLine();
+    ImGui::Text("Toggle:");
+    ImGui::SameLine();
+    DrawHotkeyButton();
+
+    ImGui::SameLine();
+    ImGui::Text("Action:");
+    ImGui::SameLine();
+    InputHelper::DrawHotkeyButton((id + "_actionhotkey").c_str(), &actionHotkey);
+
+    if (!enabled) {
+        ImGui::EndDisabled();
+    }
+
+    ImGui::PopID();
+}
+
+void ToggleButtonControl::Update() {
+    if (hotkey != ImGuiKey_None && InputHelper::IsKeyPressed(hotkey)) {
+        enabled = !enabled;
+    }
+
+    if (enabled && actionHotkey != ImGuiKey_None && InputHelper::IsKeyPressed(actionHotkey)) {
+        ExecuteAction();
+    }
+}
+
+void ToggleButtonControl::ExecuteAction() {
+    if (onAction) {
+        onAction();
+        // Visual feedback
+        actionHighlighted = true;
+        actionHighlightTimer = 0.2f;
+    }
 }
