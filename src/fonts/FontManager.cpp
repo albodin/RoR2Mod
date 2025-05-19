@@ -26,23 +26,23 @@ void FontManager::InitializeFonts(ImFontAtlas* atlas) {
     FontInfo defaultFontInfo = {"Default Font", "", DefaultFont};
     AvailableFonts.push_back(defaultFontInfo);
 
-    JetBrainsMono = atlas->AddFontFromMemoryCompressedTTF(
-        JetBrainsMonoReg_compressed_data,
-        JetBrainsMonoReg_compressed_size,
-        BaseFontSize, &config);
-    FontInfo jetBrainsMonoInfo = {"JetBrains Mono", "", JetBrainsMono};
-    AvailableFonts.push_back(jetBrainsMonoInfo);
-
     static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
     ImFontConfig icons_config;
     icons_config.MergeMode = true;
     icons_config.PixelSnapH = true;
     icons_config.FontDataOwnedByAtlas = false;
 
-    FontAwesomeSolid = atlas->AddFontFromMemoryCompressedTTF(
+    atlas->AddFontFromMemoryCompressedTTF(
         FontAwesome6Solid900_compressed_data,
         FontAwesome6Solid900_compressed_size,
         BaseFontSize, &icons_config, icons_ranges);
+
+    JetBrainsMono = atlas->AddFontFromMemoryCompressedTTF(
+        JetBrainsMonoReg_compressed_data,
+        JetBrainsMonoReg_compressed_size,
+        BaseFontSize, &config);
+    FontInfo jetBrainsMonoInfo = {"JetBrains Mono", "", JetBrainsMono};
+    AvailableFonts.push_back(jetBrainsMonoInfo);
 
     LoadCustomFonts(atlas);
 
