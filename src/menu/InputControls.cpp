@@ -514,11 +514,9 @@ void ESPControl::Draw() {
         ImGui::SetTooltip("Toggle outline");
     ImGui::SameLine();
 
-    if (enableOutline) {
-        ImGui::ColorEdit4(("##" + id + "_outline_color").c_str(), (float*)&outlineColor,
-                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
-        ImGui::SameLine();
-    }
+    ImGui::ColorEdit4(("##" + id + "_outline_color").c_str(), (float*)&outlineColor,
+                        ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+    ImGui::SameLine();
 
     InputHelper::DrawHotkeyButton((id + "_hotkey").c_str(), &hotkey);
 
