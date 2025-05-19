@@ -32,7 +32,7 @@ void FontManager::InitializeFonts(ImFontAtlas* atlas) {
     icons_config.PixelSnapH = true;
     icons_config.FontDataOwnedByAtlas = false;
 
-    atlas->AddFontFromMemoryCompressedTTF(
+    FontAwesomeSolid = atlas->AddFontFromMemoryCompressedTTF(
         FontAwesome6Solid900_compressed_data,
         FontAwesome6Solid900_compressed_size,
         BaseFontSize, &icons_config, icons_ranges);
