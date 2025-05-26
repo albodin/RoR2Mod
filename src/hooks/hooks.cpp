@@ -11,6 +11,7 @@
 #include "core/MonoList.h"
 #include "utils/Math.h"
 #include "fonts/FontManager.h"
+#include "config/ConfigManager.h"
 
 //#define DEBUG_PRINT
 
@@ -207,8 +208,12 @@ void Hooks::Init() {
         }
     });
     G::showMenuControl->SetHotkey(ImGuiKey_Insert);
+    G::showMenuControl->SetSaveEnabledState(false);
+    G::runningButtonControl->SetSaveEnabledState(false);
 
     G::hooksInitialized = true;
+
+    ConfigManager::Initialize();
 
     G::gameFunctions->RoR2Application_SetModded(true);
     G::logger.LogInfo("Modded: " + std::to_string(G::gameFunctions->RoR2Application_IsModded()));

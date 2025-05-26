@@ -42,6 +42,7 @@ public:
     void OnLocalUserUpdate(void* localUser);
     void OnInventoryChanged(void* inventory);
     void InitializeItems();
+    void InitializeAllItemControls();
 
     ToggleControl* GetGodModeControl() { return godModeControl; }
     FloatControl* GetBaseMoveSpeedControl() { return baseMoveSpeedControl; }
@@ -54,7 +55,6 @@ public:
     void SetCachedInventory(void* inventory) { localInventory_cached = inventory; }
     void* GetCachedInventory() { return localInventory_cached; }
 
-    void AddItemControl(RoR2Item& item, int currentCount);
     void SetItemCount(int itemIndex, int count);
     int GetItemCount(int itemIndex);
 

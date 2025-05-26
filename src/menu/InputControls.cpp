@@ -1,7 +1,8 @@
+#include <algorithm>
 #include "InputControls.h"
 #include "globals/globals.h"
-#include <algorithm>
 #include "fonts/IconsFontAwesome6.h"
+#include "config/ConfigManager.h"
 
 // Static key state arrays
 static bool s_capturingKey = false;
@@ -77,7 +78,7 @@ bool InputHelper::DrawHotkeyButton(const char* id, ImGuiKey* key) {
 
 // InputControl implementation
 InputControl::InputControl(const std::string& label, const std::string& id, bool enabled)
-    : label(label), id(id), enabled(enabled), hotkey(ImGuiKey_None), isCapturingHotkey(false)
+    : label(label), id(id), enabled(enabled), hotkey(ImGuiKey_None), isCapturingHotkey(false), saveEnabledState(true)
 {
 }
 
@@ -85,11 +86,30 @@ bool InputControl::DrawHotkeyButton() {
     return InputHelper::DrawHotkeyButton((id + "_hotkey").c_str(), &hotkey);
 }
 
+json InputControl::Serialize() const {
+    json data;
+    if (saveEnabledState) {
+        data["enabled"] = enabled;
+    }
+    data["hotkey"] = static_cast<int>(hotkey);
+    return data;
+}
+
+void InputControl::Deserialize(const json& data) {
+    if (data.contains("enabled")) enabled = data["enabled"];
+    if (data.contains("hotkey")) hotkey = static_cast<ImGuiKey>(data["hotkey"]);
+}
+
 
 // ToggleControl implementation
 ToggleControl::ToggleControl(const std::string& label, const std::string& id, bool enabled)
     : InputControl(label, id, enabled), onChange(nullptr)
 {
+    ConfigManager::RegisterControl(this);
+}
+
+ToggleControl::~ToggleControl() {
+    ConfigManager::UnregisterControl(this);
 }
 
 void ToggleControl::Draw() {
@@ -118,6 +138,14 @@ void ToggleControl::Update() {
     }
 }
 
+json ToggleControl::Serialize() const {
+    return InputControl::Serialize();
+}
+
+void ToggleControl::Deserialize(const json& data) {
+    InputControl::Deserialize(data);
+}
+
 
 // IntControl implementation
 IntControl::IntControl(const std::string& label, const std::string& id, int value,
@@ -126,6 +154,11 @@ IntControl::IntControl(const std::string& label, const std::string& id, int valu
       incHotkey(ImGuiKey_None), decHotkey(ImGuiKey_None), isCapturingIncHotkey(false), isCapturingDecHotkey(false),
       disableValueOnToggle(disableValueOnToggle), valueProtected(false), onChange(nullptr), onToggle(nullptr)
 {
+    ConfigManager::RegisterControl(this);
+}
+
+IntControl::~IntControl() {
+    ConfigManager::UnregisterControl(this);
 }
 
 void IntControl::Draw() {
@@ -273,6 +306,23 @@ void IntControl::Decrement() {
     SetValue(value - step);
 }
 
+json IntControl::Serialize() const {
+    json data = InputControl::Serialize();
+    data["value"] = value;
+    data["incHotkey"] = static_cast<int>(incHotkey);
+    data["decHotkey"] = static_cast<int>(decHotkey);
+    data["step"] = step;
+    return data;
+}
+
+void IntControl::Deserialize(const json& data) {
+    InputControl::Deserialize(data);
+    if (data.contains("value")) SetValue(data["value"], true);
+    if (data.contains("incHotkey")) incHotkey = static_cast<ImGuiKey>(data["incHotkey"]);
+    if (data.contains("decHotkey")) decHotkey = static_cast<ImGuiKey>(data["decHotkey"]);
+    if (data.contains("step")) step = data["step"];
+}
+
 
 // FloatControl implementation
 FloatControl::FloatControl(const std::string& label, const std::string& id, float value,
@@ -281,6 +331,11 @@ FloatControl::FloatControl(const std::string& label, const std::string& id, floa
       incHotkey(ImGuiKey_None), decHotkey(ImGuiKey_None), isCapturingIncHotkey(false), isCapturingDecHotkey(false),
       disableValueOnToggle(disableValueOnToggle), onChange(nullptr), onToggle(nullptr)
 {
+    ConfigManager::RegisterControl(this);
+}
+
+FloatControl::~FloatControl() {
+    ConfigManager::UnregisterControl(this);
 }
 
 void FloatControl::Draw() {
@@ -414,12 +469,34 @@ void FloatControl::Decrement() {
     SetValue(value - step);
 }
 
+json FloatControl::Serialize() const {
+    json data = InputControl::Serialize();
+    data["value"] = value;
+    data["incHotkey"] = static_cast<int>(incHotkey);
+    data["decHotkey"] = static_cast<int>(decHotkey);
+    data["step"] = step;
+    return data;
+}
+
+void FloatControl::Deserialize(const json& data) {
+    InputControl::Deserialize(data);
+    if (data.contains("value")) SetValue(data["value"]);
+    if (data.contains("incHotkey")) incHotkey = static_cast<ImGuiKey>(data["incHotkey"]);
+    if (data.contains("decHotkey")) decHotkey = static_cast<ImGuiKey>(data["decHotkey"]);
+    if (data.contains("step")) step = data["step"];
+}
+
 
 // ButtonControl implementation
 ButtonControl::ButtonControl(const std::string& label, const std::string& id, const std::string& buttonText, std::function<void()> callback)
     : InputControl(label, id), buttonText(buttonText.empty() ? label : buttonText),
       onClick(callback), highlighted(false), highlightTimer(0.0f)
 {
+    ConfigManager::RegisterControl(this);
+}
+
+ButtonControl::~ButtonControl() {
+    ConfigManager::UnregisterControl(this);
 }
 
 void ButtonControl::Draw() {
@@ -468,6 +545,14 @@ void ButtonControl::Update() {
     }
 }
 
+json ButtonControl::Serialize() const {
+    return InputControl::Serialize();
+}
+
+void ButtonControl::Deserialize(const json& data) {
+    InputControl::Deserialize(data);
+}
+
 
 // ESP Control implementation
 ESPControl::ESPControl(const std::string& label, const std::string& id,
@@ -481,6 +566,11 @@ ESPControl::ESPControl(const std::string& label, const std::string& id,
       outlineColor(defaultOutlineColor),
       enableOutline(defaultEnableOutline)
 {
+    ConfigManager::RegisterControl(this);
+}
+
+ESPControl::~ESPControl() {
+    ConfigManager::UnregisterControl(this);
 }
 
 void ESPControl::Draw() {
@@ -546,6 +636,27 @@ void ESPControl::SetEnableOutline(bool enable) {
     enableOutline = enable;
 }
 
+json ESPControl::Serialize() const {
+    json data = InputControl::Serialize();
+    data["distance"] = distance;
+    data["color"] = {color.x, color.y, color.z, color.w};
+    data["outlineColor"] = {outlineColor.x, outlineColor.y, outlineColor.z, outlineColor.w};
+    data["enableOutline"] = enableOutline;
+    return data;
+}
+
+void ESPControl::Deserialize(const json& data) {
+    InputControl::Deserialize(data);
+    if (data.contains("distance")) distance = data["distance"];
+    if (data.contains("color") && data["color"].is_array() && data["color"].size() == 4) {
+        color = ImVec4(data["color"][0], data["color"][1], data["color"][2], data["color"][3]);
+    }
+    if (data.contains("outlineColor") && data["outlineColor"].is_array() && data["outlineColor"].size() == 4) {
+        outlineColor = ImVec4(data["outlineColor"][0], data["outlineColor"][1], data["outlineColor"][2], data["outlineColor"][3]);
+    }
+    if (data.contains("enableOutline")) enableOutline = data["enableOutline"];
+}
+
 
 // ToggleButtonControl implementation
 ToggleButtonControl::ToggleButtonControl(const std::string& label, const std::string& id,
@@ -554,6 +665,11 @@ ToggleButtonControl::ToggleButtonControl(const std::string& label, const std::st
       isCapturingActionHotkey(false), actionHighlighted(false), actionHighlightTimer(0.0f),
       onAction(nullptr)
 {
+    ConfigManager::RegisterControl(this);
+}
+
+ToggleButtonControl::~ToggleButtonControl() {
+    ConfigManager::UnregisterControl(this);
 }
 
 void ToggleButtonControl::Draw() {
@@ -625,4 +741,15 @@ void ToggleButtonControl::ExecuteAction() {
         actionHighlighted = true;
         actionHighlightTimer = 0.2f;
     }
+}
+
+json ToggleButtonControl::Serialize() const {
+    json data = InputControl::Serialize();
+    data["actionHotkey"] = static_cast<int>(actionHotkey);
+    return data;
+}
+
+void ToggleButtonControl::Deserialize(const json& data) {
+    InputControl::Deserialize(data);
+    if (data.contains("actionHotkey")) actionHotkey = static_cast<ImGuiKey>(data["actionHotkey"]);
 }

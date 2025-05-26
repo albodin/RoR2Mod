@@ -2,6 +2,7 @@
 #include "globals/globals.h"
 #include "utils/MonoApi.h"
 #include "fonts/FontManager.h"
+#include "config/ConfigManager.h"
 #include <imgui.h>
 #include <filesystem>
 
@@ -45,6 +46,154 @@ void DumpGameToDirectory(std::string directoryName) {
 void DrawConfigTab() {
     G::showMenuControl->Draw();
     G::runningButtonControl->Draw();
+
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Config Management", ImGuiTreeNodeFlags_DefaultOpen)) {
+        static int selectedConfigIndex = -1;
+        static char newConfigName[256] = "";
+        static bool showSaveSuccess = false;
+        static bool showLoadSuccess = false;
+        static bool showError = false;
+        static std::string errorMessage;
+        static float messageTimer = 0.0f;
+
+        const auto& configs = ConfigManager::GetAvailableConfigs();
+
+        if (selectedConfigIndex == -1 && !ConfigManager::GetCurrentConfigName().empty()) {
+            auto it = std::find(configs.begin(), configs.end(), ConfigManager::GetCurrentConfigName());
+            if (it != configs.end()) {
+                selectedConfigIndex = std::distance(configs.begin(), it);
+            }
+        }
+
+        ImGui::Text("Config:");
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(200);
+        if (ImGui::BeginCombo("##configselect",
+            selectedConfigIndex >= 0 && selectedConfigIndex < configs.size()
+                ? configs[selectedConfigIndex].c_str()
+                : "Select a config...")) {
+
+            for (int i = 0; i < configs.size(); i++) {
+                bool isSelected = (selectedConfigIndex == i);
+                if (ImGui::Selectable(configs[i].c_str(), isSelected)) {
+                    selectedConfigIndex = i;
+                }
+                if (isSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Load")) {
+            if (selectedConfigIndex >= 0 && selectedConfigIndex < configs.size()) {
+                if (ConfigManager::LoadConfig(configs[selectedConfigIndex])) {
+                    showLoadSuccess = true;
+                    showError = false;
+                    messageTimer = 3.0f;
+                } else {
+                    showError = true;
+                    errorMessage = "Failed to load config";
+                    messageTimer = 3.0f;
+                }
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Save")) {
+            if (selectedConfigIndex >= 0 && selectedConfigIndex < configs.size()) {
+                if (ConfigManager::SaveConfig(configs[selectedConfigIndex])) {
+                    showSaveSuccess = true;
+                    showError = false;
+                    messageTimer = 3.0f;
+                } else {
+                    showError = true;
+                    errorMessage = "Failed to save config";
+                    messageTimer = 3.0f;
+                }
+            }
+        }
+
+        if (selectedConfigIndex >= 0 && selectedConfigIndex < configs.size() &&
+            configs[selectedConfigIndex] != "default") { // Don't allow deletion of default config
+            ImGui::SameLine();
+            if (ImGui::Button("Delete")) {
+                ImGui::OpenPopup("Confirm Delete");
+            }
+        }
+
+        ImGui::Separator();
+        ImGui::Text("New Config:");
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(200);
+        ImGui::InputText("##newconfig", newConfigName, sizeof(newConfigName));
+        ImGui::SameLine();
+        if (ImGui::Button("Create")) {
+            if (strlen(newConfigName) > 0) {
+                if (ConfigManager::SaveConfig(newConfigName)) {
+                    showSaveSuccess = true;
+                    showError = false;
+                    messageTimer = 3.0f;
+
+                    // Clear input and refresh
+                    newConfigName[0] = '\0';
+                    ConfigManager::RefreshConfigList();
+
+                    // Select new config
+                    auto& updatedConfigs = ConfigManager::GetAvailableConfigs();
+                    auto it = std::find(updatedConfigs.begin(), updatedConfigs.end(),
+                                      ConfigManager::GetCurrentConfigName());
+                    if (it != updatedConfigs.end()) {
+                        selectedConfigIndex = std::distance(updatedConfigs.begin(), it);
+                    }
+                } else {
+                    showError = true;
+                    errorMessage = "Failed to create config";
+                    messageTimer = 3.0f;
+                }
+            }
+        }
+
+        // Status messages
+        if (messageTimer > 0.0f) {
+            messageTimer -= ImGui::GetIO().DeltaTime;
+
+            if (showSaveSuccess) {
+                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Config saved successfully!");
+            } else if (showLoadSuccess) {
+                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Config loaded successfully!");
+            } else if (showError) {
+                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "%s", errorMessage.c_str());
+            }
+
+            if (messageTimer <= 0.0f) {
+                showSaveSuccess = false;
+                showLoadSuccess = false;
+                showError = false;
+            }
+        }
+
+        // Delete confirmation popup
+        if (ImGui::BeginPopupModal("Confirm Delete", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Delete config '%s'?", configs[selectedConfigIndex].c_str());
+            ImGui::Separator();
+            if (ImGui::Button("Yes", ImVec2(120, 0))) {
+                if (ConfigManager::DeleteConfig(configs[selectedConfigIndex])) {
+                    selectedConfigIndex = 0; // Reset to default
+                    ConfigManager::RefreshConfigList();
+                }
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("No", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+    }
 
     ImGui::Separator();
 

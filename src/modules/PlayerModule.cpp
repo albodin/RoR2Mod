@@ -2,6 +2,7 @@
 #include "globals/globals.h"
 #include "hooks/hooks.h"
 #include "imgui.h"
+#include "config/ConfigManager.h"
 
 PlayerModule::PlayerModule() : ModuleBase(),
     godModeControl(nullptr),
@@ -41,7 +42,7 @@ void PlayerModule::SortItemsByName() {
 }
 
 void PlayerModule::Initialize() {
-    godModeControl = new ToggleControl("Godmode", "godMode", true);
+    godModeControl = new ToggleControl("Godmode", "godMode", false);
     baseMoveSpeedControl = new FloatControl("Base Move Speed", "baseMoveSpeed", 10.0f);
     baseDamageControl = new FloatControl("Base Damage", "baseDamage", 10.0f, 0.0f, FLT_MAX, 10.0f);
     baseAttackSpeedControl = new FloatControl("Base Attack Speed", "baseAttackSpeed", 10.0f, 0.0f, FLT_MAX, 10.0f);
@@ -152,6 +153,9 @@ void PlayerModule::OnInventoryChanged(void* inventory) {
     int* arrayData = (int*)(inventory_ptr->itemStacks + 8); // Adjusted offset of array with header
     for (int i = 0; i < itemStacks.size(); i++) {
         itemStacks[i] = arrayData[i];
+        if (itemControls.count(i) > 0 && itemControls[i]->GetValue() != arrayData[i]) {
+            itemControls[i]->SetValue(arrayData[i]);
+        }
     }
 }
 
@@ -171,29 +175,33 @@ void PlayerModule::InitializeItems() {
         items = G::items;
         SortItemsByName();
         itemStacks.resize(itemCount);
+        InitializeAllItemControls();
     }
 }
 
-void PlayerModule::AddItemControl(RoR2Item& item, int currentCount) {
-    int index = item.index;
+void PlayerModule::InitializeAllItemControls() {
+    G::logger.LogInfo("Initializing controls for all %zu items", items.size());
 
-    if (itemControls.count(index) == 0) {
+    for (const auto& item : items) {
+        int index = item.index;
+        int currentCount = (index < itemStacks.size()) ? itemStacks[index] : 0;
+
         auto control = new IntControl(item.displayName, "item_" + std::to_string(index),
                                      currentCount, 0, INT_MAX, 1, false, false);
         control->SetValueProtected(true);
 
         control->SetOnChange([this, index](int newValue) {
-            itemStacks[index] = newValue;
+            if (index < itemStacks.size()) {
+                itemStacks[index] = newValue;
+            }
             std::unique_lock<std::mutex> lock(queuedGiveItemsMutex);
             queuedGiveItems.push(std::make_tuple(index, newValue));
         });
 
         itemControls[index] = control;
-    } else {
-        if (itemControls[index]->GetValue() != currentCount) {
-            itemControls[index]->SetValue(currentCount);
-        }
     }
+
+    G::logger.LogInfo("Initialized %zu item controls", itemControls.size());
 }
 
 void PlayerModule::SetItemCount(int itemIndex, int count) {
@@ -216,14 +224,11 @@ void PlayerModule::DrawItemInputs(ItemTier_Value tier) {
         if (item.tier != tier) continue;
         int index = item.index;
 
-        if (itemControls.count(index) == 0) {
-            AddItemControl(item, itemStacks[index]);
-        } else {
+        if (itemControls.count(index) > 0) {
             if (itemControls[index]->GetValue() != itemStacks[index]) {
                 itemControls[index]->SetValue(itemStacks[index]);
             }
+            itemControls[index]->Draw();
         }
-
-        itemControls[index]->Draw();
     }
 }

@@ -2,6 +2,9 @@
 #include <string>
 #include <imgui.h>
 #include <functional>
+#include "utils/json.hpp"
+
+using json = nlohmann::json;
 
 // Key state helper functions
 namespace InputHelper {
@@ -19,6 +22,7 @@ protected:
     bool enabled;
     ImGuiKey hotkey;
     bool isCapturingHotkey;
+    bool saveEnabledState;
 
 public:
     InputControl(const std::string& label, const std::string& id, bool enabled = false);
@@ -32,6 +36,13 @@ public:
     bool IsEnabled() const { return enabled; }
     void SetHotkey(ImGuiKey key) { hotkey = key; }
     ImGuiKey GetHotkey() const { return hotkey; }
+
+    void SetSaveEnabledState(bool save) { saveEnabledState = save; }
+    bool GetSaveEnabledState() const { return saveEnabledState; }
+
+    virtual json Serialize() const;
+    virtual void Deserialize(const json& data);
+    const std::string& GetId() const { return id; }
 };
 
 // Toggle (checkbox) control
@@ -41,10 +52,14 @@ private:
 
 public:
     ToggleControl(const std::string& label, const std::string& id, bool enabled = false);
+    virtual ~ToggleControl();
 
     void Draw() override;
     void Update() override;
     void SetOnChange(std::function<void(bool)> callback) { onChange = callback; }
+
+    json Serialize() const override;
+    void Deserialize(const json& data) override;
 };
 
 // Integer input control
@@ -67,6 +82,7 @@ public:
     IntControl(const std::string& label, const std::string& id, int value,
               int minValue, int maxValue, int step = 1, bool enabled = false,
               bool disableValueOnToggle = true);
+    virtual ~IntControl();
 
     void Draw() override;
     void Update() override;
@@ -81,6 +97,9 @@ public:
     bool GetDisableValueOnToggle() const { return disableValueOnToggle; }
     void SetValueProtected(bool isProtected) { valueProtected = isProtected; }
     bool IsValueProtected() const { return valueProtected; }
+
+    json Serialize() const override;
+    void Deserialize(const json& data) override;
 };
 
 // Float input control
@@ -102,6 +121,7 @@ public:
     FloatControl(const std::string& label, const std::string& id, float value,
                 float minValue = 0.0f, float maxValue = FLT_MAX, float step = 1.0f,
                 bool enabled = false, bool disableValueOnToggle = true);
+    virtual ~FloatControl();
 
     void Draw() override;
     void Update() override;
@@ -113,6 +133,9 @@ public:
     void SetOnToggle(std::function<void(bool)> callback) { onToggle = callback; }
     void SetDisableValueOnToggle(bool disable) { disableValueOnToggle = disable; }
     bool GetDisableValueOnToggle() const { return disableValueOnToggle; }
+
+    json Serialize() const override;
+    void Deserialize(const json& data) override;
 };
 
 class ButtonControl : public InputControl {
@@ -125,11 +148,15 @@ private:
 public:
     ButtonControl(const std::string& label, const std::string& id, const std::string& buttonText = "",
                   std::function<void()> callback = nullptr);
+    virtual ~ButtonControl();
 
     void Draw() override;
     void Update() override;
     void SetOnClick(std::function<void()> callback) { onClick = callback; }
     void SetButtonText(const std::string& text) { buttonText = text; }
+
+    json Serialize() const override;
+    void Deserialize(const json& data) override;
 };
 
 class ESPControl : public InputControl {
@@ -145,6 +172,7 @@ public:
               bool enabled = false, float defaultDistance = 100.0f,
               float maxDistance = 500.0f, ImVec4 defaultColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
               ImVec4 outlineColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f), bool enableOutline = true);
+    virtual ~ESPControl();
 
     void Draw() override;
     void Update() override;
@@ -159,6 +187,9 @@ public:
     void SetColor(const ImVec4& newColor);
     void SetOutlineColor(const ImVec4& newOutlineColor);
     void SetEnableOutline(bool enable);
+
+    json Serialize() const override;
+    void Deserialize(const json& data) override;
 };
 
 class ToggleButtonControl : public InputControl {
@@ -174,6 +205,7 @@ public:
     ToggleButtonControl(const std::string& label, const std::string& id,
                       const std::string& buttonText = "Execute",
                       bool enabled = false);
+    virtual ~ToggleButtonControl();
 
     void Draw() override;
     void Update() override;
@@ -182,4 +214,7 @@ public:
     void SetActionHotkey(ImGuiKey key) { actionHotkey = key; }
     ImGuiKey GetActionHotkey() const { return actionHotkey; }
     void ExecuteAction();
+
+    json Serialize() const override;
+    void Deserialize(const json& data) override;
 };
