@@ -1,6 +1,20 @@
 # Risk of Rain 2 Mod
 
-A C++ mod for Risk of Rain 2.
+## Features
+
+### Player
+- Godmode
+- Base move speed, damage, attack speed, crit, jump count modification
+- Teleport to cursor
+- Item spawning
+- Huntress tracking range and FOV
+
+### ESP
+- Players & Enemies (distance filtering, customizable colors, health bars, distance indicators, visibility options, tracelines)
+
+### Other
+- Configuration saving/loading
+- Custom fonts
 
 ## Building
 
