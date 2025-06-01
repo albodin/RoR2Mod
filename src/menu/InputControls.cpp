@@ -658,6 +658,53 @@ void ESPControl::Deserialize(const json& data) {
 }
 
 
+// SliderControl implementation
+SliderControl::SliderControl(const std::string& label, const std::string& id, float value,
+                           float minValue, float maxValue)
+    : InputControl(label, id, false), value(value), minValue(minValue), maxValue(maxValue), onChange(nullptr)
+{
+    ConfigManager::RegisterControl(this);
+}
+
+SliderControl::~SliderControl() {
+    ConfigManager::UnregisterControl(this);
+}
+
+void SliderControl::Draw() {
+    ImGui::PushID(id.c_str());
+
+    ImGui::Text("%s", label.c_str());
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 10.0f);
+
+    if (ImGui::SliderFloat(("##" + id).c_str(), &value, minValue, maxValue, "%.1f")) {
+        if (onChange) {
+            onChange(value);
+        }
+    }
+
+    ImGui::PopID();
+}
+
+void SliderControl::Update() {
+    // No hotkey support for simple sliders
+}
+
+void SliderControl::SetValue(float newValue) {
+    value = std::min(std::max(newValue, minValue), maxValue);
+}
+
+json SliderControl::Serialize() const {
+    json data = InputControl::Serialize();
+    data["value"] = value;
+    return data;
+}
+
+void SliderControl::Deserialize(const json& data) {
+    InputControl::Deserialize(data);
+    if (data.contains("value")) SetValue(data["value"]);
+}
+
 // ToggleButtonControl implementation
 ToggleButtonControl::ToggleButtonControl(const std::string& label, const std::string& id,
                                      const std::string& buttonText, bool enabled)
@@ -752,4 +799,202 @@ json ToggleButtonControl::Serialize() const {
 void ToggleButtonControl::Deserialize(const json& data) {
     InputControl::Deserialize(data);
     if (data.contains("actionHotkey")) actionHotkey = static_cast<ImGuiKey>(data["actionHotkey"]);
+}
+
+
+// EntityESPSubControl implementation
+EntityESPSubControl::EntityESPSubControl(const std::string& label, const std::string& id)
+    : label(label), id(id),
+      nameColor(1.0f, 1.0f, 1.0f, 1.0f),
+      distanceColor(0.8f, 0.8f, 0.8f, 1.0f),
+      healthColor(0.0f, 1.0f, 0.0f, 1.0f),
+      maxHealthColor(0.0f, 0.8f, 0.0f, 1.0f),
+      boxColor(1.0f, 0.0f, 0.0f, 1.0f) {
+
+    enabled = new ToggleControl("Enabled", id + "_enabled", false);
+    showName = new ToggleControl("Show Name", id + "_showName", true);
+    showDistance = new ToggleControl("Show Distance", id + "_showDistance", true);
+    showHealth = new ToggleControl("Show Health", id + "_showHealth", false);
+    showMaxHealth = new ToggleControl("Show Max Health", id + "_showMaxHealth", false);
+    showHealthbar = new ToggleControl("Show Healthbar", id + "_showHealthbar", false);
+    showBox = new ToggleControl("Show Box", id + "_showBox", false);
+    maxDistance = new SliderControl("Max Distance", id + "_maxDistance", 100.0f, 0.0f, 1000.0f);
+}
+
+EntityESPSubControl::~EntityESPSubControl() {
+    delete enabled;
+    delete showName;
+    delete showDistance;
+    delete showHealth;
+    delete showMaxHealth;
+    delete showHealthbar;
+    delete showBox;
+    delete maxDistance;
+}
+
+void EntityESPSubControl::Draw() {
+    if (ImGui::CollapsingHeader(label.c_str())) {
+        enabled->Draw();
+
+        // Text options with color pickers
+        showName->Draw();
+        ImGui::SameLine();
+        ImGui::ColorEdit4(("Name Color##" + id).c_str(), (float*)&nameColor,
+                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+
+        showDistance->Draw();
+        ImGui::SameLine();
+        ImGui::ColorEdit4(("Distance Color##" + id).c_str(), (float*)&distanceColor,
+                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+
+        showHealth->Draw();
+        ImGui::SameLine();
+        ImGui::ColorEdit4(("Health Color##" + id).c_str(), (float*)&healthColor,
+                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+
+        showMaxHealth->Draw();
+        ImGui::SameLine();
+        ImGui::ColorEdit4(("Max Health Color##" + id).c_str(), (float*)&maxHealthColor,
+                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+
+        showHealthbar->Draw();
+
+        showBox->Draw();
+        ImGui::SameLine();
+        ImGui::ColorEdit4(("Box Color##" + id).c_str(), (float*)&boxColor,
+                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+
+        // Sliders
+        maxDistance->Draw();
+    }
+}
+
+void EntityESPSubControl::Update() {
+    enabled->Update();
+    showName->Update();
+    showDistance->Update();
+    showHealth->Update();
+    showMaxHealth->Update();
+    showHealthbar->Update();
+    showBox->Update();
+    maxDistance->Update();
+}
+
+// Getters
+bool EntityESPSubControl::IsEnabled() const { return enabled->IsEnabled(); }
+bool EntityESPSubControl::ShouldShowName() const { return showName->IsEnabled(); }
+bool EntityESPSubControl::ShouldShowDistance() const { return showDistance->IsEnabled(); }
+bool EntityESPSubControl::ShouldShowHealth() const { return showHealth->IsEnabled(); }
+bool EntityESPSubControl::ShouldShowMaxHealth() const { return showMaxHealth->IsEnabled(); }
+bool EntityESPSubControl::ShouldShowHealthbar() const { return showHealthbar->IsEnabled(); }
+bool EntityESPSubControl::ShouldShowBox() const { return showBox->IsEnabled(); }
+float EntityESPSubControl::GetMaxDistance() const { return maxDistance->GetValue(); }
+ImVec4 EntityESPSubControl::GetNameColor() const { return nameColor; }
+ImVec4 EntityESPSubControl::GetDistanceColor() const { return distanceColor; }
+ImVec4 EntityESPSubControl::GetHealthColor() const { return healthColor; }
+ImVec4 EntityESPSubControl::GetMaxHealthColor() const { return maxHealthColor; }
+ImVec4 EntityESPSubControl::GetBoxColor() const { return boxColor; }
+ImU32 EntityESPSubControl::GetNameColorU32() const { return ImGui::ColorConvertFloat4ToU32(nameColor); }
+ImU32 EntityESPSubControl::GetDistanceColorU32() const { return ImGui::ColorConvertFloat4ToU32(distanceColor); }
+ImU32 EntityESPSubControl::GetHealthColorU32() const { return ImGui::ColorConvertFloat4ToU32(healthColor); }
+ImU32 EntityESPSubControl::GetMaxHealthColorU32() const { return ImGui::ColorConvertFloat4ToU32(maxHealthColor); }
+ImU32 EntityESPSubControl::GetBoxColorU32() const { return ImGui::ColorConvertFloat4ToU32(boxColor); }
+
+json EntityESPSubControl::Serialize() const {
+    json data;
+    data["enabled"] = enabled->Serialize();
+    data["showName"] = showName->Serialize();
+    data["showDistance"] = showDistance->Serialize();
+    data["showHealth"] = showHealth->Serialize();
+    data["showMaxHealth"] = showMaxHealth->Serialize();
+    data["showHealthbar"] = showHealthbar->Serialize();
+    data["showBox"] = showBox->Serialize();
+    data["maxDistance"] = maxDistance->Serialize();
+    data["nameColor"] = {nameColor.x, nameColor.y, nameColor.z, nameColor.w};
+    data["distanceColor"] = {distanceColor.x, distanceColor.y, distanceColor.z, distanceColor.w};
+    data["healthColor"] = {healthColor.x, healthColor.y, healthColor.z, healthColor.w};
+    data["maxHealthColor"] = {maxHealthColor.x, maxHealthColor.y, maxHealthColor.z, maxHealthColor.w};
+    data["boxColor"] = {boxColor.x, boxColor.y, boxColor.z, boxColor.w};
+    return data;
+}
+
+void EntityESPSubControl::Deserialize(const json& data) {
+    if (data.contains("enabled")) enabled->Deserialize(data["enabled"]);
+    if (data.contains("showName")) showName->Deserialize(data["showName"]);
+    if (data.contains("showDistance")) showDistance->Deserialize(data["showDistance"]);
+    if (data.contains("showHealth")) showHealth->Deserialize(data["showHealth"]);
+    if (data.contains("showMaxHealth")) showMaxHealth->Deserialize(data["showMaxHealth"]);
+    if (data.contains("showHealthbar")) showHealthbar->Deserialize(data["showHealthbar"]);
+    if (data.contains("showBox")) showBox->Deserialize(data["showBox"]);
+    if (data.contains("maxDistance")) maxDistance->Deserialize(data["maxDistance"]);
+    if (data.contains("nameColor") && data["nameColor"].is_array() && data["nameColor"].size() == 4) {
+        nameColor = ImVec4(data["nameColor"][0], data["nameColor"][1], data["nameColor"][2], data["nameColor"][3]);
+    }
+    if (data.contains("distanceColor") && data["distanceColor"].is_array() && data["distanceColor"].size() == 4) {
+        distanceColor = ImVec4(data["distanceColor"][0], data["distanceColor"][1], data["distanceColor"][2], data["distanceColor"][3]);
+    }
+    if (data.contains("healthColor") && data["healthColor"].is_array() && data["healthColor"].size() == 4) {
+        healthColor = ImVec4(data["healthColor"][0], data["healthColor"][1], data["healthColor"][2], data["healthColor"][3]);
+    }
+    if (data.contains("maxHealthColor") && data["maxHealthColor"].is_array() && data["maxHealthColor"].size() == 4) {
+        maxHealthColor = ImVec4(data["maxHealthColor"][0], data["maxHealthColor"][1], data["maxHealthColor"][2], data["maxHealthColor"][3]);
+    }
+    if (data.contains("boxColor") && data["boxColor"].is_array() && data["boxColor"].size() == 4) {
+        boxColor = ImVec4(data["boxColor"][0], data["boxColor"][1], data["boxColor"][2], data["boxColor"][3]);
+    }
+}
+
+// EntityESPControl implementation
+EntityESPControl::EntityESPControl(const std::string& label, const std::string& id)
+    : InputControl(label, id, false) {
+
+    masterEnabled = new ToggleControl("Master Enabled", id + "_master", false);
+    visibleControl = new EntityESPSubControl("Visible " + label, id + "_visible");
+    nonVisibleControl = new EntityESPSubControl("Non-Visible " + label, id + "_nonvisible");
+
+    ConfigManager::RegisterControl(this);
+}
+
+EntityESPControl::~EntityESPControl() {
+    delete masterEnabled;
+    delete visibleControl;
+    delete nonVisibleControl;
+    ConfigManager::UnregisterControl(this);
+}
+
+void EntityESPControl::Draw() {
+    ImGui::PushID(id.c_str());
+
+    if (ImGui::CollapsingHeader(label.c_str())) {
+        masterEnabled->Draw();
+        visibleControl->Draw();
+        nonVisibleControl->Draw();
+    }
+
+    ImGui::PopID();
+}
+
+void EntityESPControl::Update() {
+    masterEnabled->Update();
+    visibleControl->Update();
+    nonVisibleControl->Update();
+}
+
+EntityESPSubControl* EntityESPControl::GetVisibleControl() { return visibleControl; }
+EntityESPSubControl* EntityESPControl::GetNonVisibleControl() { return nonVisibleControl; }
+bool EntityESPControl::IsMasterEnabled() const { return masterEnabled->IsEnabled(); }
+
+json EntityESPControl::Serialize() const {
+    json data = InputControl::Serialize();
+    data["masterEnabled"] = masterEnabled->Serialize();
+    data["visible"] = visibleControl->Serialize();
+    data["nonVisible"] = nonVisibleControl->Serialize();
+    return data;
+}
+
+void EntityESPControl::Deserialize(const json& data) {
+    InputControl::Deserialize(data);
+    if (data.contains("masterEnabled")) masterEnabled->Deserialize(data["masterEnabled"]);
+    if (data.contains("visible")) visibleControl->Deserialize(data["visible"]);
+    if (data.contains("nonVisible")) nonVisibleControl->Deserialize(data["nonVisible"]);
 }

@@ -74,4 +74,22 @@ namespace RenderUtils {
     void RenderCircle(ImVec2 center, float radius, ImU32 color, int segments, float thickness) {
         ImGui::GetBackgroundDrawList()->AddCircle(center, radius, color, segments, thickness);
     }
+
+    void RenderHealthbar(ImVec2 pos, ImVec2 size, float health, float maxHealth, ImU32 fillColor, ImU32 bgColor) {
+        if (maxHealth <= 0) return;
+
+        float healthPercent = std::min(health / maxHealth, 1.0f);
+
+        // Background
+        ImGui::GetBackgroundDrawList()->AddRectFilled(pos, ImVec2(pos.x + size.x, pos.y + size.y), bgColor);
+
+        float fillHeight = size.y * healthPercent;
+        ImVec2 fillStart(pos.x, pos.y + size.y - fillHeight);
+        ImVec2 fillEnd(pos.x + size.x, pos.y + size.y);
+        ImGui::GetBackgroundDrawList()->AddRectFilled(fillStart, fillEnd, fillColor);
+
+        // Border
+        ImGui::GetBackgroundDrawList()->AddRect(pos, ImVec2(pos.x + size.x, pos.y + size.y), IM_COL32(0, 0, 0, 255));
+    }
+
 }

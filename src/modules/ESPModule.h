@@ -4,21 +4,30 @@
 #include "game/GameStructs.h"
 #include <vector>
 #include <unordered_map>
+#include <mutex>
+
+struct TrackedEntity {
+    CharacterBody* body;
+    std::string displayName;
+};
 
 class ESPModule : public ModuleBase {
 private:
     ESPControl* teleporterESPControl;
-    ESPControl* playerVisibleESPControl;
-    ESPControl* enemyVisibleESPControl;
+    EntityESPControl* playerESPControl;
+    EntityESPControl* enemyESPControl;
 
     Vector3 teleporterPosition;
     Vector3 playerPosition;
     Camera* mainCamera;
 
-    void UpdateVisibleEntities();
-    bool IsEntityInRange(const Vector3& position, float maxDistance);
-    bool WorldToScreen(const Vector3& worldPos, ImVec2& screenPos);
-    void RenderBoxESP(const Vector3& position, float height, float width, const char* label, ImU32 color, bool showLabel);
+    std::vector<TrackedEntity*> trackedEnemies;
+    std::vector<TrackedEntity*> trackedPlayers;
+    std::mutex entitiesMutex;
+
+    void RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible);
+    Vector3 GetCameraPosition();
+    bool IsVisible(const Vector3& position);
 
 public:
     ESPModule();
@@ -31,6 +40,8 @@ public:
 
     void OnGameUpdate();
     void OnTeleporterAwake(void* teleporter);
+    void OnCharacterBodySpawned(void* characterBody);
+    void OnCharacterBodyDestroyed(void* characterBody);
 
     void RenderTeleporterESP();
     void RenderPlayerESP();

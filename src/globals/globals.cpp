@@ -16,6 +16,12 @@ namespace G {
     Logger logger("ror2mod.log");
     GameFunctions* gameFunctions = nullptr;
 
+    int worldLayer = -1;
+    int playerBodyLayer = -1;
+    int enemyBodyLayer = -1;
+    int entityPreciseLayer = -1;
+    int ignoreRaycastLayer = -1;
+
     std::mutex queuedActionsMutex;
     std::queue<std::function<void()>> queuedActions;
     std::shared_mutex itemsMutex;

@@ -123,6 +123,11 @@ DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Transform, get_positio
 DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Camera, get_main, 0, Camera*, void);
 DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Camera, WorldToScreenPoint_Injected, 3, void,
                    void* camera, Vector3* position, MonoOrStereoscopicEye eye, Vector3* outPosition);
+DEFINE_INTERNAL_CALL(UnityEngine.PhysicsModule, UnityEngine, Physics, get_defaultPhysicsScene_Injected, 1, void, PhysicsScene_Value* outScene);
+DEFINE_INTERNAL_CALL(UnityEngine.PhysicsModule, UnityEngine, PhysicsScene, Internal_Raycast_Injected, 6, bool,
+                   PhysicsScene_Value*, Ray_Value*, float, RaycastHit_Value*, int32_t, QueryTriggerInteraction_Value);
+DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Component, get_transform, 0, void*,
+                   void* component);
 
 void Hooks::Init() {
     MH_STATUS status = MH_Initialize();
@@ -162,6 +167,8 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, SteamworksServerManager, TagsStringUpdated, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TeleporterInteraction, Awake, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TeleporterInteraction, FixedUpdate, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, CharacterBody, Start, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, CharacterBody, OnDestroy, 0, "System.Void", {});
 
 
     for (auto& target: hookTargets) {
@@ -200,6 +207,38 @@ void Hooks::Init() {
         G::logger.LogInfo("-----------------------------------------------------");
     }
 #endif // DEBUG_PRINT
+
+
+    MonoClass* layerMaskClass = G::g_monoRuntime->GetClass("UnityEngine.CoreModule", "UnityEngine", "LayerMask");
+    if (layerMaskClass) {
+        G::logger.LogInfo("Getting layer indices using LayerMask.NameToLayer...");
+
+        MonoMethod* nameToLayerMethod = G::g_monoRuntime->GetMethod(layerMaskClass, "NameToLayer", 1);
+        if (nameToLayerMethod) {
+            auto getLayerByName = [&](const char* layerName) -> int {
+                MonoString* layerNameStr = G::g_monoRuntime->CreateString(layerName);
+                MonoObject* result = G::g_monoRuntime->InvokeMethod(nameToLayerMethod, nullptr, (void**)&layerNameStr);
+                if (result) {
+                    return *(int*)G::g_monoRuntime->m_mono_object_unbox(result);
+                }
+                return -1;
+            };
+
+            G::worldLayer = getLayerByName("World");
+            G::playerBodyLayer = getLayerByName("PlayerBody");
+            G::enemyBodyLayer = getLayerByName("EnemyBody");
+            G::entityPreciseLayer = getLayerByName("EntityPrecise");
+            G::ignoreRaycastLayer = getLayerByName("Ignore Raycast");
+
+            G::logger.LogInfo("RoR2 Layers - World: %d, PlayerBody: %d, EnemyBody: %d, EntityPrecise: %d, IgnoreRaycast: %d",
+                            G::worldLayer, G::playerBodyLayer, G::enemyBodyLayer, G::entityPreciseLayer, G::ignoreRaycastLayer);
+        } else {
+            G::logger.LogError("Failed to find LayerMask.NameToLayer method");
+        }
+    } else {
+        G::logger.LogError("Failed to find LayerMask class");
+    }
+
 
     G::showMenuControl->SetOnChange([](bool enabled) {
         if (enabled) {
@@ -399,6 +438,25 @@ void Hooks::hkRoR2TeleporterInteractionFixedUpdate(void* instance) {
     }
 
     G::worldModule->OnTeleporterInteractionFixedUpdate(instance);
+}
+
+void Hooks::hkRoR2CharacterBodyStart(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2CharacterBodyStart"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::espModule->OnCharacterBodySpawned(instance);
+}
+
+void Hooks::hkRoR2CharacterBodyOnDestroy(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2CharacterBodyOnDestroy"]);
+
+    if (G::hooksInitialized) {
+        G::espModule->OnCharacterBodyDestroyed(instance);
+    }
+
+    originalFunc(instance);
 }
 
 LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {

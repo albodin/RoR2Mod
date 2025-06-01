@@ -22,6 +22,10 @@ struct RailMotor;
 struct RigidbodyDirection;
 struct CharacterEmoteDefinitions;
 struct RigidbodyMotor;
+struct TeamComponent;
+struct ModelLocator;
+struct HurtBoxGroup;
+struct NetworkUser;
 
 typedef void* GameObject;
 typedef void* NetworkIdentity;
@@ -35,7 +39,6 @@ typedef void* Interactor;
 typedef void* Player;
 typedef void* MPEventSystem;
 typedef void* UserProfile;
-typedef void* NetworkUser;
 typedef void* PauseScreenController;
 typedef void* Action;
 typedef void* CharacterMotor;
@@ -55,12 +58,9 @@ typedef void* BuffIndex;
 typedef void* JumpDelegate;
 typedef void* Rigidbody;
 typedef void* CharacterDirection;
-typedef void* TeamComponent;
 typedef void* EquipmentSlot;
 typedef void* SkillLocator;
 typedef void* SfxLocator;
-typedef void* ModelLocator;
-typedef void* HurtBoxGroup;
 typedef void* EffectManagerHelper;
 typedef void* IncreaseDamageOnMultiKillItemDisplayUpdater;
 typedef void* ScreenDamageCalculatorDisabledSkills;
@@ -109,6 +109,7 @@ typedef void* Sprite;
 typedef void* IEnumerator;
 typedef void* ModifyNextStateDelegate;
 typedef void* OnSpawnedServer;
+typedef void* NetworkLoadout;
 typedef int32_t Int32;
 typedef unsigned char byte;
 
@@ -239,6 +240,12 @@ enum class MonoOrStereoscopicEye : int32_t {
     Left = 0,
     Right = 1,
     Mono = 2,
+};
+
+enum class QueryTriggerInteraction_Value : int32_t {
+    UseGlobal = 0,
+    Ignore = 1,
+    Collide = 2
 };
 
 /* No Header Structs */
@@ -582,6 +589,30 @@ struct VisibilityLevel_Value {
     int32_t value__;
 };
 
+struct PhysicsScene_Value {
+    int32_t m_Handle;
+};
+
+struct Ray_Value {
+    Vector3 m_Origin;
+    Vector3 m_Direction;
+};
+
+struct RaycastHit_Value {
+    Vector3 m_Point;
+    Vector3 m_Normal;
+    uint32_t m_FaceID;
+    float m_Distance;
+    Vector2 m_UV;
+    int32_t m_Collider;
+};
+
+struct NetworkUserId_Value {
+    uint64_t value;
+    void* strValue;
+    uint8_t subId;
+};
+
 /* Normal Class Objects with headers */
 
 // Generated from RoR2.HealthComponent
@@ -658,6 +689,49 @@ struct Inventory {
     float beadAppliedRegen; // Offset: 116
     float beadAppliedDamage; // Offset: 120
     uint32_t infusionBonus_backing; // Offset: 124
+};
+
+// Generated from RoR2.TeamComponent
+struct TeamComponent {
+    char padding0[48]; // Padding
+    CharacterBody* body_backing; // Offset: 48
+    GameObject* defaultIndicatorPrefab; // Offset: 56
+    GameObject* indicator; // Offset: 64
+    bool hideAllyCardDisplay; // Offset: 72
+    TeamIndex_Value _teamIndex; // Offset: 73
+    TeamIndex_Value oldTeamIndex; // Offset: 74
+};
+
+// Generated from .DestructionNotifier
+struct DestructionNotifier {
+    char padding0[24]; // Padding
+    ModelLocator* subscriber_backing; // Offset: 24
+};
+
+// Generated from RoR2.ModelLocator
+struct ModelLocator {
+    char padding0[24]; // Padding
+    Transform* _modelTransform; // Offset: 24
+    RendererVisiblity* modelVisibility; // Offset: 32
+    DestructionNotifier* modelDestructionNotifier; // Offset: 40
+    Transform* modelBaseTransform; // Offset: 48
+    void* onModelChanged; // Offset: 56
+    Transform* modelParentTransform; // Offset: 64
+    CharacterMotor* characterMotor; // Offset: 72
+    float modelScaleCompensation; // Offset: 80
+    bool autoUpdateModelTransform; // Offset: 84
+    bool dontDetatchFromParent; // Offset: 85
+    bool noCorpse; // Offset: 86
+    bool dontReleaseModelOnDeath; // Offset: 87
+    bool preserveModel; // Offset: 88
+    bool forceCulled; // Offset: 89
+    bool normalizeToFloor; // Offset: 90
+    char padding15[1]; // Padding
+    float normalSmoothdampTime; // Offset: 92
+    float normalMaxAngleDelta; // Offset: 96
+    Vector3 normalSmoothdampVelocity; // Offset: 100
+    Vector3 targetNormal; // Offset: 112
+    Vector3 currentNormal; // Offset: 124
 };
 
 // Generated from RoR2.CharacterBody
@@ -910,6 +984,37 @@ struct CharacterBody {
     bool requestEquipmentFire; // Offset: 1308
     char padding226[3]; // Padding
     int32_t increaseDamageOnMultiKillItemCount; // Offset: 1312
+};
+
+// Generated from RoR2.NetworkUser
+struct NetworkUser {
+    char padding0[48]; // Padding
+    NetworkLoadout* networkLoadout_backing; // Offset: 48
+    NetworkUserId_Value _id; // Offset: 56
+    char padding2[7]; // Padding
+    LocalUser* localUser; // Offset: 80
+    CameraRigController* cameraRigController; // Offset: 88
+    void* userName; // Offset: 96
+    void* cachedMaster; // Offset: 104
+    char padding6[8]; // Padding
+    void* cachedPlayerCharacterMasterController; // Offset: 120
+    char padding7[8]; // Padding
+    void* cachedPlayerStatsComponent; // Offset: 136
+    char padding8[8]; // Padding
+    GameObject* _masterObject; // Offset: 152
+    void* unlockables; // Offset: 160
+    void* debugUnlockablesList; // Offset: 168
+    uint8_t rewiredPlayerId; // Offset: 176
+    char padding12[3]; // Padding
+    NetworkInstanceId_Value _masterObjectId; // Offset: 180
+    Color32_Value userColor; // Offset: 184
+    uint32_t netLunarCoins; // Offset: 188
+    ItemIndex_Value rebirthItem; // Offset: 192
+    BodyIndex_Value bodyIndexPreference; // Offset: 196
+    float secondAccumulator; // Offset: 200
+    bool serverIsClientLoaded_backing; // Offset: 204
+    char padding19[3]; // Padding
+    NetworkInstanceId_Value _serverLastStageAcknowledgedByClient; // Offset: 208
 };
 
 // Generated from RoR2.PlayerCharacterMasterController
@@ -1898,6 +2003,15 @@ struct HurtBoxInfo {
     char padding0[16]; // Padding
     Transform* transform; // Offset: 16
     float estimatedRadius; // Offset: 24
+};
+
+// Generated from RoR2.HurtBoxGroup
+struct HurtBoxGroup {
+    char padding0[24]; // Padding
+    HurtBox* hurtBoxes; // Offset: 24 - MonoArray of HurtBox pointers
+    HurtBox* mainHurtBox; // Offset: 32
+    int32_t bullseyeCount; // Offset: 40
+    int32_t _hurtBoxesDeactivatorCounter; // Offset: 44
 };
 
 // Generated from RoR2.CharacterModel

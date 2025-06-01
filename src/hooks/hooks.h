@@ -10,6 +10,11 @@ namespace Hooks {
     DECLARE_INTERNAL_CALL(Camera*, Camera, get_main);
     DECLARE_INTERNAL_CALL(void, Camera, WorldToScreenPoint_Injected, void* camera, Vector3* position,
                           MonoOrStereoscopicEye eye, Vector3* outPosition);
+    DECLARE_INTERNAL_CALL(void, Physics, get_defaultPhysicsScene_Injected, PhysicsScene_Value* outScene);
+    DECLARE_INTERNAL_CALL(bool, PhysicsScene, Internal_Raycast_Injected,
+                        PhysicsScene_Value* scene, Ray_Value* ray, float maxDistance,
+                        RaycastHit_Value* hitInfo, int32_t layerMask, QueryTriggerInteraction_Value queryTriggerInteraction);
+    DECLARE_INTERNAL_CALL(void*, Component, get_transform, void* component);
 
     void Init();
     void Unhook();
@@ -25,6 +30,8 @@ namespace Hooks {
     void hkRoR2SteamworksServerManagerTagsStringUpdated(void*);
     void hkRoR2TeleporterInteractionAwake(void*);
     void hkRoR2TeleporterInteractionFixedUpdate(void*);
+    void hkRoR2CharacterBodyStart(void*);
+    void hkRoR2CharacterBodyOnDestroy(void*);
 
     long __stdcall hkPresent11(IDXGISwapChain*, UINT, UINT);
 }

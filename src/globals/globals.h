@@ -34,6 +34,12 @@ namespace G {
     extern Logger logger;
     extern GameFunctions* gameFunctions;
 
+    extern int worldLayer;
+    extern int playerBodyLayer;
+    extern int enemyBodyLayer;
+    extern int entityPreciseLayer;
+    extern int ignoreRaycastLayer;
+
     extern std::mutex queuedActionsMutex;
     extern std::queue<std::function<void()>> queuedActions;
 

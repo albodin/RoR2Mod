@@ -192,6 +192,28 @@ public:
     void Deserialize(const json& data) override;
 };
 
+class SliderControl : public InputControl {
+private:
+    float value;
+    float minValue;
+    float maxValue;
+    std::function<void(float)> onChange;
+
+public:
+    SliderControl(const std::string& label, const std::string& id, float value,
+                 float minValue = 0.0f, float maxValue = 100.0f);
+    virtual ~SliderControl();
+
+    void Draw() override;
+    void Update() override;
+    float GetValue() const { return value; }
+    void SetValue(float newValue);
+    void SetOnChange(std::function<void(float)> callback) { onChange = callback; }
+
+    json Serialize() const override;
+    void Deserialize(const json& data) override;
+};
+
 class ToggleButtonControl : public InputControl {
 private:
     std::function<void()> onAction;
@@ -214,6 +236,77 @@ public:
     void SetActionHotkey(ImGuiKey key) { actionHotkey = key; }
     ImGuiKey GetActionHotkey() const { return actionHotkey; }
     void ExecuteAction();
+
+    json Serialize() const override;
+    void Deserialize(const json& data) override;
+};
+
+class EntityESPSubControl {
+private:
+    std::string label;
+    std::string id;
+
+    ToggleControl* enabled;
+    ToggleControl* showName;
+    ToggleControl* showDistance;
+    ToggleControl* showHealth;
+    ToggleControl* showMaxHealth;
+    ToggleControl* showHealthbar;
+    ToggleControl* showBox;
+    SliderControl* maxDistance;
+    ImVec4 nameColor;
+    ImVec4 distanceColor;
+    ImVec4 healthColor;
+    ImVec4 maxHealthColor;
+    ImVec4 boxColor;
+
+public:
+    EntityESPSubControl(const std::string& label, const std::string& id);
+    ~EntityESPSubControl();
+
+    void Draw();
+    void Update();
+
+    // Getters
+    bool IsEnabled() const;
+    bool ShouldShowName() const;
+    bool ShouldShowDistance() const;
+    bool ShouldShowHealth() const;
+    bool ShouldShowMaxHealth() const;
+    bool ShouldShowHealthbar() const;
+    bool ShouldShowBox() const;
+    float GetMaxDistance() const;
+    ImVec4 GetNameColor() const;
+    ImVec4 GetDistanceColor() const;
+    ImVec4 GetHealthColor() const;
+    ImVec4 GetMaxHealthColor() const;
+    ImVec4 GetBoxColor() const;
+    ImU32 GetNameColorU32() const;
+    ImU32 GetDistanceColorU32() const;
+    ImU32 GetHealthColorU32() const;
+    ImU32 GetMaxHealthColorU32() const;
+    ImU32 GetBoxColorU32() const;
+
+    json Serialize() const;
+    void Deserialize(const json& data);
+};
+
+class EntityESPControl : public InputControl {
+private:
+    ToggleControl* masterEnabled;
+    EntityESPSubControl* visibleControl;
+    EntityESPSubControl* nonVisibleControl;
+
+public:
+    EntityESPControl(const std::string& label, const std::string& id);
+    ~EntityESPControl();
+
+    void Draw() override;
+    void Update() override;
+
+    EntityESPSubControl* GetVisibleControl();
+    EntityESPSubControl* GetNonVisibleControl();
+    bool IsMasterEnabled() const;
 
     json Serialize() const override;
     void Deserialize(const json& data) override;

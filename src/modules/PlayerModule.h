@@ -61,4 +61,7 @@ public:
     void DrawItemInputs(ItemTier_Value tier);
 
     Vector3 GetPlayerPosition() { return playerPosition; }
+    CharacterBody* GetLocalPlayerBody() {
+        return localUser_cached ? localUser_cached->cachedBody_backing : nullptr;
+    }
 };
