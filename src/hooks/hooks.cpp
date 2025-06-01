@@ -169,6 +169,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, TeleporterInteraction, FixedUpdate, 0, "System.Void", {});
     HOOK(RoR2, RoR2, CharacterBody, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, CharacterBody, OnDestroy, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, HuntressTracker, Start, 0, "System.Void", {});
 
 
     for (auto& target: hookTargets) {
@@ -457,6 +458,15 @@ void Hooks::hkRoR2CharacterBodyOnDestroy(void* instance) {
     }
 
     originalFunc(instance);
+}
+
+void Hooks::hkRoR2HuntressTrackerStart(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2HuntressTrackerStart"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::localPlayer->OnHuntressTrackerStart(instance);
 }
 
 LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {

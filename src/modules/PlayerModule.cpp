@@ -12,8 +12,11 @@ PlayerModule::PlayerModule() : ModuleBase(),
     baseCritControl(nullptr),
     baseJumpCountControl(nullptr),
     teleportToCursorControl(nullptr),
+    huntressRangeControl(nullptr),
+    huntressFOVControl(nullptr),
     localInventory_cached(nullptr),
-    localUser_cached(nullptr) {
+    localUser_cached(nullptr),
+    cachedHuntressTracker(nullptr) {
     Initialize();
 }
 
@@ -25,6 +28,8 @@ PlayerModule::~PlayerModule() {
     delete baseCritControl;
     delete baseJumpCountControl;
     delete teleportToCursorControl;
+    delete huntressRangeControl;
+    delete huntressFOVControl;
 
     for (auto& [index, control] : itemControls) {
         delete control;
@@ -49,6 +54,10 @@ void PlayerModule::Initialize() {
     baseCritControl = new FloatControl("Base Crit", "baseCrit", 10.0f, 0.0f, FLT_MAX, 10.0f);
     baseJumpCountControl = new IntControl("Base Jump Count", "baseJumpCount", 1, 0, INT_MAX, 10);
     teleportToCursorControl = new ToggleButtonControl("Teleport to Cursor", "teleportToCursor", "Teleport", false);
+
+    huntressRangeControl = new FloatControl("Huntress Range", "huntressRange", 20.0f, 0.0f, 1000.0f, 5.0f);
+    huntressFOVControl = new FloatControl("Huntress FOV", "huntressFOV", 20.0f, 0.0f, 180.0f, 5.0f);
+
     teleportToCursorControl->SetOnAction([this]() {
         if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->_cameraRigController) {
             G::gameFunctions->TeleportHelper_TeleportBody(localUser_cached->cachedBody_backing,
@@ -65,6 +74,8 @@ void PlayerModule::Update() {
     baseCritControl->Update();
     baseJumpCountControl->Update();
     teleportToCursorControl->Update();
+    huntressRangeControl->Update();
+    huntressFOVControl->Update();
 
     for (auto& [index, control] : itemControls) {
         control->Update();
@@ -79,6 +90,11 @@ void PlayerModule::DrawUI() {
     baseCritControl->Draw();
     baseJumpCountControl->Draw();
     teleportToCursorControl->Draw();
+
+    if (ImGui::CollapsingHeader("Huntress Settings")) {
+        huntressRangeControl->Draw();
+        huntressFOVControl->Draw();
+    }
 
     if (ImGui::CollapsingHeader("Items")) {
         std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
@@ -124,6 +140,16 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
     }
     if (baseJumpCountControl->IsEnabled()) {
         localUser_ptr->cachedBody_backing->baseJumpCount = baseJumpCountControl->GetValue();
+    }
+
+    if (cachedHuntressTracker) {
+        if (huntressRangeControl->IsEnabled()) {
+            cachedHuntressTracker->maxTrackingDistance = huntressRangeControl->GetValue();
+        }
+
+        if (huntressFOVControl->IsEnabled()) {
+            cachedHuntressTracker->maxTrackingAngle = huntressFOVControl->GetValue();
+        }
     }
 
     if (!localUser_ptr->cachedBody_backing->inventory_backing) {
@@ -231,4 +257,10 @@ void PlayerModule::DrawItemInputs(ItemTier_Value tier) {
             itemControls[index]->Draw();
         }
     }
+}
+
+void PlayerModule::OnHuntressTrackerStart(void* huntressTracker) {
+    if (!huntressTracker) return;
+    HuntressTracker* tracker = (HuntressTracker*)huntressTracker;
+    cachedHuntressTracker = tracker;
 }

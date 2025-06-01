@@ -26,6 +26,11 @@ struct TeamComponent;
 struct ModelLocator;
 struct HurtBoxGroup;
 struct NetworkUser;
+struct GenericSkill;
+struct SkillDef;
+struct HuntressPrimarySkillDef;
+struct SkillLocator;
+struct SkillFamily;
 
 typedef void* GameObject;
 typedef void* NetworkIdentity;
@@ -59,7 +64,6 @@ typedef void* JumpDelegate;
 typedef void* Rigidbody;
 typedef void* CharacterDirection;
 typedef void* EquipmentSlot;
-typedef void* SkillLocator;
 typedef void* SfxLocator;
 typedef void* EffectManagerHelper;
 typedef void* IncreaseDamageOnMultiKillItemDisplayUpdater;
@@ -110,6 +114,12 @@ typedef void* IEnumerator;
 typedef void* ModifyNextStateDelegate;
 typedef void* OnSpawnedServer;
 typedef void* NetworkLoadout;
+typedef void* BaseSkillInstanceData;
+typedef void* SkillOverride;
+typedef void* StateMachineResolver;
+typedef void* Indicator;
+typedef void* BullseyeSearch;
+typedef void* Variant;
 typedef int32_t Int32;
 typedef unsigned char byte;
 
@@ -246,6 +256,17 @@ enum class QueryTriggerInteraction_Value : int32_t {
     UseGlobal = 0,
     Ignore = 1,
     Collide = 2
+};
+
+enum class InterruptPriority_Value : int32_t {
+    Any = 0,
+    Skill = 1,
+    PrioritySkill = 2,
+    Pain = 3,
+    Stun = 4,
+    Frozen = 5,
+    Vehicle = 6,
+    Death = 7
 };
 
 /* No Header Structs */
@@ -611,6 +632,15 @@ struct NetworkUserId_Value {
     uint64_t value;
     void* strValue;
     uint8_t subId;
+};
+
+struct PassiveSkill_Value {
+    bool enabled;
+    char padding1[7];
+    void* skillNameToken;
+    void* skillDescriptionToken;
+    void* keywordToken;
+    Sprite* icon;
 };
 
 /* Normal Class Objects with headers */
@@ -2249,6 +2279,115 @@ struct ItemDef {
     bool isConsumed; // Offset: 112
     bool hidden; // Offset: 113
     bool canRemove; // Offset: 114
+};
+
+// Generated from RoR2.SkillLocator
+struct SkillLocator {
+    char padding0[48]; // Padding
+    GenericSkill* primary; // Offset: 48
+    GenericSkill* secondary; // Offset: 56
+    GenericSkill* utility; // Offset: 64
+    GenericSkill* special; // Offset: 72
+    PassiveSkill_Value passiveSkill; // Offset: 80
+    GenericSkill* primaryBonusStockOverrideSkill; // Offset: 120
+    GenericSkill* secondaryBonusStockOverrideSkill; // Offset: 128
+    GenericSkill* utilityBonusStockOverrideSkill; // Offset: 136
+    GenericSkill* specialBonusStockOverrideSkill; // Offset: 144
+    NetworkIdentity* networkIdentity; // Offset: 152
+    GenericSkill* allSkills; // Offset: 160
+    bool hasEffectiveAuthority; // Offset: 168
+    char padding12[3]; // Padding
+    uint32_t skillDefDirtyFlags; // Offset: 172
+    bool inDeserialize; // Offset: 176
+};
+
+// Generated from RoR2.GenericSkill
+struct GenericSkill {
+    char padding0[24]; // Padding
+    SkillDef* skillDef_backing; // Offset: 24
+    SkillFamily* _skillFamily; // Offset: 32
+    SkillDef* baseSkill_backing; // Offset: 40
+    void* skillName; // Offset: 48
+    EntityStateMachine* stateMachine_backing; // Offset: 56
+    BaseSkillInstanceData* skillInstanceData_backing; // Offset: 64
+    CharacterBody* characterBody_backing; // Offset: 72
+    SkillDef* defaultSkillDef_backing; // Offset: 80
+    void* onSkillChanged; // Offset: 88
+    SkillOverride* skillOverrides; // Offset: 96
+    StateMachineResolver* _customStateMachineResolver; // Offset: 104
+    bool hideInCharacterSelect; // Offset: 112
+    bool isCooldownBlocked_backing; // Offset: 113
+    char padding13[2]; // Padding
+    int32_t currentSkillOverride; // Offset: 116
+    int32_t bonusStockFromBody; // Offset: 120
+    int32_t maxStock_backing; // Offset: 124
+    int32_t baseStock; // Offset: 128
+    float finalRechargeInterval; // Offset: 132
+    float _cooldownScale; // Offset: 136
+    float _flatCooldownReduction; // Offset: 140
+    float _temporaryCooldownPenalty; // Offset: 144
+    float _cooldownOverride; // Offset: 148
+    float baseRechargeStopwatch; // Offset: 152
+    bool hasExecutedSuccessfully; // Offset: 156
+};
+
+// Generated from RoR2.Skills.SkillDef
+struct SkillDef {
+    char padding0[24]; // Padding
+    void* skillName; // Offset: 24
+    void* skillNameToken; // Offset: 32
+    void* skillDescriptionToken; // Offset: 40
+    String* keywordTokens; // Offset: 48
+    Sprite* icon; // Offset: 56
+    void* activationStateMachineName; // Offset: 64
+    SerializableEntityStateType_Value activationState; // Offset: 72
+    int32_t skillIndex_backing; // Offset: 88
+    InterruptPriority_Value interruptPriority; // Offset: 92
+    float baseRechargeInterval; // Offset: 96
+    int32_t baseMaxStock; // Offset: 100
+    int32_t rechargeStock; // Offset: 104
+    int32_t requiredStock; // Offset: 108
+    int32_t stockToConsume; // Offset: 112
+    bool attackSpeedBuffsRestockSpeed; // Offset: 116
+    char padding15[3]; // Padding
+    float attackSpeedBuffsRestockSpeed_Multiplier; // Offset: 120
+    bool resetCooldownTimerOnUse; // Offset: 124
+    bool fullRestockOnAssign; // Offset: 125
+    bool dontAllowPastMaxStocks; // Offset: 126
+    bool beginSkillCooldownOnSkillEnd; // Offset: 127
+    bool isCooldownBlockedUntilManuallyReset; // Offset: 128
+    bool cancelSprintingOnActivation; // Offset: 129
+    bool forceSprintDuringState; // Offset: 130
+    bool canceledFromSprinting; // Offset: 131
+    bool isCombatSkill; // Offset: 132
+    bool mustKeyPress; // Offset: 133
+    bool triggeredByPressRelease; // Offset: 134
+    bool autoHandleLuminousShot; // Offset: 135
+    bool hideStockCount; // Offset: 136
+};
+
+// Generated from RoR2.HuntressTracker
+struct HuntressTracker {
+    char padding0[24]; // Padding
+    GameObject* trackingPrefab; // Offset: 24
+    HurtBox* trackingTarget; // Offset: 32
+    CharacterBody* characterBody; // Offset: 40
+    TeamComponent* teamComponent; // Offset: 48
+    InputBankTest* inputBank; // Offset: 56
+    Indicator* indicator; // Offset: 64
+    BullseyeSearch* search; // Offset: 72
+    float maxTrackingDistance; // Offset: 80
+    float maxTrackingAngle; // Offset: 84
+    float trackerUpdateFrequency; // Offset: 88
+    float trackerUpdateStopwatch; // Offset: 92
+};
+
+// Generated from RoR2.Skills.SkillFamily
+struct SkillFamily {
+    char padding0[24]; // Padding
+    Variant* variants; // Offset: 24
+    int32_t catalogIndex_backing; // Offset: 32
+    uint32_t defaultVariantIndex; // Offset: 36
 };
 
 

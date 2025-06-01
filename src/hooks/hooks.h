@@ -32,6 +32,7 @@ namespace Hooks {
     void hkRoR2TeleporterInteractionFixedUpdate(void*);
     void hkRoR2CharacterBodyStart(void*);
     void hkRoR2CharacterBodyOnDestroy(void*);
+    void hkRoR2HuntressTrackerStart(void*);
 
     long __stdcall hkPresent11(IDXGISwapChain*, UINT, UINT);
 }

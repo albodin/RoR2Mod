@@ -17,6 +17,9 @@ private:
     IntControl* baseJumpCountControl;
     ToggleButtonControl* teleportToCursorControl;
 
+    FloatControl* huntressRangeControl;
+    FloatControl* huntressFOVControl;
+
     std::mutex queuedGiveItemsMutex;
     std::queue<std::tuple<int, int>> queuedGiveItems;
     std::shared_mutex itemsMutex;
@@ -26,6 +29,7 @@ private:
     std::map<int, IntControl*> itemControls;
     void* localInventory_cached;
     LocalUser* localUser_cached;
+    HuntressTracker* cachedHuntressTracker;
 
     Vector3 playerPosition;
 
@@ -50,6 +54,8 @@ public:
     FloatControl* GetBaseAttackSpeedControl() { return baseAttackSpeedControl; }
     FloatControl* GetBaseCritControl() { return baseCritControl; }
     IntControl* GetBaseJumpCountControl() { return baseJumpCountControl; }
+    FloatControl* GetHuntressRangeControl() { return huntressRangeControl; }
+    FloatControl* GetHuntressFOVControl() { return huntressFOVControl; }
     std::map<int, IntControl*>& GetItemControls() { return itemControls; }
 
     void SetCachedInventory(void* inventory) { localInventory_cached = inventory; }
@@ -64,4 +70,6 @@ public:
     CharacterBody* GetLocalPlayerBody() {
         return localUser_cached ? localUser_cached->cachedBody_backing : nullptr;
     }
+
+    void OnHuntressTrackerStart(void* huntressTracker);
 };
