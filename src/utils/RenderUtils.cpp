@@ -13,15 +13,14 @@ namespace RenderUtils {
             return false;
         }
 
-        if (screenPoint.x < 0 || screenPoint.x > ImGui::GetIO().DisplaySize.x ||
-            screenPoint.y < 0 || screenPoint.y > ImGui::GetIO().DisplaySize.y) {
-            return false;
-        }
-
         screenPos.x = screenPoint.x;
         screenPos.y = ImGui::GetIO().DisplaySize.y - screenPoint.y;
 
-        return true;
+        // Return true if on screen, false if off-screen (but coordinates are still valid)
+        bool onScreen = (screenPoint.x >= 0 && screenPoint.x <= ImGui::GetIO().DisplaySize.x &&
+                        screenPoint.y >= 0 && screenPoint.y <= ImGui::GetIO().DisplaySize.y);
+
+        return onScreen;
     }
 
     ImVec2 RenderText(ImVec2 pos, ImU32 color, ImU32 shadowColor, bool shadow, bool centered, const char* text, ...) {

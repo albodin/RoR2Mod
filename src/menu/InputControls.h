@@ -253,12 +253,14 @@ private:
     ToggleControl* showMaxHealth;
     ToggleControl* showHealthbar;
     ToggleControl* showBox;
+    ToggleControl* showTraceline;
     SliderControl* maxDistance;
     ImVec4 nameColor;
     ImVec4 distanceColor;
     ImVec4 healthColor;
     ImVec4 maxHealthColor;
     ImVec4 boxColor;
+    ImVec4 tracelineColor;
 
 public:
     EntityESPSubControl(const std::string& label, const std::string& id);
@@ -275,17 +277,20 @@ public:
     bool ShouldShowMaxHealth() const;
     bool ShouldShowHealthbar() const;
     bool ShouldShowBox() const;
+    bool ShouldShowTraceline() const;
     float GetMaxDistance() const;
     ImVec4 GetNameColor() const;
     ImVec4 GetDistanceColor() const;
     ImVec4 GetHealthColor() const;
     ImVec4 GetMaxHealthColor() const;
     ImVec4 GetBoxColor() const;
+    ImVec4 GetTracelineColor() const;
     ImU32 GetNameColorU32() const;
     ImU32 GetDistanceColorU32() const;
     ImU32 GetHealthColorU32() const;
     ImU32 GetMaxHealthColorU32() const;
     ImU32 GetBoxColorU32() const;
+    ImU32 GetTracelineColorU32() const;
 
     json Serialize() const;
     void Deserialize(const json& data);

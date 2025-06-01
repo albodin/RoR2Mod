@@ -25,7 +25,7 @@ private:
     std::vector<TrackedEntity*> trackedPlayers;
     std::mutex entitiesMutex;
 
-    void RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible);
+    void RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible, bool onScreen);
     Vector3 GetCameraPosition();
     bool IsVisible(const Vector3& position);
 

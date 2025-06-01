@@ -179,11 +179,14 @@ void ESPModule::RenderPlayerESP() {
         }
 
         ImVec2 screenPos;
-        if (!RenderUtils::WorldToScreen(mainCamera, playerWorldPos, screenPos)) {
+        bool onScreen = RenderUtils::WorldToScreen(mainCamera, playerWorldPos, screenPos);
+        
+        // Skip if entity is behind camera (off-screen and at default position)
+        if (!onScreen && screenPos.x == 0.0f && screenPos.y == 0.0f) {
             continue;
         }
 
-        RenderEntityESP(entity, screenPos, distance, control, isVisible);
+        RenderEntityESP(entity, screenPos, distance, control, isVisible, onScreen);
     }
 }
 
@@ -224,16 +227,28 @@ void ESPModule::RenderEnemyESP() {
         }
 
         ImVec2 screenPos;
-        if (!RenderUtils::WorldToScreen(mainCamera, enemyWorldPos, screenPos)) {
+        bool onScreen = RenderUtils::WorldToScreen(mainCamera, enemyWorldPos, screenPos);
+        
+        // Skip if entity is behind camera (off-screen and at default position)
+        if (!onScreen && screenPos.x == 0.0f && screenPos.y == 0.0f) {
             continue;
         }
 
-        RenderEntityESP(entity, screenPos, distance, control, isVisible);
+        RenderEntityESP(entity, screenPos, distance, control, isVisible, onScreen);
     }
 }
 
-void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible) {
+void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible, bool onScreen) {
     if (!entity || !control) return;
+
+    // If off-screen, only draw traceline and return
+    if (!onScreen) {
+        if (control->ShouldShowTraceline()) {
+            ImVec2 screenCenter(ImGui::GetIO().DisplaySize.x / 2.0f, ImGui::GetIO().DisplaySize.y);
+            RenderUtils::RenderLine(screenCenter, screenPos, control->GetTracelineColorU32(), 1.0f);
+        }
+        return;
+    }
 
     float lineHeight = FontManager::ESPFontSize;
     static float boxBorderThickness = 2.0f;
@@ -334,6 +349,12 @@ void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float d
     ImVec2 boxBottomCenter(screenMin.x + boxSize.x / 2, screenMax.y);
     ImVec2 textPos = boxBottomCenter;
     textPos.y += 5; // Small gap below the box
+
+    // Render traceline first so it appears under everything else
+    if (control->ShouldShowTraceline()) {
+        ImVec2 screenCenter(ImGui::GetIO().DisplaySize.x / 2.0f, ImGui::GetIO().DisplaySize.y);
+        RenderUtils::RenderLine(screenCenter, boxBottomCenter, control->GetTracelineColorU32(), 1.0f);
+    }
 
     if (control->ShouldShowBox()) {
         RenderUtils::RenderBox(screenMin, boxSize, control->GetBoxColorU32(), boxBorderThickness);

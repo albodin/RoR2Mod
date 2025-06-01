@@ -809,7 +809,8 @@ EntityESPSubControl::EntityESPSubControl(const std::string& label, const std::st
       distanceColor(0.8f, 0.8f, 0.8f, 1.0f),
       healthColor(0.0f, 1.0f, 0.0f, 1.0f),
       maxHealthColor(0.0f, 0.8f, 0.0f, 1.0f),
-      boxColor(1.0f, 0.0f, 0.0f, 1.0f) {
+      boxColor(1.0f, 0.0f, 0.0f, 1.0f),
+      tracelineColor(1.0f, 1.0f, 0.0f, 1.0f) {
 
     enabled = new ToggleControl("Enabled", id + "_enabled", false);
     showName = new ToggleControl("Show Name", id + "_showName", true);
@@ -818,6 +819,7 @@ EntityESPSubControl::EntityESPSubControl(const std::string& label, const std::st
     showMaxHealth = new ToggleControl("Show Max Health", id + "_showMaxHealth", false);
     showHealthbar = new ToggleControl("Show Healthbar", id + "_showHealthbar", false);
     showBox = new ToggleControl("Show Box", id + "_showBox", false);
+    showTraceline = new ToggleControl("Show Traceline", id + "_showTraceline", false);
     maxDistance = new SliderControl("Max Distance", id + "_maxDistance", 100.0f, 0.0f, 1000.0f);
 }
 
@@ -829,6 +831,7 @@ EntityESPSubControl::~EntityESPSubControl() {
     delete showMaxHealth;
     delete showHealthbar;
     delete showBox;
+    delete showTraceline;
     delete maxDistance;
 }
 
@@ -864,6 +867,11 @@ void EntityESPSubControl::Draw() {
         ImGui::ColorEdit4(("Box Color##" + id).c_str(), (float*)&boxColor,
                          ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
+        showTraceline->Draw();
+        ImGui::SameLine();
+        ImGui::ColorEdit4(("Traceline Color##" + id).c_str(), (float*)&tracelineColor,
+                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+
         // Sliders
         maxDistance->Draw();
     }
@@ -877,6 +885,7 @@ void EntityESPSubControl::Update() {
     showMaxHealth->Update();
     showHealthbar->Update();
     showBox->Update();
+    showTraceline->Update();
     maxDistance->Update();
 }
 
@@ -888,17 +897,20 @@ bool EntityESPSubControl::ShouldShowHealth() const { return showHealth->IsEnable
 bool EntityESPSubControl::ShouldShowMaxHealth() const { return showMaxHealth->IsEnabled(); }
 bool EntityESPSubControl::ShouldShowHealthbar() const { return showHealthbar->IsEnabled(); }
 bool EntityESPSubControl::ShouldShowBox() const { return showBox->IsEnabled(); }
+bool EntityESPSubControl::ShouldShowTraceline() const { return showTraceline->IsEnabled(); }
 float EntityESPSubControl::GetMaxDistance() const { return maxDistance->GetValue(); }
 ImVec4 EntityESPSubControl::GetNameColor() const { return nameColor; }
 ImVec4 EntityESPSubControl::GetDistanceColor() const { return distanceColor; }
 ImVec4 EntityESPSubControl::GetHealthColor() const { return healthColor; }
 ImVec4 EntityESPSubControl::GetMaxHealthColor() const { return maxHealthColor; }
 ImVec4 EntityESPSubControl::GetBoxColor() const { return boxColor; }
+ImVec4 EntityESPSubControl::GetTracelineColor() const { return tracelineColor; }
 ImU32 EntityESPSubControl::GetNameColorU32() const { return ImGui::ColorConvertFloat4ToU32(nameColor); }
 ImU32 EntityESPSubControl::GetDistanceColorU32() const { return ImGui::ColorConvertFloat4ToU32(distanceColor); }
 ImU32 EntityESPSubControl::GetHealthColorU32() const { return ImGui::ColorConvertFloat4ToU32(healthColor); }
 ImU32 EntityESPSubControl::GetMaxHealthColorU32() const { return ImGui::ColorConvertFloat4ToU32(maxHealthColor); }
 ImU32 EntityESPSubControl::GetBoxColorU32() const { return ImGui::ColorConvertFloat4ToU32(boxColor); }
+ImU32 EntityESPSubControl::GetTracelineColorU32() const { return ImGui::ColorConvertFloat4ToU32(tracelineColor); }
 
 json EntityESPSubControl::Serialize() const {
     json data;
@@ -909,12 +921,14 @@ json EntityESPSubControl::Serialize() const {
     data["showMaxHealth"] = showMaxHealth->Serialize();
     data["showHealthbar"] = showHealthbar->Serialize();
     data["showBox"] = showBox->Serialize();
+    data["showTraceline"] = showTraceline->Serialize();
     data["maxDistance"] = maxDistance->Serialize();
     data["nameColor"] = {nameColor.x, nameColor.y, nameColor.z, nameColor.w};
     data["distanceColor"] = {distanceColor.x, distanceColor.y, distanceColor.z, distanceColor.w};
     data["healthColor"] = {healthColor.x, healthColor.y, healthColor.z, healthColor.w};
     data["maxHealthColor"] = {maxHealthColor.x, maxHealthColor.y, maxHealthColor.z, maxHealthColor.w};
     data["boxColor"] = {boxColor.x, boxColor.y, boxColor.z, boxColor.w};
+    data["tracelineColor"] = {tracelineColor.x, tracelineColor.y, tracelineColor.z, tracelineColor.w};
     return data;
 }
 
@@ -926,6 +940,7 @@ void EntityESPSubControl::Deserialize(const json& data) {
     if (data.contains("showMaxHealth")) showMaxHealth->Deserialize(data["showMaxHealth"]);
     if (data.contains("showHealthbar")) showHealthbar->Deserialize(data["showHealthbar"]);
     if (data.contains("showBox")) showBox->Deserialize(data["showBox"]);
+    if (data.contains("showTraceline")) showTraceline->Deserialize(data["showTraceline"]);
     if (data.contains("maxDistance")) maxDistance->Deserialize(data["maxDistance"]);
     if (data.contains("nameColor") && data["nameColor"].is_array() && data["nameColor"].size() == 4) {
         nameColor = ImVec4(data["nameColor"][0], data["nameColor"][1], data["nameColor"][2], data["nameColor"][3]);
@@ -941,6 +956,9 @@ void EntityESPSubControl::Deserialize(const json& data) {
     }
     if (data.contains("boxColor") && data["boxColor"].is_array() && data["boxColor"].size() == 4) {
         boxColor = ImVec4(data["boxColor"][0], data["boxColor"][1], data["boxColor"][2], data["boxColor"][3]);
+    }
+    if (data.contains("tracelineColor") && data["tracelineColor"].is_array() && data["tracelineColor"].size() == 4) {
+        tracelineColor = ImVec4(data["tracelineColor"][0], data["tracelineColor"][1], data["tracelineColor"][2], data["tracelineColor"][3]);
     }
 }
 
