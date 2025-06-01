@@ -51,7 +51,7 @@ private:
     std::function<void(bool)> onChange;
 
 public:
-    ToggleControl(const std::string& label, const std::string& id, bool enabled = false);
+    ToggleControl(const std::string& label, const std::string& id, bool enabled = false, bool autoRegister = true);
     virtual ~ToggleControl();
 
     void Draw() override;
@@ -201,7 +201,7 @@ private:
 
 public:
     SliderControl(const std::string& label, const std::string& id, float value,
-                 float minValue = 0.0f, float maxValue = 100.0f);
+                 float minValue = 0.0f, float maxValue = 100.0f, bool autoRegister = true);
     virtual ~SliderControl();
 
     void Draw() override;

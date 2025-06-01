@@ -102,10 +102,12 @@ void InputControl::Deserialize(const json& data) {
 
 
 // ToggleControl implementation
-ToggleControl::ToggleControl(const std::string& label, const std::string& id, bool enabled)
+ToggleControl::ToggleControl(const std::string& label, const std::string& id, bool enabled, bool autoRegister)
     : InputControl(label, id, enabled), onChange(nullptr)
 {
-    ConfigManager::RegisterControl(this);
+    if (autoRegister) {
+        ConfigManager::RegisterControl(this);
+    }
 }
 
 ToggleControl::~ToggleControl() {
@@ -660,10 +662,12 @@ void ESPControl::Deserialize(const json& data) {
 
 // SliderControl implementation
 SliderControl::SliderControl(const std::string& label, const std::string& id, float value,
-                           float minValue, float maxValue)
+                           float minValue, float maxValue, bool autoRegister)
     : InputControl(label, id, false), value(value), minValue(minValue), maxValue(maxValue), onChange(nullptr)
 {
-    ConfigManager::RegisterControl(this);
+    if (autoRegister) {
+        ConfigManager::RegisterControl(this);
+    }
 }
 
 SliderControl::~SliderControl() {
@@ -812,15 +816,15 @@ EntityESPSubControl::EntityESPSubControl(const std::string& label, const std::st
       boxColor(1.0f, 0.0f, 0.0f, 1.0f),
       tracelineColor(1.0f, 1.0f, 0.0f, 1.0f) {
 
-    enabled = new ToggleControl("Enabled", id + "_enabled", false);
-    showName = new ToggleControl("Show Name", id + "_showName", true);
-    showDistance = new ToggleControl("Show Distance", id + "_showDistance", true);
-    showHealth = new ToggleControl("Show Health", id + "_showHealth", false);
-    showMaxHealth = new ToggleControl("Show Max Health", id + "_showMaxHealth", false);
-    showHealthbar = new ToggleControl("Show Healthbar", id + "_showHealthbar", false);
-    showBox = new ToggleControl("Show Box", id + "_showBox", false);
-    showTraceline = new ToggleControl("Show Traceline", id + "_showTraceline", false);
-    maxDistance = new SliderControl("Max Distance", id + "_maxDistance", 100.0f, 0.0f, 1000.0f);
+    enabled = new ToggleControl("Enabled", id + "_enabled", false, false);
+    showName = new ToggleControl("Show Name", id + "_showName", true, false);
+    showDistance = new ToggleControl("Show Distance", id + "_showDistance", true, false);
+    showHealth = new ToggleControl("Show Health", id + "_showHealth", false, false);
+    showMaxHealth = new ToggleControl("Show Max Health", id + "_showMaxHealth", false, false);
+    showHealthbar = new ToggleControl("Show Healthbar", id + "_showHealthbar", false, false);
+    showBox = new ToggleControl("Show Box", id + "_showBox", false, false);
+    showTraceline = new ToggleControl("Show Traceline", id + "_showTraceline", false, false);
+    maxDistance = new SliderControl("Max Distance", id + "_maxDistance", 100.0f, 0.0f, 1000.0f, false);
 }
 
 EntityESPSubControl::~EntityESPSubControl() {
@@ -966,7 +970,7 @@ void EntityESPSubControl::Deserialize(const json& data) {
 EntityESPControl::EntityESPControl(const std::string& label, const std::string& id)
     : InputControl(label, id, false) {
 
-    masterEnabled = new ToggleControl("Master Enabled", id + "_master", false);
+    masterEnabled = new ToggleControl("Master Enabled", id + "_master", false, false);
     visibleControl = new EntityESPSubControl("Visible " + label, id + "_visible");
     nonVisibleControl = new EntityESPSubControl("Non-Visible " + label, id + "_nonvisible");
 
