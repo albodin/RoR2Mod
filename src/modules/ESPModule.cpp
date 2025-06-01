@@ -309,10 +309,25 @@ void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float d
         }
     }
 
-    // Fallback bounds if we couldn't calculate from hurtboxes
+    // Fallback bounds if we couldn't calculate from hurtboxes or bounds are too small
+    bool useFallbackBounds = false;
     if (!boundsFound) {
-        screenMin = ImVec2(screenPos.x - 30.0f, screenPos.y - 40.0f);
-        screenMax = ImVec2(screenPos.x + 30.0f, screenPos.y + 40.0f);
+        useFallbackBounds = true;
+    } else {
+        // Check if bounds are too small (like wisps) - if box is smaller than 5x5 pixels, use fallback
+        ImVec2 currentBoxSize(screenMax.x - screenMin.x, screenMax.y - screenMin.y);
+        if (currentBoxSize.x < 5.0f || currentBoxSize.y < 5.0f) {
+            useFallbackBounds = true;
+        }
+    }
+
+    if (useFallbackBounds) {
+        // Scale fallback bounds based on distance - smaller at far distances
+        float distanceScale = std::max(0.3f, std::min(1.0f, 50.0f / distance)); // Scale from 1.0 at 50m to 0.3 at far distances
+        float halfWidth = 30.0f * distanceScale;
+        float halfHeight = 40.0f * distanceScale;
+        screenMin = ImVec2(screenPos.x - halfWidth, screenPos.y - halfHeight);
+        screenMax = ImVec2(screenPos.x + halfWidth, screenPos.y + halfHeight);
     }
 
     ImVec2 boxSize(screenMax.x - screenMin.x, screenMax.y - screenMin.y);
