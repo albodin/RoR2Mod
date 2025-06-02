@@ -31,6 +31,7 @@ struct SkillDef;
 struct HuntressPrimarySkillDef;
 struct SkillLocator;
 struct SkillFamily;
+struct MultiShopController;
 
 typedef void* GameObject;
 typedef void* NetworkIdentity;
@@ -122,6 +123,15 @@ typedef void* BullseyeSearch;
 typedef void* Variant;
 typedef int32_t Int32;
 typedef unsigned char byte;
+typedef void* PickupPickerController;
+typedef void* PickupDisplay;
+typedef void* Entry;
+typedef void* Boolean;
+typedef void* NetworkUIPromptController;
+typedef void* InspectDef;
+typedef void* IInspectInfoProvider;
+typedef void* GameObjectUnlockableFilter;
+typedef void* PurchaseEvent;
 
 
 struct MonoObject_Internal {
@@ -2390,5 +2400,174 @@ struct SkillFamily {
     uint32_t defaultVariantIndex; // Offset: 36
 };
 
+// Generated from RoR2.ChestBehavior
+struct ChestBehavior {
+    char padding0[48]; // Padding
+    PickupDropTable* dropTable; // Offset: 48
+    Transform* dropTransform; // Offset: 56
+    SerializableEntityStateType_Value openState; // Offset: 64
+    SerializableEntityStateType_Value closingState; // Offset: 80
+    UnityEvent* dropRoller; // Offset: 96
+    Xoroshiro128Plus* rng; // Offset: 104
+    PickupPickerController* ppc; // Offset: 112
+    PickupIndex_Value dropPickup_backing; // Offset: 120
+    float dropUpVelocityStrength; // Offset: 124
+    float dropForwardVelocityStrength; // Offset: 128
+    int32_t minDropCount; // Offset: 132
+    int32_t maxDropCount; // Offset: 136
+    float tier1Chance; // Offset: 140
+    float tier2Chance; // Offset: 144
+    float tier3Chance; // Offset: 148
+    float lunarChance; // Offset: 152
+    ItemTag_Value requiredItemTag; // Offset: 156
+    float lunarCoinChance; // Offset: 160
+    int32_t dropCount; // Offset: 164
+    bool isCommandChest; // Offset: 168
+    bool isChestOpened; // Offset: 169
+    bool isChestReset; // Offset: 170
+};
+
+// Generated from RoR2.PurchaseInteraction
+struct PurchaseInteraction {
+    char padding0[48]; // Padding
+    void* displayNameToken; // Offset: 48
+    void* contextToken; // Offset: 56
+    void* requiredUnlockable; // Offset: 64
+    String* purchaseStatNames; // Offset: 72
+    ExpansionDef* requiredExpansion; // Offset: 80
+    IInspectInfoProvider* cachedInspectInfoProviders; // Offset: 88
+    Interactor* lastActivator; // Offset: 96
+    GameObject* lockGameObject; // Offset: 104
+    Xoroshiro128Plus* rng; // Offset: 112
+    GameObjectUnlockableFilter* gameObjectUnlockableFilter; // Offset: 120
+    PurchaseEvent* onPurchase; // Offset: 128
+    Transform* viewerTransform; // Offset: 136
+    CharacterBody* viewerBody; // Offset: 144
+    CostTypeIndex_Value costType; // Offset: 152
+    bool available; // Offset: 156
+    char padding15[3]; // Padding
+    int32_t cost; // Offset: 160
+    int32_t solitudeCost; // Offset: 164
+    bool automaticallyScaleCostWithDifficulty; // Offset: 168
+    bool ignoreSpherecastForInteractability; // Offset: 169
+    bool setUnavailableOnTeleporterActivated; // Offset: 170
+    bool isShrine; // Offset: 171
+    bool isGoldShrine; // Offset: 172
+    bool shouldProximityHighlight; // Offset: 173
+    bool saleStarCompatible; // Offset: 174
+    char padding24[1]; // Padding
+    int32_t currentInspectIndex; // Offset: 176
+    NetworkInstanceId_Value ___lockGameObjectNetId; // Offset: 180
+};
+
+// Generated from RoR2.ShopTerminalBehavior
+struct ShopTerminalBehavior {
+    char padding0[48]; // Padding
+    PickupDisplay* pickupDisplay; // Offset: 48
+    Transform* dropTransform; // Offset: 56
+    PickupDropTable* dropTable; // Offset: 64
+    Animator* animator; // Offset: 72
+    InspectDef* MysteryItemInspectDef; // Offset: 80
+    void* inspectHintOverrideToken; // Offset: 88
+    InspectDef* shopInspectDef; // Offset: 96
+    IInspectInfoProvider* cachedInspectInfoProviders; // Offset: 104
+    Xoroshiro128Plus* rng; // Offset: 112
+    MultiShopController* serverMultiShopController; // Offset: 120
+    PickupIndex_Value pickupIndex; // Offset: 128
+    bool hidden; // Offset: 132
+    bool hasBeenPurchased; // Offset: 133
+    char padding13[2]; // Padding
+    Vector3 dropVelocity; // Offset: 136
+    bool hintWantsItemFormatting; // Offset: 148
+    bool disablesInspectionOnPurchase; // Offset: 149
+    bool inspectShop; // Offset: 150
+    char padding17[1]; // Padding
+    ItemTier_Value itemTier; // Offset: 152
+    ItemTag_Value bannedItemTag; // Offset: 156
+    bool selfGeneratePickup; // Offset: 160
+    bool hasStarted; // Offset: 161
+};
+
+// Generated from RoR2.RouletteChestController
+struct RouletteChestController {
+    char padding0[48]; // Padding
+    AnimationCurve* bonusTimeDecay; // Offset: 48
+    PickupDropTable* dropTable; // Offset: 56
+    Transform* ejectionTransform; // Offset: 64
+    Animator* modelAnimator; // Offset: 72
+    PickupDisplay* pickupDisplay; // Offset: 80
+    EntityStateMachine* stateMachine; // Offset: 88
+    PurchaseInteraction* purchaseInteraction; // Offset: 96
+    NetworkIdentity* networkIdentity; // Offset: 104
+    Entry* entries; // Offset: 112
+    Xoroshiro128Plus* rng; // Offset: 120
+    UnityEvent* onCycleBeginServer; // Offset: 128
+    UnityEvent* onCycleCompletedServer; // Offset: 136
+    UnityEvent* onChangedEntryClient; // Offset: 144
+    int32_t maxEntries; // Offset: 152
+    float bonusTime; // Offset: 156
+    Vector3 localEjectionVelocity; // Offset: 160
+    FixedTimeStamp_Value activationTime; // Offset: 172
+    int32_t dropCount; // Offset: 176
+    int32_t previousEntryIndexClient; // Offset: 180
+};
+
+// Generated from RoR2.MultiShopController
+struct MultiShopController {
+    char padding0[48]; // Padding
+    GameObject* terminalPrefab; // Offset: 48
+    Transform* terminalPositions; // Offset: 56
+    Boolean* doCloseOnTerminalPurchase; // Offset: 64
+    GameObject* _terminalGameObjects; // Offset: 72
+    void* terminalGameObjects; // Offset: 80
+    Xoroshiro128Plus* rng; // Offset: 88
+    int32_t revealCount; // Offset: 96
+    float hiddenChance; // Offset: 100
+    ItemTier_Value itemTier; // Offset: 104
+    bool doEquipmentInstead; // Offset: 108
+    bool hideDisplayContent; // Offset: 109
+    bool available; // Offset: 110
+    char padding12[1]; // Padding
+    int32_t baseCost; // Offset: 112
+    CostTypeIndex_Value costType; // Offset: 116
+    int32_t cost; // Offset: 120
+};
+
+// Generated from RoR2.DelusionChestController
+struct DelusionChestController {
+    char padding0[24]; // Padding
+    ChestBehavior* delusionChest; // Offset: 24
+    void* _delusionPickupIndexesTable; // Offset: 32
+    NetworkUIPromptController* _netUIPromptController; // Offset: 40
+    PickupPickerController* _pickupPickerController; // Offset: 48
+    Interactor* interactor; // Offset: 56
+    Inventory* interactorInventory; // Offset: 64
+    Interactor* previousInteractor; // Offset: 72
+    PickupIndex_Value _delusionPickupIndex; // Offset: 80
+    PickupIndex_Value _selectedPickupIndex; // Offset: 84
+    bool hasBeenReset; // Offset: 88
+};
+
+// Generated from RoR2.ScrapperController
+struct ScrapperController {
+    char padding0[48]; // Padding
+    PickupPickerController* pickupPickerController; // Offset: 48
+    EntityStateMachine* esm; // Offset: 56
+    Interactor* interactor; // Offset: 64
+    ItemIndex_Value lastScrappedItemIndex_backing; // Offset: 72
+    int32_t itemsEaten_backing; // Offset: 76
+    int32_t maxItemsToScrapAtATime; // Offset: 80
+};
+
+// Generated from RoR2.BarrelInteraction
+struct BarrelInteraction {
+    char padding0[48]; // Padding
+    void* displayNameToken; // Offset: 48
+    void* contextToken; // Offset: 56
+    int32_t goldReward; // Offset: 64
+    uint32_t expReward; // Offset: 68
+    bool shouldProximityHighlight; // Offset: 72
+    bool opened; // Offset: 73
+};
 
 #pragma pack(pop)

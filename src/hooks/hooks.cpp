@@ -170,6 +170,9 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, CharacterBody, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, CharacterBody, OnDestroy, 0, "System.Void", {});
     HOOK(RoR2, RoR2, HuntressTracker, Start, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, PurchaseInteraction, Start, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, BarrelInteraction, Start, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, Run, AdvanceStage, 1, "System.Void", {"RoR2.SceneDef"});
 
 
     for (auto& target: hookTargets) {
@@ -467,6 +470,35 @@ void Hooks::hkRoR2HuntressTrackerStart(void* instance) {
     if (!G::hooksInitialized) return;
 
     G::localPlayer->OnHuntressTrackerStart(instance);
+}
+
+void Hooks::hkRoR2PurchaseInteractionStart(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2PurchaseInteractionStart"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::espModule->OnPurchaseInteractionSpawned(instance);
+}
+
+void Hooks::hkRoR2BarrelInteractionStart(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2BarrelInteractionStart"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::espModule->OnBarrelInteractionSpawned(instance);
+}
+
+void Hooks::hkRoR2RunAdvanceStage(void* instance, void* nextScene) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*, void*)>(hooks["RoR2RunAdvanceStage"]);
+    
+    // Clear ESP data before advancing to the next stage
+    if (G::hooksInitialized) {
+        G::espModule->OnStageStart(instance);
+    }
+    
+    originalFunc(instance, nextScene);
 }
 
 LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {

@@ -102,8 +102,8 @@ void InputControl::Deserialize(const json& data) {
 
 
 // ToggleControl implementation
-ToggleControl::ToggleControl(const std::string& label, const std::string& id, bool enabled, bool autoRegister)
-    : InputControl(label, id, enabled), onChange(nullptr)
+ToggleControl::ToggleControl(const std::string& label, const std::string& id, bool enabled, bool autoRegister, bool showHotkey)
+    : InputControl(label, id, enabled), onChange(nullptr), showHotkey(showHotkey)
 {
     if (autoRegister) {
         ConfigManager::RegisterControl(this);
@@ -124,8 +124,10 @@ void ToggleControl::Draw() {
         }
     }
 
-    ImGui::SameLine();
-    DrawHotkeyButton();
+    if (showHotkey) {
+        ImGui::SameLine();
+        DrawHotkeyButton();
+    }
 
     ImGui::PopID();
 }
@@ -1019,4 +1021,256 @@ void EntityESPControl::Deserialize(const json& data) {
     if (data.contains("masterEnabled")) masterEnabled->Deserialize(data["masterEnabled"]);
     if (data.contains("visible")) visibleControl->Deserialize(data["visible"]);
     if (data.contains("nonVisible")) nonVisibleControl->Deserialize(data["nonVisible"]);
+}
+
+// ChestESPSubControl implementation
+ChestESPSubControl::ChestESPSubControl(const std::string& label, const std::string& id)
+    : InputControl(label, id, false) {
+    
+    enabled = new ToggleControl("Enabled", id + "_enabled", true, false);
+    showName = new ToggleControl("Show Name", id + "_showName", true, false);
+    showDistance = new ToggleControl("Show Distance", id + "_showDistance", true, false);
+    showCost = new ToggleControl("Show Cost", id + "_showCost", true, false);
+    showUnavailable = new ToggleControl("Show Unavailable", id + "_showUnavailable", true, false);
+    showTraceline = new ToggleControl("Show Traceline", id + "_showTraceline", false, false);
+    enableNameShadow = new ToggleControl("O", id + "_enableNameShadow", true, false, false);
+    enableDistanceShadow = new ToggleControl("O", id + "_enableDistanceShadow", true, false, false);
+    enableCostShadow = new ToggleControl("O", id + "_enableCostShadow", true, false, false);
+    maxDistance = new SliderControl("Max Distance", id + "_maxDistance", 500.0f, 0.0f, 1000.0f, false);
+    
+    nameColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);  // White
+    distanceColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);  // White
+    costColor = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);  // Yellow
+    tracelineColor = ImVec4(0.0f, 1.0f, 0.0f, 1.0f); // Green
+    nameShadowColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f); // Black
+    distanceShadowColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f); // Black
+    costShadowColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f); // Black
+}
+
+ChestESPSubControl::~ChestESPSubControl() {
+    delete enabled;
+    delete showName;
+    delete showDistance;
+    delete showCost;
+    delete showUnavailable;
+    delete showTraceline;
+    delete enableNameShadow;
+    delete enableDistanceShadow;
+    delete enableCostShadow;
+    delete maxDistance;
+}
+
+void ChestESPSubControl::Draw() {
+    ImGui::PushID(id.c_str());
+    
+    if (ImGui::CollapsingHeader(label.c_str())) {
+        ImGui::Indent();
+        enabled->Draw();
+        if (enabled->IsEnabled()) {
+            // Show Name with color picker and shadow controls
+            showName->Draw();
+            ImGui::SameLine();
+            ImGui::ColorEdit4(("##" + id + "_name_color").c_str(), (float*)&nameColor,
+                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            ImGui::SameLine();
+            enableNameShadow->Draw();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Toggle outline");
+            ImGui::SameLine();
+            ImGui::ColorEdit4(("##" + id + "_name_shadow_color").c_str(), (float*)&nameShadowColor,
+                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            
+            // Show Distance with color picker and shadow controls
+            showDistance->Draw();
+            ImGui::SameLine();
+            ImGui::ColorEdit4(("##" + id + "_distance_color").c_str(), (float*)&distanceColor,
+                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            ImGui::SameLine();
+            enableDistanceShadow->Draw();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Toggle outline");
+            ImGui::SameLine();
+            ImGui::ColorEdit4(("##" + id + "_distance_shadow_color").c_str(), (float*)&distanceShadowColor,
+                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            
+            // Show Cost with color picker and shadow controls
+            showCost->Draw();
+            ImGui::SameLine();
+            ImGui::ColorEdit4(("##" + id + "_cost_color").c_str(), (float*)&costColor,
+                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            ImGui::SameLine();
+            enableCostShadow->Draw();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Toggle outline");
+            ImGui::SameLine();
+            ImGui::ColorEdit4(("##" + id + "_cost_shadow_color").c_str(), (float*)&costShadowColor,
+                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            
+            // Show Unavailable (no color picker needed)
+            showUnavailable->Draw();
+            
+            // Show Traceline with color picker
+            showTraceline->Draw();
+            ImGui::SameLine();
+            ImGui::ColorEdit4(("##" + id + "_traceline_color").c_str(), (float*)&tracelineColor,
+                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            
+            // Max Distance slider
+            maxDistance->Draw();
+        }
+        ImGui::Unindent();
+    }
+    
+    ImGui::PopID();
+}
+
+void ChestESPSubControl::Update() {
+    enabled->Update();
+    showName->Update();
+    showDistance->Update();
+    showCost->Update();
+    showUnavailable->Update();
+    showTraceline->Update();
+    enableNameShadow->Update();
+    enableDistanceShadow->Update();
+    enableCostShadow->Update();
+    maxDistance->Update();
+}
+
+bool ChestESPSubControl::IsEnabled() const { return enabled->IsEnabled(); }
+bool ChestESPSubControl::ShouldShowName() const { return showName->IsEnabled(); }
+bool ChestESPSubControl::ShouldShowDistance() const { return showDistance->IsEnabled(); }
+bool ChestESPSubControl::ShouldShowCost() const { return showCost->IsEnabled(); }
+bool ChestESPSubControl::ShouldShowUnavailable() const { return showUnavailable->IsEnabled(); }
+bool ChestESPSubControl::ShouldShowTraceline() const { return showTraceline->IsEnabled(); }
+bool ChestESPSubControl::IsNameShadowEnabled() const { return enableNameShadow->IsEnabled(); }
+bool ChestESPSubControl::IsDistanceShadowEnabled() const { return enableDistanceShadow->IsEnabled(); }
+bool ChestESPSubControl::IsCostShadowEnabled() const { return enableCostShadow->IsEnabled(); }
+float ChestESPSubControl::GetMaxDistance() const { return maxDistance->GetValue(); }
+
+ImVec4 ChestESPSubControl::GetNameColor() const { return nameColor; }
+ImVec4 ChestESPSubControl::GetDistanceColor() const { return distanceColor; }
+ImVec4 ChestESPSubControl::GetCostColor() const { return costColor; }
+ImVec4 ChestESPSubControl::GetTracelineColor() const { return tracelineColor; }
+ImVec4 ChestESPSubControl::GetNameShadowColor() const { return nameShadowColor; }
+ImVec4 ChestESPSubControl::GetDistanceShadowColor() const { return distanceShadowColor; }
+ImVec4 ChestESPSubControl::GetCostShadowColor() const { return costShadowColor; }
+
+ImU32 ChestESPSubControl::GetNameColorU32() const { return ImGui::GetColorU32(nameColor); }
+ImU32 ChestESPSubControl::GetDistanceColorU32() const { return ImGui::GetColorU32(distanceColor); }
+ImU32 ChestESPSubControl::GetCostColorU32() const { return ImGui::GetColorU32(costColor); }
+ImU32 ChestESPSubControl::GetTracelineColorU32() const { return ImGui::GetColorU32(tracelineColor); }
+ImU32 ChestESPSubControl::GetNameShadowColorU32() const { return ImGui::GetColorU32(nameShadowColor); }
+ImU32 ChestESPSubControl::GetDistanceShadowColorU32() const { return ImGui::GetColorU32(distanceShadowColor); }
+ImU32 ChestESPSubControl::GetCostShadowColorU32() const { return ImGui::GetColorU32(costShadowColor); }
+
+json ChestESPSubControl::Serialize() const {
+    json data;
+    data["enabled"] = enabled->Serialize();
+    data["showName"] = showName->Serialize();
+    data["showDistance"] = showDistance->Serialize();
+    data["showCost"] = showCost->Serialize();
+    data["showUnavailable"] = showUnavailable->Serialize();
+    data["showTraceline"] = showTraceline->Serialize();
+    data["enableNameShadow"] = enableNameShadow->Serialize();
+    data["enableDistanceShadow"] = enableDistanceShadow->Serialize();
+    data["enableCostShadow"] = enableCostShadow->Serialize();
+    data["maxDistance"] = maxDistance->Serialize();
+    
+    data["nameColor"] = {nameColor.x, nameColor.y, nameColor.z, nameColor.w};
+    data["distanceColor"] = {distanceColor.x, distanceColor.y, distanceColor.z, distanceColor.w};
+    data["costColor"] = {costColor.x, costColor.y, costColor.z, costColor.w};
+    data["tracelineColor"] = {tracelineColor.x, tracelineColor.y, tracelineColor.z, tracelineColor.w};
+    data["nameShadowColor"] = {nameShadowColor.x, nameShadowColor.y, nameShadowColor.z, nameShadowColor.w};
+    data["distanceShadowColor"] = {distanceShadowColor.x, distanceShadowColor.y, distanceShadowColor.z, distanceShadowColor.w};
+    data["costShadowColor"] = {costShadowColor.x, costShadowColor.y, costShadowColor.z, costShadowColor.w};
+    
+    return data;
+}
+
+void ChestESPSubControl::Deserialize(const json& data) {
+    // Don't call base class deserialize - we don't use those fields
+    
+    if (data.contains("enabled")) enabled->Deserialize(data["enabled"]);
+    if (data.contains("showName")) showName->Deserialize(data["showName"]);
+    if (data.contains("showDistance")) showDistance->Deserialize(data["showDistance"]);
+    if (data.contains("showCost")) showCost->Deserialize(data["showCost"]);
+    if (data.contains("showUnavailable")) showUnavailable->Deserialize(data["showUnavailable"]);
+    if (data.contains("showTraceline")) showTraceline->Deserialize(data["showTraceline"]);
+    if (data.contains("enableNameShadow")) enableNameShadow->Deserialize(data["enableNameShadow"]);
+    if (data.contains("enableDistanceShadow")) enableDistanceShadow->Deserialize(data["enableDistanceShadow"]);
+    if (data.contains("enableCostShadow")) enableCostShadow->Deserialize(data["enableCostShadow"]);
+    if (data.contains("maxDistance")) maxDistance->Deserialize(data["maxDistance"]);
+    
+    if (data.contains("nameColor") && data["nameColor"].is_array() && data["nameColor"].size() == 4) {
+        nameColor = ImVec4(data["nameColor"][0], data["nameColor"][1], data["nameColor"][2], data["nameColor"][3]);
+    }
+    if (data.contains("distanceColor") && data["distanceColor"].is_array() && data["distanceColor"].size() == 4) {
+        distanceColor = ImVec4(data["distanceColor"][0], data["distanceColor"][1], data["distanceColor"][2], data["distanceColor"][3]);
+    }
+    if (data.contains("costColor") && data["costColor"].is_array() && data["costColor"].size() == 4) {
+        costColor = ImVec4(data["costColor"][0], data["costColor"][1], data["costColor"][2], data["costColor"][3]);
+    }
+    if (data.contains("tracelineColor") && data["tracelineColor"].is_array() && data["tracelineColor"].size() == 4) {
+        tracelineColor = ImVec4(data["tracelineColor"][0], data["tracelineColor"][1], data["tracelineColor"][2], data["tracelineColor"][3]);
+    }
+    if (data.contains("nameShadowColor") && data["nameShadowColor"].is_array() && data["nameShadowColor"].size() == 4) {
+        nameShadowColor = ImVec4(data["nameShadowColor"][0], data["nameShadowColor"][1], data["nameShadowColor"][2], data["nameShadowColor"][3]);
+    }
+    if (data.contains("distanceShadowColor") && data["distanceShadowColor"].is_array() && data["distanceShadowColor"].size() == 4) {
+        distanceShadowColor = ImVec4(data["distanceShadowColor"][0], data["distanceShadowColor"][1], data["distanceShadowColor"][2], data["distanceShadowColor"][3]);
+    }
+    if (data.contains("costShadowColor") && data["costShadowColor"].is_array() && data["costShadowColor"].size() == 4) {
+        costShadowColor = ImVec4(data["costShadowColor"][0], data["costShadowColor"][1], data["costShadowColor"][2], data["costShadowColor"][3]);
+    }
+}
+
+// ChestESPControl implementation
+ChestESPControl::ChestESPControl(const std::string& label, const std::string& id)
+    : InputControl(label, id, false) {
+    
+    masterEnabled = new ToggleControl("Master Enabled", id + "_master", false, false);
+    subControl = new ChestESPSubControl(label + " Settings", id + "_settings");
+    
+    ConfigManager::RegisterControl(this);
+}
+
+ChestESPControl::~ChestESPControl() {
+    delete masterEnabled;
+    delete subControl;
+    ConfigManager::UnregisterControl(this);
+}
+
+void ChestESPControl::Draw() {
+    ImGui::PushID(id.c_str());
+    
+    if (ImGui::CollapsingHeader(label.c_str())) {
+        masterEnabled->Draw();
+        ImGui::Indent();
+        subControl->Draw();
+        ImGui::Unindent();
+    }
+    
+    ImGui::PopID();
+}
+
+void ChestESPControl::Update() {
+    masterEnabled->Update();
+    subControl->Update();
+}
+
+ChestESPSubControl* ChestESPControl::GetSubControl() { return subControl; }
+bool ChestESPControl::IsMasterEnabled() const { return masterEnabled->IsEnabled(); }
+
+json ChestESPControl::Serialize() const {
+    json data = InputControl::Serialize();
+    data["masterEnabled"] = masterEnabled->Serialize();
+    data["settings"] = subControl->Serialize();
+    return data;
+}
+
+void ChestESPControl::Deserialize(const json& data) {
+    InputControl::Deserialize(data);
+    if (data.contains("masterEnabled")) masterEnabled->Deserialize(data["masterEnabled"]);
+    if (data.contains("settings")) subControl->Deserialize(data["settings"]);
 }

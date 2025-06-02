@@ -15,6 +15,18 @@ ESPModule::~ESPModule() {
     delete teleporterESPControl;
     delete playerESPControl;
     delete enemyESPControl;
+    delete chestESPControl;
+    delete shopESPControl;
+    delete droneESPControl;
+    delete shrineESPControl;
+    delete specialESPControl;
+    delete barrelESPControl;
+
+    std::lock_guard<std::mutex> lock(interactablesMutex);
+    for (auto interactable : trackedInteractables) {
+        delete interactable;
+    }
+    trackedInteractables.clear();
 }
 
 void ESPModule::Initialize() {
@@ -23,18 +35,39 @@ void ESPModule::Initialize() {
 
     playerESPControl = new EntityESPControl("Players", "player_esp");
     enemyESPControl = new EntityESPControl("Enemies", "enemy_esp");
+    chestESPControl = new ChestESPControl("Chests", "chest_esp");
+    shopESPControl = new ChestESPControl("Shops & Printers", "shop_esp");
+    droneESPControl = new ChestESPControl("Drones", "drone_esp");
+    shrineESPControl = new ChestESPControl("Shrines", "shrine_esp");
+    specialESPControl = new ChestESPControl("Special", "special_esp");
+    barrelESPControl = new ChestESPControl("Barrels", "barrel_esp");
 }
 
 void ESPModule::Update() {
     teleporterESPControl->Update();
     playerESPControl->Update();
     enemyESPControl->Update();
+    chestESPControl->Update();
+    shopESPControl->Update();
+    droneESPControl->Update();
+    shrineESPControl->Update();
+    specialESPControl->Update();
+    barrelESPControl->Update();
 }
 
 void ESPModule::DrawUI() {
     teleporterESPControl->Draw();
     playerESPControl->Draw();
     enemyESPControl->Draw();
+
+    if (ImGui::CollapsingHeader("Interactables")) {
+        chestESPControl->Draw();
+        shopESPControl->Draw();
+        droneESPControl->Draw();
+        shrineESPControl->Draw();
+        specialESPControl->Draw();
+        barrelESPControl->Draw();
+    }
 }
 
 void ESPModule::OnFrameRender() {
@@ -49,6 +82,8 @@ void ESPModule::OnFrameRender() {
     if (playerESPControl->IsMasterEnabled()) {
         RenderPlayerESP();
     }
+
+    RenderInteractablesESP();
 }
 
 void ESPModule::OnGameUpdate() {
@@ -180,7 +215,7 @@ void ESPModule::RenderPlayerESP() {
 
         ImVec2 screenPos;
         bool onScreen = RenderUtils::WorldToScreen(mainCamera, playerWorldPos, screenPos);
-        
+
         // Skip if entity is behind camera (off-screen and at default position)
         if (!onScreen && screenPos.x == 0.0f && screenPos.y == 0.0f) {
             continue;
@@ -228,7 +263,7 @@ void ESPModule::RenderEnemyESP() {
 
         ImVec2 screenPos;
         bool onScreen = RenderUtils::WorldToScreen(mainCamera, enemyWorldPos, screenPos);
-        
+
         // Skip if entity is behind camera (off-screen and at default position)
         if (!onScreen && screenPos.x == 0.0f && screenPos.y == 0.0f) {
             continue;
@@ -483,4 +518,323 @@ bool ESPModule::IsVisible(const Vector3& position) {
     );
 
     return !hitSomething;
+}
+
+InteractableCategory ESPModule::DetermineInteractableCategory(PurchaseInteraction* pi, const std::string& displayName) {
+    // Check for shrines first
+    if (pi->isShrine || pi->isGoldShrine) {
+        return InteractableCategory::Shrine;
+    }
+
+    // Check display name for categorization
+    if (displayName.find("Shrine") != std::string::npos) {
+        return InteractableCategory::Shrine;
+    }
+
+    // Drones
+    if (displayName.find("Drone") != std::string::npos ||
+        displayName.find("Turret") != std::string::npos ||
+        displayName.find("TC-280") != std::string::npos) {
+        return InteractableCategory::Drone;
+    }
+
+    // Shops and Printers
+    if (displayName.find("3D Printer") != std::string::npos ||
+        displayName.find("Multishop Terminal") != std::string::npos ||
+        displayName.find("Cauldron") != std::string::npos ||
+        displayName.find("Scrapper") != std::string::npos ||
+        displayName.find("Cleansing Pool") != std::string::npos) {
+        return InteractableCategory::Shop;
+    }
+
+    // Special interactables
+    if (displayName.find("Newt Altar") != std::string::npos ||
+        displayName.find("Pillar") != std::string::npos ||
+        displayName.find("Frog") != std::string::npos ||
+        displayName.find("Portal") != std::string::npos ||
+        displayName.find("Lunar Seer") != std::string::npos ||
+        displayName.find("Teleporter") != std::string::npos ||
+        displayName.find("Halcyon") != std::string::npos ||
+        displayName.find("Obelisk") != std::string::npos ||
+        displayName.find("Deep Void Signal") != std::string::npos ||
+        displayName.find("Cell Vent") != std::string::npos ||
+        displayName == "") { // Empty name items (rare)
+        return InteractableCategory::Special;
+    }
+
+    // Everything else is a chest (including barrels, lockboxes, etc.)
+    return InteractableCategory::Chest;
+}
+
+
+void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
+    if (!purchaseInteraction) return;
+
+    PurchaseInteraction* pi = (PurchaseInteraction*)purchaseInteraction;
+
+    // Don't skip shrines anymore - we'll categorize everything
+
+    // Get the GameObject from the PurchaseInteraction (it's a MonoBehaviour, so we can get the gameObject)
+    // For now, we'll use the PurchaseInteraction pointer as the GameObject identifier
+    void* gameObject = purchaseInteraction; // This will need proper implementation
+
+    // Get position from transform
+    Vector3 position = {0, 0, 0};
+    if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
+        void* transform = Hooks::Component_get_transform(purchaseInteraction);
+        if (transform) {
+            Hooks::Transform_get_position_Injected(transform, &position);
+        }
+    }
+
+    // Get display name from the token using Language_GetString
+    std::string displayName = G::gameFunctions->Language_GetString((MonoString*)pi->displayNameToken);
+
+    // Determine category
+    InteractableCategory category = DetermineInteractableCategory(pi, displayName);
+
+    // Create interactable tracking info
+    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    trackedInteractable->gameObject = gameObject;
+    trackedInteractable->purchaseInteraction = purchaseInteraction;
+    trackedInteractable->position = position;
+    trackedInteractable->displayName = displayName;
+    trackedInteractable->category = category;
+
+    // Add to tracked interactables
+    std::lock_guard<std::mutex> lock(interactablesMutex);
+    trackedInteractables.push_back(trackedInteractable);
+
+    const char* categoryName = "";
+    switch(category) {
+        case InteractableCategory::Chest: categoryName = "Chest"; break;
+        case InteractableCategory::Shop: categoryName = "Shop"; break;
+        case InteractableCategory::Drone: categoryName = "Drone"; break;
+        case InteractableCategory::Shrine: categoryName = "Shrine"; break;
+        case InteractableCategory::Special: categoryName = "Special"; break;
+        case InteractableCategory::Barrel: categoryName = "Barrel"; break;
+    }
+}
+
+void ESPModule::OnPurchaseInteractionDestroyed(void* purchaseInteraction) {
+    if (!purchaseInteraction) return;
+
+    std::lock_guard<std::mutex> lock(interactablesMutex);
+    trackedInteractables.erase(
+        std::remove_if(trackedInteractables.begin(), trackedInteractables.end(),
+                      [purchaseInteraction](TrackedInteractable* tracked) {
+                          if (tracked->gameObject == purchaseInteraction) {
+                              delete tracked;
+                              return true;
+                          }
+                          return false;
+                      }),
+        trackedInteractables.end()
+    );
+}
+
+void ESPModule::OnBarrelInteractionSpawned(void* barrelInteraction) {
+    if (!barrelInteraction) return;
+
+    BarrelInteraction* barrel = (BarrelInteraction*)barrelInteraction;
+
+    // Get position from transform
+    Vector3 position = {0, 0, 0};
+    if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
+        void* transform = Hooks::Component_get_transform(barrelInteraction);
+        if (transform) {
+            Hooks::Transform_get_position_Injected(transform, &position);
+        }
+    }
+
+
+    std::string displayName = G::gameFunctions->Language_GetString((MonoString*)barrel->displayNameToken);
+    // Create interactable tracking info for barrels
+    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    trackedInteractable->gameObject = barrelInteraction;
+    trackedInteractable->purchaseInteraction = nullptr; // Barrels don't use PurchaseInteraction
+    trackedInteractable->position = position;
+    trackedInteractable->displayName = displayName;
+    trackedInteractable->category = InteractableCategory::Barrel; // Categorize as barrel
+
+    // Add to tracked interactables
+    std::lock_guard<std::mutex> lock(interactablesMutex);
+    trackedInteractables.push_back(trackedInteractable);
+}
+
+void ESPModule::OnStageStart(void* stage) {
+    // New stage detected - clear all tracked interactables and entities
+    {
+        std::lock_guard<std::mutex> lock(interactablesMutex);
+        size_t interactableCount = trackedInteractables.size();
+        for (auto interactable : trackedInteractables) {
+            delete interactable;
+        }
+        trackedInteractables.clear();
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(entitiesMutex);
+        for (auto entity : trackedEnemies) {
+            delete entity;
+        }
+        trackedEnemies.clear();
+
+        for (auto entity : trackedPlayers) {
+            delete entity;
+        }
+        trackedPlayers.clear();
+    }
+
+    // Reset teleporter position
+    teleporterPosition = Vector3{0, 0, 0};
+    G::logger.LogInfo("Stage started - ESP data cleared");
+}
+
+void ESPModule::RenderInteractablesESP() {
+    if (!mainCamera) return;
+
+    std::lock_guard<std::mutex> lock(interactablesMutex);
+
+    for (auto interactable : trackedInteractables) {
+        if (!interactable || !interactable->gameObject) continue;
+
+        // Determine which control to use based on category
+        ChestESPControl* categoryControl = nullptr;
+        switch(interactable->category) {
+            case InteractableCategory::Chest: categoryControl = chestESPControl; break;
+            case InteractableCategory::Shop: categoryControl = shopESPControl; break;
+            case InteractableCategory::Drone: categoryControl = droneESPControl; break;
+            case InteractableCategory::Shrine: categoryControl = shrineESPControl; break;
+            case InteractableCategory::Special: categoryControl = specialESPControl; break;
+            case InteractableCategory::Barrel: categoryControl = barrelESPControl; break;
+        }
+
+        if (!categoryControl || !categoryControl->IsMasterEnabled()) continue;
+
+        float distance = interactable->position.Distance(GetCameraPosition());
+
+        // Get the control
+        ChestESPSubControl* control = categoryControl->GetSubControl();
+
+        if (!control->IsEnabled()) continue;
+
+        // Check availability dynamically
+        bool isAvailable = true;
+        if (interactable->category == InteractableCategory::Barrel && interactable->gameObject) {
+            BarrelInteraction* barrel = (BarrelInteraction*)interactable->gameObject;
+            isAvailable = !barrel->opened;
+        } else if (interactable->purchaseInteraction) {
+            PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
+            isAvailable = pi->available;
+        }
+
+        // Skip unavailable if not showing them
+        if (!isAvailable && !control->ShouldShowUnavailable()) continue;
+
+        if (distance > control->GetMaxDistance()) continue;
+
+        // Convert world position to screen
+        Vector3 screenPos3D;
+        Hooks::Camera_WorldToScreenPoint_Injected(mainCamera, &interactable->position,
+                                                MonoOrStereoscopicEye::Mono, &screenPos3D);
+
+        if (screenPos3D.z <= 0) continue;
+
+        ImVec2 screenPos(screenPos3D.x, ImGui::GetIO().DisplaySize.y - screenPos3D.y);
+
+        // Check if interactable is visible
+        bool isVisible = IsVisible(interactable->position);
+        bool onScreen = screenPos.x >= 0 && screenPos.x <= ImGui::GetIO().DisplaySize.x &&
+                       screenPos.y >= 0 && screenPos.y <= ImGui::GetIO().DisplaySize.y;
+
+        RenderInteractableESP(interactable, screenPos, distance, control, isVisible, onScreen, isAvailable);
+    }
+}
+
+void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 screenPos, float distance,
+                                     ChestESPSubControl* control, bool isVisible, bool onScreen, bool isAvailable) {
+    if (!interactable || !control->IsEnabled()) return;
+
+    // If off-screen, only draw traceline and return
+    if (!onScreen) {
+        if (control->ShouldShowTraceline()) {
+            ImVec2 screenCenter(ImGui::GetIO().DisplaySize.x / 2.0f, ImGui::GetIO().DisplaySize.y);
+            RenderUtils::RenderLine(screenCenter, screenPos, control->GetTracelineColorU32(), 1.0f);
+        }
+        return;
+    }
+
+    float fontSize = ImGui::GetFont()->FontSize;
+
+    if (control->ShouldShowTraceline()) {
+        ImVec2 startPos(ImGui::GetIO().DisplaySize.x / 2, ImGui::GetIO().DisplaySize.y);
+        RenderUtils::RenderLine(startPos, screenPos, control->GetTracelineColorU32(), 1.0f);
+    }
+
+    float yOffset = 0;
+
+    // Draw interactable name with optional distance
+    if (control->ShouldShowName()) {
+        std::string nameText = interactable->displayName;
+
+        // Add distance if enabled
+        if (control->ShouldShowDistance()) {
+            nameText += " (" + std::to_string((int)distance) + "m)";
+        }
+
+        // Add unavailable suffix if needed
+        if (!isAvailable) {
+            nameText += " (Unavailable)";
+        }
+
+        ImVec2 textPos = RenderUtils::RenderText(ImVec2(screenPos.x, screenPos.y - yOffset),
+                                                 control->GetNameColorU32(),
+                                                 control->GetNameShadowColorU32(),
+                                                 control->IsNameShadowEnabled(),
+                                                 true,  // Center text
+                                                 nameText.c_str());
+        yOffset += fontSize + 2;
+    }
+
+    // Draw cost/reward info
+    if (control->ShouldShowCost()) {
+        std::string rewardText;
+
+        // Special handling for barrels - show gold and XP rewards
+        if (interactable->category == InteractableCategory::Barrel) {
+            // Try to cast back to BarrelInteraction to get rewards
+            if (interactable->purchaseInteraction == nullptr && interactable->gameObject) {
+                BarrelInteraction* barrel = (BarrelInteraction*)interactable->gameObject;
+                if (barrel->goldReward > 0 || barrel->expReward > 0) {
+                    rewardText = "$" + std::to_string(barrel->goldReward) + " + " + std::to_string(barrel->expReward) + " XP";
+                }
+            }
+        } else if (interactable->purchaseInteraction) {
+            // Get cost info from PurchaseInteraction
+            PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
+            if (pi->cost > 0) {
+                switch(pi->costType) {
+                    case 1: rewardText = "$" + std::to_string(pi->cost); break; // Gold
+                    case 3: rewardText = std::to_string(pi->cost) + " Lunar"; break; // Lunar coins
+                    case 4: rewardText = std::to_string(pi->cost) + " White"; break; // Common items
+                    case 5: rewardText = std::to_string(pi->cost) + " Green"; break; // Uncommon items
+                    case 6: rewardText = std::to_string(pi->cost) + " Red"; break; // Legendary items
+                    case 7: rewardText = "Equipment"; break; // Equipment
+                    default: rewardText = "Cost: " + std::to_string(pi->cost); break;
+                }
+            }
+        }
+
+        if (!rewardText.empty()) {
+            ImVec2 textPos = RenderUtils::RenderText(ImVec2(screenPos.x, screenPos.y - yOffset),
+                                                     control->GetCostColorU32(),
+                                                     control->GetCostShadowColorU32(),
+                                                     control->IsCostShadowEnabled(),
+                                                     true,  // Center text
+                                                     rewardText.c_str());
+            yOffset += fontSize + 2;
+        }
+    }
+
 }

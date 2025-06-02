@@ -11,6 +11,12 @@
 
 ### ESP
 - Players & Enemies (distance filtering, customizable colors, health bars, distance indicators, visibility options, tracelines)
+- Interactables organized by category:
+  - Chests (regular, large, legendary, equipment barrels, lunar pods, etc.)
+  - Shops & Printers (3D printers, multishop terminals, cauldrons, scrapper)
+  - Drones (gunner, healing, missile, incinerator, equipment drones, turrets)
+  - Shrines (blood, chance, mountain, woods, order, etc.)
+  - Special (newt altars, teleporter, pillars, portals, etc.)
 
 ### Other
 - Configuration saving/loading

@@ -49,14 +49,16 @@ public:
 class ToggleControl : public InputControl {
 private:
     std::function<void(bool)> onChange;
+    bool showHotkey;
 
 public:
-    ToggleControl(const std::string& label, const std::string& id, bool enabled = false, bool autoRegister = true);
+    ToggleControl(const std::string& label, const std::string& id, bool enabled = false, bool autoRegister = true, bool showHotkey = true);
     virtual ~ToggleControl();
 
     void Draw() override;
     void Update() override;
     void SetOnChange(std::function<void(bool)> callback) { onChange = callback; }
+    void SetShowHotkey(bool show) { showHotkey = show; }
 
     json Serialize() const override;
     void Deserialize(const json& data) override;
@@ -311,6 +313,82 @@ public:
 
     EntityESPSubControl* GetVisibleControl();
     EntityESPSubControl* GetNonVisibleControl();
+    bool IsMasterEnabled() const;
+
+    json Serialize() const override;
+    void Deserialize(const json& data) override;
+};
+
+class ChestESPSubControl : public InputControl {
+private:
+    ToggleControl* enabled;
+    ToggleControl* showName;
+    ToggleControl* showDistance;
+    ToggleControl* showCost;
+    ToggleControl* showUnavailable;
+    ToggleControl* showTraceline;
+    ToggleControl* enableNameShadow;
+    ToggleControl* enableDistanceShadow;
+    ToggleControl* enableCostShadow;
+    SliderControl* maxDistance;
+    ImVec4 nameColor;
+    ImVec4 distanceColor;
+    ImVec4 costColor;
+    ImVec4 tracelineColor;
+    ImVec4 nameShadowColor;
+    ImVec4 distanceShadowColor;
+    ImVec4 costShadowColor;
+
+public:
+    ChestESPSubControl(const std::string& label, const std::string& id);
+    ~ChestESPSubControl();
+
+    void Draw() override;
+    void Update() override;
+
+    // Getters
+    bool IsEnabled() const;
+    bool ShouldShowName() const;
+    bool ShouldShowDistance() const;
+    bool ShouldShowCost() const;
+    bool ShouldShowUnavailable() const;
+    bool ShouldShowTraceline() const;
+    bool IsNameShadowEnabled() const;
+    bool IsDistanceShadowEnabled() const;
+    bool IsCostShadowEnabled() const;
+    float GetMaxDistance() const;
+    ImVec4 GetNameColor() const;
+    ImVec4 GetDistanceColor() const;
+    ImVec4 GetCostColor() const;
+    ImVec4 GetTracelineColor() const;
+    ImVec4 GetNameShadowColor() const;
+    ImVec4 GetDistanceShadowColor() const;
+    ImVec4 GetCostShadowColor() const;
+    ImU32 GetNameColorU32() const;
+    ImU32 GetDistanceColorU32() const;
+    ImU32 GetCostColorU32() const;
+    ImU32 GetTracelineColorU32() const;
+    ImU32 GetNameShadowColorU32() const;
+    ImU32 GetDistanceShadowColorU32() const;
+    ImU32 GetCostShadowColorU32() const;
+
+    json Serialize() const override;
+    void Deserialize(const json& data) override;
+};
+
+class ChestESPControl : public InputControl {
+private:
+    ToggleControl* masterEnabled;
+    ChestESPSubControl* subControl;
+
+public:
+    ChestESPControl(const std::string& label, const std::string& id);
+    ~ChestESPControl();
+
+    void Draw() override;
+    void Update() override;
+
+    ChestESPSubControl* GetSubControl();
     bool IsMasterEnabled() const;
 
     json Serialize() const override;

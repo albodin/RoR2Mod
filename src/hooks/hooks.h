@@ -33,6 +33,9 @@ namespace Hooks {
     void hkRoR2CharacterBodyStart(void*);
     void hkRoR2CharacterBodyOnDestroy(void*);
     void hkRoR2HuntressTrackerStart(void*);
+    void hkRoR2PurchaseInteractionStart(void*);
+    void hkRoR2BarrelInteractionStart(void*);
+    void hkRoR2RunAdvanceStage(void*, void*);
 
     long __stdcall hkPresent11(IDXGISwapChain*, UINT, UINT);
 }

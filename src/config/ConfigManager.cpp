@@ -71,9 +71,13 @@ bool ConfigManager::SaveConfig(const std::string& configName) {
 
         for (InputControl* control : registeredControls) {
             if (control) {
-                json controlData = control->Serialize();
-                if (!controlData.empty()) {
-                    config[control->GetId()] = controlData;
+                try {
+                    json controlData = control->Serialize();
+                    if (!controlData.empty()) {
+                        config[control->GetId()] = controlData;
+                    }
+                } catch (const json::exception& e) {
+                    G::logger.LogError("Error serializing control '%s': %s", control->GetId().c_str(), e.what());
                 }
             }
         }
@@ -116,9 +120,17 @@ bool ConfigManager::LoadConfig(const std::string& configName) {
         file >> config;
         file.close();
 
+        int errorCount = 0;
         for (InputControl* control : registeredControls) {
             if (control && config.contains(control->GetId())) {
-                control->Deserialize(config[control->GetId()]);
+                try {
+                    control->Deserialize(config[control->GetId()]);
+                } catch (const json::exception& e) {
+                    errorCount++;
+                    G::logger.LogError("Failed to load settings for '%s'", control->GetId().c_str());
+                    G::logger.LogError("Error details: %s", e.what());
+                    G::logger.LogError("Problematic data: %s", config[control->GetId()].dump().c_str());
+                }
             }
         }
 
@@ -136,7 +148,14 @@ bool ConfigManager::LoadConfig(const std::string& configName) {
         }
 
         currentConfigName = configName;
-        G::logger.LogInfo("Loaded config: %s", configName.c_str());
+
+        if (errorCount > 0) {
+            G::logger.LogWarning("Loaded config '%s' with %d errors. Settings with errors will use default values.", configName.c_str(), errorCount);
+            G::logger.LogInfo("The config will be automatically updated to the new format when saved.");
+        } else {
+            G::logger.LogInfo("Successfully loaded config: %s", configName.c_str());
+        }
+
         return true;
 
     } catch (const std::exception& e) {
