@@ -815,13 +815,57 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
             PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
             if (pi->cost > 0) {
                 switch(pi->costType) {
-                    case 1: rewardText = "$" + std::to_string(pi->cost); break; // Gold
-                    case 3: rewardText = std::to_string(pi->cost) + " Lunar"; break; // Lunar coins
-                    case 4: rewardText = std::to_string(pi->cost) + " White"; break; // Common items
-                    case 5: rewardText = std::to_string(pi->cost) + " Green"; break; // Uncommon items
-                    case 6: rewardText = std::to_string(pi->cost) + " Red"; break; // Legendary items
-                    case 7: rewardText = "Equipment"; break; // Equipment
-                    default: rewardText = "Cost: " + std::to_string(pi->cost); break;
+                    case CostTypeIndex_Value::None:
+                        rewardText = "Free";
+                        break;
+                    case CostTypeIndex_Value::Money:
+                        rewardText = "$" + std::to_string(pi->cost);
+                        break;
+                    case CostTypeIndex_Value::PercentHealth:
+                        rewardText = std::to_string(pi->cost) + "% Health";
+                        break;
+                    case CostTypeIndex_Value::LunarCoin:
+                        rewardText = std::to_string(pi->cost) + " Lunar " + (pi->cost == 1 ? "Coin" : "Coins");
+                        break;
+                    case CostTypeIndex_Value::WhiteItem:
+                        rewardText = std::to_string(pi->cost) + " White " + (pi->cost == 1 ? "Item" : "Items");
+                        break;
+                    case CostTypeIndex_Value::GreenItem:
+                        rewardText = std::to_string(pi->cost) + " Green " + (pi->cost == 1 ? "Item" : "Items");
+                        break;
+                    case CostTypeIndex_Value::RedItem:
+                        rewardText = std::to_string(pi->cost) + " Red " + (pi->cost == 1 ? "Item" : "Items");
+                        break;
+                    case CostTypeIndex_Value::Equipment:
+                        rewardText = std::to_string(pi->cost) + " Equipment";
+                        break;
+                    case CostTypeIndex_Value::VolatileBattery:
+                        rewardText = std::to_string(pi->cost) + " Volatile " + (pi->cost == 1 ? "Battery" : "Batteries");
+                        break;
+                    case CostTypeIndex_Value::LunarItemOrEquipment:
+                        rewardText = std::to_string(pi->cost) + " Lunar Item/Equipment";
+                        break;
+                    case CostTypeIndex_Value::BossItem:
+                        rewardText = std::to_string(pi->cost) + " Boss " + (pi->cost == 1 ? "Item" : "Items");
+                        break;
+                    case CostTypeIndex_Value::ArtifactShellKillerItem:
+                        rewardText = std::to_string(pi->cost) + " Artifact Shell Killer " + (pi->cost == 1 ? "Item" : "Items");
+                        break;
+                    case CostTypeIndex_Value::TreasureCacheItem:
+                        rewardText = std::to_string(pi->cost) + " Treasure Cache " + (pi->cost == 1 ? "Item" : "Items");
+                        break;
+                    case CostTypeIndex_Value::TreasureCacheVoidItem:
+                        rewardText = std::to_string(pi->cost) + " Treasure Cache Void " + (pi->cost == 1 ? "Item" : "Items");
+                        break;
+                    case CostTypeIndex_Value::VoidCoin:
+                        rewardText = std::to_string(pi->cost) + " Void " + (pi->cost == 1 ? "Coin" : "Coins");
+                        break;
+                    case CostTypeIndex_Value::SoulCost:
+                        rewardText = std::to_string(pi->cost) + " Soul Cost";
+                        break;
+                    default:
+                        rewardText = "Cost: " + std::to_string(pi->cost);
+                        break;
                 }
             }
         }

@@ -132,6 +132,7 @@ typedef void* InspectDef;
 typedef void* IInspectInfoProvider;
 typedef void* GameObjectUnlockableFilter;
 typedef void* PurchaseEvent;
+typedef int32_t PickupIndex_Value;
 
 
 struct MonoObject_Internal {
@@ -277,6 +278,26 @@ enum class InterruptPriority_Value : int32_t {
     Frozen = 5,
     Vehicle = 6,
     Death = 7
+};
+
+enum class CostTypeIndex_Value: int32_t {
+    None = 0,
+    Money = 1,
+    PercentHealth = 2,
+    LunarCoin = 3,
+    WhiteItem = 4,
+    GreenItem = 5,
+    RedItem = 6,
+    Equipment = 7,
+    VolatileBattery = 8,
+    LunarItemOrEquipment = 9,
+    BossItem = 10,
+    ArtifactShellKillerItem = 11,
+    TreasureCacheItem = 12,
+    TreasureCacheVoidItem = 13,
+    VoidCoin = 14,
+    SoulCost = 15,
+    Count = 16
 };
 
 /* No Header Structs */
