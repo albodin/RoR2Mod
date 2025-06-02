@@ -119,7 +119,6 @@ typedef void* BaseSkillInstanceData;
 typedef void* SkillOverride;
 typedef void* StateMachineResolver;
 typedef void* Indicator;
-typedef void* BullseyeSearch;
 typedef void* Variant;
 typedef int32_t Int32;
 typedef unsigned char byte;
@@ -133,6 +132,7 @@ typedef void* IInspectInfoProvider;
 typedef void* GameObjectUnlockableFilter;
 typedef void* PurchaseEvent;
 typedef int32_t PickupIndex_Value;
+typedef uint8_t TeamMask_Value;
 
 
 struct MonoObject_Internal {
@@ -298,6 +298,13 @@ enum class CostTypeIndex_Value: int32_t {
     VoidCoin = 14,
     SoulCost = 15,
     Count = 16
+};
+
+enum class SortMode_Value: int32_t {
+    None = 0,
+    Distance = 1,
+    Angle = 2,
+    DistanceAndAngle = 3
 };
 
 /* No Header Structs */
@@ -2395,6 +2402,26 @@ struct SkillDef {
     bool triggeredByPressRelease; // Offset: 134
     bool autoHandleLuminousShot; // Offset: 135
     bool hideStockCount; // Offset: 136
+};
+
+// Generated from RoR2.BullseyeSearch
+struct BullseyeSearch {
+    char padding0[16]; // Padding
+    CharacterBody* viewer; // Offset: 16
+    void* candidatesEnumerable; // Offset: 24
+    void* DistinctEntityHash; // Offset: 32
+    Vector3 searchOrigin; // Offset: 40
+    Vector3 searchDirection; // Offset: 52
+    float minThetaDot; // Offset: 64
+    float maxThetaDot; // Offset: 68
+    float minDistanceFilter; // Offset: 72
+    float maxDistanceFilter; // Offset: 76
+    TeamMask_Value teamMaskFilter; // Offset: 80
+    bool filterByLoS; // Offset: 81
+    bool filterByDistinctEntity; // Offset: 82
+    char padding12[1]; // Padding
+    QueryTriggerInteraction_Value queryTriggerInteraction; // Offset: 84
+    SortMode_Value sortMode; // Offset: 88
 };
 
 // Generated from RoR2.HuntressTracker

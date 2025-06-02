@@ -19,6 +19,7 @@ private:
 
     FloatControl* huntressRangeControl;
     FloatControl* huntressFOVControl;
+    ToggleControl* huntressWallPenetrationControl;
 
     std::mutex queuedGiveItemsMutex;
     std::queue<std::tuple<int, int>> queuedGiveItems;
@@ -56,6 +57,8 @@ public:
     IntControl* GetBaseJumpCountControl() { return baseJumpCountControl; }
     FloatControl* GetHuntressRangeControl() { return huntressRangeControl; }
     FloatControl* GetHuntressFOVControl() { return huntressFOVControl; }
+    ToggleControl* GetHuntressWallPenetrationControl() { return huntressWallPenetrationControl; }
+    HuntressTracker* GetCachedHuntressTracker() { return cachedHuntressTracker; }
     std::map<int, IntControl*>& GetItemControls() { return itemControls; }
 
     void SetCachedInventory(void* inventory) { localInventory_cached = inventory; }

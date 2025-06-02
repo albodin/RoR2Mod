@@ -57,6 +57,7 @@ void PlayerModule::Initialize() {
 
     huntressRangeControl = new FloatControl("Huntress Range", "huntressRange", 20.0f, 0.0f, 1000.0f, 5.0f);
     huntressFOVControl = new FloatControl("Huntress FOV", "huntressFOV", 20.0f, 0.0f, 180.0f, 5.0f);
+    huntressWallPenetrationControl = new ToggleControl("Huntress Wall Penetration", "huntressWallPenetration", false);
 
     teleportToCursorControl->SetOnAction([this]() {
         if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->_cameraRigController) {
@@ -94,6 +95,7 @@ void PlayerModule::DrawUI() {
     if (ImGui::CollapsingHeader("Huntress Settings")) {
         huntressRangeControl->Draw();
         huntressFOVControl->Draw();
+        huntressWallPenetrationControl->Draw();
     }
 
     if (ImGui::CollapsingHeader("Items")) {

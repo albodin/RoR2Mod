@@ -170,6 +170,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, CharacterBody, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, CharacterBody, OnDestroy, 0, "System.Void", {});
     HOOK(RoR2, RoR2, HuntressTracker, Start, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, BullseyeSearch, GetResults, 0, "System.Collections.Generic.IEnumerable<RoR2.HurtBox>", {});
     HOOK(RoR2, RoR2, PurchaseInteraction, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, BarrelInteraction, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, Run, AdvanceStage, 1, "System.Void", {"RoR2.SceneDef"});
@@ -472,6 +473,37 @@ void Hooks::hkRoR2HuntressTrackerStart(void* instance) {
     G::localPlayer->OnHuntressTrackerStart(instance);
 }
 
+void* Hooks::hkRoR2BullseyeSearchGetResults(void* instance) {
+    static auto originalFunc = reinterpret_cast<void*(*)(void*)>(hooks["RoR2BullseyeSearchGetResults"]);
+
+    if (!G::hooksInitialized) {
+        return originalFunc(instance);
+    }
+
+    // If huntress wall penetration is enabled and this is the cached huntress tracker's search
+    if (G::localPlayer && G::localPlayer->GetHuntressWallPenetrationControl() &&
+        G::localPlayer->GetHuntressWallPenetrationControl()->IsEnabled()) {
+
+        // If this matches the cached HuntressTracker's search, we will temporarily
+        // disable line-of-sight filtering
+        HuntressTracker* huntressTracker = G::localPlayer->GetCachedHuntressTracker();
+        if (huntressTracker && huntressTracker->search == instance) {
+            BullseyeSearch* search = static_cast<BullseyeSearch*>(instance);
+            bool originalFilterByLoS = search->filterByLoS;
+            search->filterByLoS = false;
+
+            void* result = originalFunc(instance);
+
+            // Restore the original filterByLoS value
+            search->filterByLoS = originalFilterByLoS;
+
+            return result;
+        }
+    }
+
+    return originalFunc(instance);
+}
+
 void Hooks::hkRoR2PurchaseInteractionStart(void* instance) {
     static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2PurchaseInteractionStart"]);
     originalFunc(instance);
@@ -492,12 +524,12 @@ void Hooks::hkRoR2BarrelInteractionStart(void* instance) {
 
 void Hooks::hkRoR2RunAdvanceStage(void* instance, void* nextScene) {
     static auto originalFunc = reinterpret_cast<void(*)(void*, void*)>(hooks["RoR2RunAdvanceStage"]);
-    
+
     // Clear ESP data before advancing to the next stage
     if (G::hooksInitialized) {
         G::espModule->OnStageStart(instance);
     }
-    
+
     originalFunc(instance, nextScene);
 }
 
