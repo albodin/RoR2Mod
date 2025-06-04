@@ -36,7 +36,17 @@ namespace Hooks {
     void* hkRoR2BullseyeSearchGetResults(void*);
     void hkRoR2PurchaseInteractionStart(void*);
     void hkRoR2BarrelInteractionStart(void*);
+    void hkRoR2GenericPickupControllerStart(void*);
+    void hkRoR2TimedChestControllerOnEnable(void*);
+    void hkRoR2TimedChestControllerOnDisable(void*);
+    void hkRoR2GenericInteractionOnEnable(void*);
+    void hkRoR2PickupPickerControllerAwake(void*);
+    void hkRoR2ScrapperControllerStart(void*);
     void hkRoR2RunAdvanceStage(void*, void*);
+    void hkRoR2RunAwake(void*);
+    void hkRoR2ChestBehaviorStart(void*);
+    void hkRoR2ShopTerminalBehaviorStart(void*);
+    void hkRoR2PressurePlateControllerStart(void*);
 
     long __stdcall hkPresent11(IDXGISwapChain*, UINT, UINT);
 }

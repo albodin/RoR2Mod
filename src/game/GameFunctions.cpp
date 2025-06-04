@@ -15,6 +15,8 @@ GameFunctions::GameFunctions(MonoRuntime* runtime) {
     m_languageClass = runtime->GetClass("Assembly-CSharp", "RoR2", "Language");
     m_RoR2ApplicationClass = runtime->GetClass("Assembly-CSharp", "RoR2", "RoR2Application");
     m_teleportHelperClass = runtime->GetClass("Assembly-CSharp", "RoR2", "TeleportHelper");
+    m_pickupCatalogClass = runtime->GetClass("Assembly-CSharp", "RoR2", "PickupCatalog");
+    m_pickupDefClass = runtime->GetClass("Assembly-CSharp", "RoR2", "PickupDef");
 }
 
 
@@ -93,6 +95,44 @@ std::string GameFunctions::Language_GetString(MonoString* token) {
     }
 
     return m_runtime->StringToUtf8((MonoString*)result);
+}
+
+PickupDef* GameFunctions::GetPickupDef(int pickupIndex) {
+    if (!m_pickupCatalogClass) return nullptr;
+
+    MonoField* entriesField = m_runtime->GetField(m_pickupCatalogClass, "entries");
+    if (!entriesField) {
+        G::logger.LogError("Failed to find PickupCatalog.entries field");
+        return nullptr;
+    }
+
+    MonoArray* entriesArray = m_runtime->GetStaticFieldValue<MonoArray*>(m_pickupCatalogClass, entriesField);
+    if (!entriesArray) {
+        G::logger.LogError("Failed to get PickupCatalog.entries array");
+        return nullptr;
+    }
+
+    int arrayLength = m_runtime->GetArrayLength(entriesArray);
+    if (pickupIndex < 0 || pickupIndex >= arrayLength) {
+        G::logger.LogError("PickupIndex %d out of bounds (array length: %d)", pickupIndex, arrayLength);
+        return nullptr;
+    }
+
+    MonoClass* arrayClass = m_runtime->GetObjectClass((MonoObject*)entriesArray);
+    MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
+    if (!getItemMethod) {
+        G::logger.LogError("Failed to get array access method");
+        return nullptr;
+    }
+
+    void* params[1] = { &pickupIndex };
+    MonoObject* pickupDefObj = m_runtime->InvokeMethod(getItemMethod, entriesArray, params);
+    if (!pickupDefObj) {
+        G::logger.LogError("Failed to get PickupDef at index %d", pickupIndex);
+        return nullptr;
+    }
+
+    return reinterpret_cast<PickupDef*>(pickupDefObj);
 }
 
 // Function should only be called from safe threads so queue is not needed
@@ -404,4 +444,19 @@ void GameFunctions::TeleportHelper_TeleportBody(void* m_characterBody, Vector3 p
     };
     std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
     G::queuedActions.push(task);
+}
+
+float GameFunctions::GetRunStopwatch() {
+    if (!G::runInstance) {
+        return 0.0f;
+    }
+    
+    Run* run = (Run*)G::runInstance;
+    
+    // Calculate run stopwatch: if paused, return offset; otherwise return fixedTime + offset
+    if (run->runStopwatch.isPaused) {
+        return run->runStopwatch.offsetFromFixedTime;
+    } else {
+        return run->fixedTime + run->runStopwatch.offsetFromFixedTime;
+    }
 }

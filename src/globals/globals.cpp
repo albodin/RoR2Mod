@@ -33,4 +33,5 @@ namespace G {
     PlayerModule* localPlayer = new PlayerModule();
     ESPModule* espModule = new ESPModule();
     WorldModule* worldModule = new WorldModule();
+    void* runInstance = nullptr;
 }

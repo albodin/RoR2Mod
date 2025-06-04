@@ -52,4 +52,5 @@ namespace G {
     extern PlayerModule* localPlayer;
     extern ESPModule* espModule;
     extern WorldModule* worldModule;
+    extern void* runInstance;
 }

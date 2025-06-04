@@ -32,6 +32,7 @@ struct HuntressPrimarySkillDef;
 struct SkillLocator;
 struct SkillFamily;
 struct MultiShopController;
+struct PickupDisplay;
 
 typedef void* GameObject;
 typedef void* NetworkIdentity;
@@ -120,10 +121,7 @@ typedef void* SkillOverride;
 typedef void* StateMachineResolver;
 typedef void* Indicator;
 typedef void* Variant;
-typedef int32_t Int32;
-typedef unsigned char byte;
 typedef void* PickupPickerController;
-typedef void* PickupDisplay;
 typedef void* Entry;
 typedef void* Boolean;
 typedef void* NetworkUIPromptController;
@@ -131,6 +129,16 @@ typedef void* InspectDef;
 typedef void* IInspectInfoProvider;
 typedef void* GameObjectUnlockableFilter;
 typedef void* PurchaseEvent;
+typedef void* InteractorUnityEvent;
+typedef void* IDisplayNameProvider;
+typedef void* AttemptGrantDelegate;
+typedef void* AssetReferenceTexture;
+typedef void* AssetReferenceGameObject;
+typedef void* NetworkRuleBook;
+typedef void* EquipmentMask;
+
+typedef int32_t Int32;
+typedef unsigned char Byte;
 typedef int32_t PickupIndex_Value;
 typedef uint8_t TeamMask_Value;
 
@@ -307,6 +315,66 @@ enum class SortMode_Value: int32_t {
     DistanceAndAngle = 3
 };
 
+enum class Interactability_Value: int32_t {
+    Disabled = 0,
+    ConditionsNotMet = 1,
+    Available = 2
+};
+
+enum class HighlightColor_Value: int32_t {
+    interactive = 0,
+    teleporter = 1,
+    pickup = 2,
+    custom = 3,
+    unavailable = 4
+};
+
+enum class MiscPickupIndex_Value: int32_t {
+    None = -1
+};
+
+enum class ColorIndex_Value: int32_t {
+    None = 0,
+    Tier1Item = 1,
+    Tier2Item = 2,
+    Tier3Item = 3,
+    LunarItem = 4,
+    Equipment = 5,
+    Interactable = 6,
+    Teleporter = 7,
+    Money = 8,
+    Blood = 9,
+    Unaffordable = 10,
+    Unlockable = 11,
+    LunarCoin = 12,
+    BossItem = 13,
+    Error = 14,
+    EasyDifficulty = 15,
+    NormalDifficulty = 16,
+    HardDifficulty = 17,
+    Tier1ItemDark = 18,
+    Tier2ItemDark = 19,
+    Tier3ItemDark = 20,
+    LunarItemDark = 21,
+    BossItemDark = 22,
+    WIP = 23,
+    Artifact = 24,
+    VoidItem = 25,
+    VoidItemDark = 26,
+    VoidCoin = 27,
+    Count = 28
+};
+
+enum class PickupRules_Value: int32_t {
+    Default = 0,
+    ConfirmFirst = 1,
+    ConfirmAll = 2
+};
+
+enum class GameModeIndex_Value: int32_t {
+    Invalid = -1
+};
+
 /* No Header Structs */
 
 struct RoR2Item {
@@ -342,15 +410,16 @@ struct Rect {
     float m_Height;
 }; // Size: 16
 
+// Generated from RoR2.CameraState
 struct CameraState_Value {
     Vector3 position;
     Quaternion rotation;
     float fov;
 }; // Size: 32
 
-struct AimAssistInfo_Value
-{
-    void* aimAssistHurtbox;
+// Generated from .AimAssistInfo
+struct AimAssistInfo_Value {
+    HurtBox* aimAssistHurtbox;
     Vector3 localPositionOnHurtbox;
     Vector3 worldPosition;
 }; // Size: 32
@@ -371,17 +440,17 @@ struct BlendableBool_Value {
     float alpha;
 };
 
+// Generated from .CameraInfo
 struct CameraInfo_Value {
     CameraRigController* cameraRigController;
     Camera* sceneCam;
     ICameraStateProvider* overrideCam;
     CameraState_Value previousCameraState;
     float baseFov;
-    char padding4[4];
-}; // Size: 64
+};
 
-struct TargetInfo_Value
-{
+// Generated from .TargetInfo
+struct TargetInfo_Value {
     GameObject* target;
     CharacterBody* body;
     InputBankTest* inputBank;
@@ -391,12 +460,13 @@ struct TargetInfo_Value
     bool skillsAreDisabled;
     bool showSecondaryElectricity;
     bool isViewerControlled;
-    char padding8[3];
+    char padding9[3];
     CharacterMaster* master;
     NetworkUser* networkUser;
     NetworkedViewAngles* networkedViewAngles;
 }; // Size: 64
 
+// Generated from .ViewerInfo
 struct ViewerInfo_Value
 {
     LocalUser* localUser;
@@ -407,12 +477,15 @@ struct ViewerInfo_Value
     bool isUIFocused;
 }; // Size: 40
 
+// Generated from .CameraModeContext
 struct CameraModeContext_Value {
     CameraInfo_Value cameraInfo;
+    char padding1[4];
     TargetInfo_Value targetInfo;
     ViewerInfo_Value viewerInfo;
 }; // Size: 168
 
+// Generated from RoR2.CharacterCameraParamsData
 struct CharacterCameraParamsData_Value {
     BlendableFloat_Value minPitch;
     BlendableFloat_Value maxPitch;
@@ -449,6 +522,7 @@ struct SerializableEntityStateType_Value {
     void* _typeName;
 }; // Size: 16
 
+// Generated from .ItemAvailability
 struct ItemAvailability_Value {
     int32_t helfireCount;
     bool hasFireTrail;
@@ -467,6 +541,7 @@ struct FixedTimeStamp_Value {
     float t;
 }; // Size: 4
 
+// Generated from .ItemCounts
 struct ItemCounts_Value {
     int32_t bear;
     int32_t armorPlate;
@@ -492,6 +567,7 @@ struct ItemCounts_Value {
     int32_t unstableTransmitter;
 };
 
+// Generated from .KeyValueSplitter
 struct KeyValueSplitter_Value {
     void* baseKey;
     int32_t maxKeyLength;
@@ -556,6 +632,7 @@ struct DevotionEvolutionLevel_Value {
     int32_t value__;
 };
 
+// Generated from .CommonComponentCache
 struct CommonComponentCache_Value {
     Transform* transform;
     CharacterBody* characterBody;
@@ -609,6 +686,7 @@ struct ExitState_Value {
     int32_t value__;
 };
 
+// Generated from .SmoothingParameters
 struct SmoothingParameters_Value {
     float walkMagnitudeSmoothDamp;
     float walkAngleSmoothDamp;
@@ -634,6 +712,7 @@ struct LinkIndex_Value {
     int32_t linkIndex;
 };
 
+// Generated from RoR2.WwiseUtils.RtpcSetter
 struct RtpcSetter_Value {
     void* name;
     uint32_t id;
@@ -652,11 +731,13 @@ struct PhysicsScene_Value {
     int32_t m_Handle;
 };
 
+// Generated from UnityEngine.Ray
 struct Ray_Value {
     Vector3 m_Origin;
     Vector3 m_Direction;
 };
 
+// Generated from UnityEngine.RaycastHit
 struct RaycastHit_Value {
     Vector3 m_Point;
     Vector3 m_Normal;
@@ -666,12 +747,14 @@ struct RaycastHit_Value {
     int32_t m_Collider;
 };
 
+// Generated from RoR2.NetworkUserId
 struct NetworkUserId_Value {
     uint64_t value;
     void* strValue;
     uint8_t subId;
 };
 
+// Generated from RoR2.PassiveSkill
 struct PassiveSkill_Value {
     bool enabled;
     char padding1[7];
@@ -679,6 +762,33 @@ struct PassiveSkill_Value {
     void* skillDescriptionToken;
     void* keywordToken;
     Sprite* icon;
+};
+
+struct SerializablePickupIndex_Value {
+    void* pickupName;
+};
+
+// Generated from RoR2.Wave
+struct Wave_Value {
+    float amplitude;
+    float frequency;
+    float cycleOffset;
+};
+
+struct RunStopwatch_Value {
+    float offsetFromFixedTime;
+    bool isPaused;
+};
+
+// Generated from RoR2.Networking.NetworkGuid
+struct NetworkGuid_Value {
+    uint64_t _a;
+    uint64_t _b;
+};
+
+// Generated from RoR2.Networking.NetworkDateTime
+struct NetworkDateTime_Value {
+    int64_t _binaryValue;
 };
 
 /* Normal Class Objects with headers */
@@ -891,167 +1001,169 @@ struct CharacterBody {
     OnShardSpawned* onShardSpawnedEvent; // Offset: 712
     Transform* aimOriginTransform; // Offset: 720
     Texture* portraitIcon; // Offset: 728
-    VehicleSeat* currentVehicle; // Offset: 736
-    GameObject* preferredPodPrefab; // Offset: 744
-    SerializableEntityStateType_Value preferredInitialStateType; // Offset: 752
-    void* customKillTotalStatName; // Offset: 768
-    Transform* overrideCoreTransform; // Offset: 776
-    BodyIndex_Value bodyIndex; // Offset: 784
-    bool CharacterIsVisible; // Offset: 788
-    char padding93[3]; // Padding
-    float cost; // Offset: 792
-    bool dontCull; // Offset: 796
+    void* altDeathBodyName; // Offset: 736
+    VehicleSeat* currentVehicle; // Offset: 744
+    GameObject* preferredPodPrefab; // Offset: 752
+    SerializableEntityStateType_Value preferredInitialStateType; // Offset: 760
+    void* customKillTotalStatName; // Offset: 776
+    Transform* overrideCoreTransform; // Offset: 784
+    BodyIndex_Value bodyIndex; // Offset: 792
+    BodyIndex_Value altDeathEventBodyIndex; // Offset: 796
+    bool CharacterIsVisible; // Offset: 800
     char padding95[3]; // Padding
-    int32_t BaseImportance; // Offset: 800
-    int32_t Importance; // Offset: 804
-    bool inLava; // Offset: 808
-    char padding98[3]; // Padding
-    int32_t activeBuffsListCount; // Offset: 812
-    int32_t eliteBuffCount; // Offset: 816
-    int32_t pendingTonicAfflictionCount; // Offset: 820
-    int32_t previousMultiKillBuffCount; // Offset: 824
-    BodyFlags_Value bodyFlags; // Offset: 828
-    NetworkInstanceId_Value masterObjectId; // Offset: 832
-    bool linkedToMaster; // Offset: 836
-    bool isPlayerControlled_backing; // Offset: 837
-    bool disablingHurtBoxes; // Offset: 838
-    char padding107[1]; // Padding
-    EquipmentIndex_Value previousEquipmentIndex; // Offset: 840
-    float executeEliteHealthFraction_backing; // Offset: 844
-    float lavaCooldown; // Offset: 848
-    float lavaTimer; // Offset: 852
-    ItemAvailability_Value itemAvailability; // Offset: 856
-    char padding112[1]; // Padding
-    bool hasEffectiveAuthority_backing; // Offset: 864
-    bool _isSprinting; // Offset: 865
-    char padding114[2]; // Padding
-    float outOfCombatStopwatch; // Offset: 868
-    float outOfDangerStopwatch; // Offset: 872
-    bool outOfCombat_backing; // Offset: 876
-    bool _outOfDanger; // Offset: 877
-    char padding118[2]; // Padding
-    Vector3 previousPosition; // Offset: 880
-    float notMovingStopwatch; // Offset: 892
-    bool rootMotionInMainState; // Offset: 896
-    char padding121[3]; // Padding
-    float mainRootSpeed; // Offset: 900
-    float baseMaxHealth; // Offset: 904
-    float baseRegen; // Offset: 908
-    float baseMaxShield; // Offset: 912
-    float baseMoveSpeed; // Offset: 916
-    float baseAcceleration; // Offset: 920
-    float baseJumpPower; // Offset: 924
-    float baseDamage; // Offset: 928
-    float baseAttackSpeed; // Offset: 932
-    float baseCrit; // Offset: 936
-    float baseArmor; // Offset: 940
-    float baseVisionDistance; // Offset: 944
-    int32_t baseJumpCount; // Offset: 948
-    float sprintingSpeedMultiplier; // Offset: 952
-    bool autoCalculateLevelStats; // Offset: 956
-    char padding136[3]; // Padding
-    float levelMaxHealth; // Offset: 960
-    float levelRegen; // Offset: 964
-    float levelMaxShield; // Offset: 968
-    float levelMoveSpeed; // Offset: 972
-    float levelJumpPower; // Offset: 976
-    float levelDamage; // Offset: 980
-    float levelAttackSpeed; // Offset: 984
-    float levelCrit; // Offset: 988
-    float levelArmor; // Offset: 992
-    float experience_backing; // Offset: 996
-    float level_backing; // Offset: 1000
-    float maxHealth_backing; // Offset: 1004
-    float maxBarrier_backing; // Offset: 1008
-    float barrierDecayRate_backing; // Offset: 1012
-    float regen_backing; // Offset: 1016
-    float maxShield_backing; // Offset: 1020
-    float moveSpeed_backing; // Offset: 1024
-    float acceleration_backing; // Offset: 1028
-    float m_surfaceSpeedBoost; // Offset: 1032
-    float jumpPower_backing; // Offset: 1036
-    int32_t maxJumpCount_backing; // Offset: 1040
-    float maxJumpHeight_backing; // Offset: 1044
-    float damage_backing; // Offset: 1048
-    float attackSpeed_backing; // Offset: 1052
-    float crit_backing; // Offset: 1056
-    float critMultiplier_backing; // Offset: 1060
-    float bleedChance_backing; // Offset: 1064
-    float armor_backing; // Offset: 1068
-    float visionDistance_backing; // Offset: 1072
-    float critHeal_backing; // Offset: 1076
-    float cursePenalty_backing; // Offset: 1080
-    bool hasOneShotProtection_backing; // Offset: 1084
-    bool isGlass_backing; // Offset: 1085
-    char padding169[2]; // Padding
-    float oneShotProtectionFraction_backing; // Offset: 1088
-    bool canPerformBackstab_backing; // Offset: 1092
-    bool canReceiveBackstab_backing; // Offset: 1093
-    char padding172[2]; // Padding
-    float amputatedMaxHealth; // Offset: 1096
-    float amputateMaxHealthMinimum; // Offset: 1100
-    bool statsDirty; // Offset: 1104
-    char padding175[3]; // Padding
-    int32_t extraSecondaryFromSkill; // Offset: 1108
-    int32_t extraSpecialFromSkill; // Offset: 1112
-    float maxBonusHealth_backing; // Offset: 1116
-    int32_t extraStatsOnLevelUpCount_CachedLastApplied; // Offset: 1120
-    bool lowerPricedChestsActive; // Offset: 1124
-    bool canPurchaseLoweredPricedChests; // Offset: 1125
-    bool allSkillsDisabled; // Offset: 1126
-    bool isTeleporting; // Offset: 1127
-    int32_t currentGrowthNectarBuffCount; // Offset: 1128
-    int32_t prevGrowthNectarBuffCount; // Offset: 1132
-    int32_t maxGrowthNectarBuffCount; // Offset: 1136
-    float growthNectarRemovalTimer; // Offset: 1140
-    float aimTimer; // Offset: 1144
-    int32_t killCountServer_backing; // Offset: 1148
-    float helfireLifetime; // Offset: 1152
-    bool wasLucky; // Offset: 1156
-    char padding191[3]; // Padding
-    float poisonballTimer; // Offset: 1160
-    float lunarMissileRechargeTimer; // Offset: 1164
-    float lunarMissileTimerBetweenShots; // Offset: 1168
-    int32_t remainingMissilesToFire; // Offset: 1172
-    float spreadBloomDecayTime; // Offset: 1176
-    float spreadBloomInternal; // Offset: 1180
-    bool hideCrosshair; // Offset: 1184
-    char padding198[3]; // Padding
-    float multiKillTimer; // Offset: 1188
-    int32_t multiKillCount_backing; // Offset: 1192
-    float increasedDamageKillTimer; // Offset: 1196
-    bool increasedDamageKillCountDirty; // Offset: 1200
-    char padding202[3]; // Padding
-    int32_t _increasedDamageKillCount; // Offset: 1204
-    int32_t increasedDamageKillCountBuff_backing; // Offset: 1208
-    bool canAddIncrasePrimaryDamage; // Offset: 1212
-    char padding205[3]; // Padding
-    float delayedDamageRefreshTime; // Offset: 1216
-    float delayedDamageRefreshTimer; // Offset: 1220
-    float secondHalfOfDamageTime; // Offset: 1224
-    int32_t oldDelayedDamageCount; // Offset: 1228
-    bool halfDamageReady; // Offset: 1232
-    char padding210[3]; // Padding
-    float halfDamageTimer; // Offset: 1236
-    float knockBackFinGroundedTimer; // Offset: 1240
-    Vector3 runicLensPosition; // Offset: 1244
-    float runicLensStartTime; // Offset: 1256
-    float runicLensImpactTime; // Offset: 1260
-    bool runicLensMeteorReady; // Offset: 1264
-    char padding216[3]; // Padding
-    int32_t spawnedPickupCount; // Offset: 1268
-    float radius_backing; // Offset: 1272
-    HullClassification_Value hullClassification; // Offset: 1276
-    Color_Value bodyColor; // Offset: 1280
-    bool doNotReassignToTeamBasedCollisionLayer; // Offset: 1296
-    bool isChampion; // Offset: 1297
-    bool isElite_backing; // Offset: 1298
-    char padding223[1]; // Padding
-    uint32_t skinIndex; // Offset: 1300
-    FixedTimeStamp_Value localStartTime_backing; // Offset: 1304
-    bool requestEquipmentFire; // Offset: 1308
-    char padding226[3]; // Padding
-    int32_t increaseDamageOnMultiKillItemCount; // Offset: 1312
+    float cost; // Offset: 804
+    bool dontCull; // Offset: 808
+    char padding97[3]; // Padding
+    int32_t BaseImportance; // Offset: 812
+    int32_t Importance; // Offset: 816
+    bool inLava; // Offset: 820
+    char padding100[3]; // Padding
+    int32_t activeBuffsListCount; // Offset: 824
+    int32_t eliteBuffCount; // Offset: 828
+    int32_t pendingTonicAfflictionCount; // Offset: 832
+    int32_t previousMultiKillBuffCount; // Offset: 836
+    BodyFlags_Value bodyFlags; // Offset: 840
+    NetworkInstanceId_Value masterObjectId; // Offset: 844
+    bool linkedToMaster; // Offset: 848
+    bool isPlayerControlled_backing; // Offset: 849
+    bool disablingHurtBoxes; // Offset: 850
+    char padding109[1]; // Padding
+    EquipmentIndex_Value previousEquipmentIndex; // Offset: 852
+    float executeEliteHealthFraction_backing; // Offset: 856
+    float lavaCooldown; // Offset: 860
+    float lavaTimer; // Offset: 864
+    ItemAvailability_Value itemAvailability; // Offset: 868
+    char padding114[1]; // Padding
+    bool hasEffectiveAuthority_backing; // Offset: 876
+    bool _isSprinting; // Offset: 877
+    char padding116[2]; // Padding
+    float outOfCombatStopwatch; // Offset: 880
+    float outOfDangerStopwatch; // Offset: 884
+    bool outOfCombat_backing; // Offset: 888
+    bool _outOfDanger; // Offset: 889
+    char padding120[2]; // Padding
+    Vector3 previousPosition; // Offset: 892
+    float notMovingStopwatch; // Offset: 904
+    bool rootMotionInMainState; // Offset: 908
+    char padding123[3]; // Padding
+    float mainRootSpeed; // Offset: 912
+    float baseMaxHealth; // Offset: 916
+    float baseRegen; // Offset: 920
+    float baseMaxShield; // Offset: 924
+    float baseMoveSpeed; // Offset: 928
+    float baseAcceleration; // Offset: 932
+    float baseJumpPower; // Offset: 936
+    float baseDamage; // Offset: 940
+    float baseAttackSpeed; // Offset: 944
+    float baseCrit; // Offset: 948
+    float baseArmor; // Offset: 952
+    float baseVisionDistance; // Offset: 956
+    int32_t baseJumpCount; // Offset: 960
+    float sprintingSpeedMultiplier; // Offset: 964
+    bool autoCalculateLevelStats; // Offset: 968
+    char padding138[3]; // Padding
+    float levelMaxHealth; // Offset: 972
+    float levelRegen; // Offset: 976
+    float levelMaxShield; // Offset: 980
+    float levelMoveSpeed; // Offset: 984
+    float levelJumpPower; // Offset: 988
+    float levelDamage; // Offset: 992
+    float levelAttackSpeed; // Offset: 996
+    float levelCrit; // Offset: 1000
+    float levelArmor; // Offset: 1004
+    float experience_backing; // Offset: 1008
+    float level_backing; // Offset: 1012
+    float maxHealth_backing; // Offset: 1016
+    float maxBarrier_backing; // Offset: 1020
+    float barrierDecayRate_backing; // Offset: 1024
+    float regen_backing; // Offset: 1028
+    float maxShield_backing; // Offset: 1032
+    float moveSpeed_backing; // Offset: 1036
+    float acceleration_backing; // Offset: 1040
+    float m_surfaceSpeedBoost; // Offset: 1044
+    float jumpPower_backing; // Offset: 1048
+    int32_t maxJumpCount_backing; // Offset: 1052
+    float maxJumpHeight_backing; // Offset: 1056
+    float damage_backing; // Offset: 1060
+    float attackSpeed_backing; // Offset: 1064
+    float crit_backing; // Offset: 1068
+    float critMultiplier_backing; // Offset: 1072
+    float bleedChance_backing; // Offset: 1076
+    float armor_backing; // Offset: 1080
+    float visionDistance_backing; // Offset: 1084
+    float critHeal_backing; // Offset: 1088
+    float cursePenalty_backing; // Offset: 1092
+    bool hasOneShotProtection_backing; // Offset: 1096
+    bool isGlass_backing; // Offset: 1097
+    char padding171[2]; // Padding
+    float oneShotProtectionFraction_backing; // Offset: 1100
+    bool canPerformBackstab_backing; // Offset: 1104
+    bool canReceiveBackstab_backing; // Offset: 1105
+    char padding174[2]; // Padding
+    float amputatedMaxHealth; // Offset: 1108
+    float amputateMaxHealthMinimum; // Offset: 1112
+    bool statsDirty; // Offset: 1116
+    char padding177[3]; // Padding
+    int32_t extraSecondaryFromSkill; // Offset: 1120
+    int32_t extraSpecialFromSkill; // Offset: 1124
+    float maxBonusHealth_backing; // Offset: 1128
+    int32_t extraStatsOnLevelUpCount_CachedLastApplied; // Offset: 1132
+    bool lowerPricedChestsActive; // Offset: 1136
+    bool canPurchaseLoweredPricedChests; // Offset: 1137
+    bool allSkillsDisabled; // Offset: 1138
+    bool isTeleporting; // Offset: 1139
+    int32_t currentGrowthNectarBuffCount; // Offset: 1140
+    int32_t prevGrowthNectarBuffCount; // Offset: 1144
+    int32_t maxGrowthNectarBuffCount; // Offset: 1148
+    float growthNectarRemovalTimer; // Offset: 1152
+    float aimTimer; // Offset: 1156
+    int32_t killCountServer_backing; // Offset: 1160
+    float helfireLifetime; // Offset: 1164
+    bool wasLucky; // Offset: 1168
+    char padding193[3]; // Padding
+    float poisonballTimer; // Offset: 1172
+    float lunarMissileRechargeTimer; // Offset: 1176
+    float lunarMissileTimerBetweenShots; // Offset: 1180
+    int32_t remainingMissilesToFire; // Offset: 1184
+    float spreadBloomDecayTime; // Offset: 1188
+    float spreadBloomInternal; // Offset: 1192
+    bool hideCrosshair; // Offset: 1196
+    char padding200[3]; // Padding
+    float multiKillTimer; // Offset: 1200
+    int32_t multiKillCount_backing; // Offset: 1204
+    float increasedDamageKillTimer; // Offset: 1208
+    bool increasedDamageKillCountDirty; // Offset: 1212
+    char padding204[3]; // Padding
+    int32_t _increasedDamageKillCount; // Offset: 1216
+    int32_t increasedDamageKillCountBuff_backing; // Offset: 1220
+    bool canAddIncrasePrimaryDamage; // Offset: 1224
+    char padding207[3]; // Padding
+    float delayedDamageRefreshTime; // Offset: 1228
+    float delayedDamageRefreshTimer; // Offset: 1232
+    float secondHalfOfDamageTime; // Offset: 1236
+    int32_t oldDelayedDamageCount; // Offset: 1240
+    bool halfDamageReady; // Offset: 1244
+    char padding212[3]; // Padding
+    float halfDamageTimer; // Offset: 1248
+    float knockBackFinGroundedTimer; // Offset: 1252
+    Vector3 runicLensPosition; // Offset: 1256
+    float runicLensStartTime; // Offset: 1268
+    float runicLensImpactTime; // Offset: 1272
+    bool runicLensMeteorReady; // Offset: 1276
+    char padding218[3]; // Padding
+    int32_t spawnedPickupCount; // Offset: 1280
+    float radius_backing; // Offset: 1284
+    HullClassification_Value hullClassification; // Offset: 1288
+    Color_Value bodyColor; // Offset: 1292
+    bool doNotReassignToTeamBasedCollisionLayer; // Offset: 1308
+    bool isChampion; // Offset: 1309
+    bool isElite_backing; // Offset: 1310
+    char padding225[1]; // Padding
+    uint32_t skinIndex; // Offset: 1312
+    FixedTimeStamp_Value localStartTime_backing; // Offset: 1316
+    bool requestEquipmentFire; // Offset: 1320
+    char padding228[3]; // Padding
+    int32_t increaseDamageOnMultiKillItemCount; // Offset: 1324
 };
 
 // Generated from RoR2.NetworkUser
@@ -1298,7 +1410,7 @@ struct LocalUser {
 // Generated from RoR2.RuleBook
 struct RuleBook {
     char padding0[16]; // Padding
-    byte* ruleValues; // Offset: 16
+    Byte* ruleValues; // Offset: 16
 };
 
 // Generated from RoR2.ServerManagerBase`1
@@ -1467,16 +1579,17 @@ struct UnlockableDef {
 // Generated from RoR2.DirectorCard
 struct DirectorCard {
     char padding0[16]; // Padding
-    SpawnCard* spawnCard; // Offset: 16
-    void* requiredUnlockable; // Offset: 24
-    void* forbiddenUnlockable; // Offset: 32
-    UnlockableDef* requiredUnlockableDef; // Offset: 40
-    UnlockableDef* forbiddenUnlockableDef; // Offset: 48
-    int32_t selectionWeight; // Offset: 56
-    MonsterSpawnDistance_Value spawnDistance; // Offset: 60
-    bool preventOverhead; // Offset: 64
-    char padding8[3]; // Padding
-    int32_t minimumStageCompletions; // Offset: 68
+    void* spawnCardReference; // Offset: 16
+    SpawnCard* spawnCard; // Offset: 24
+    void* requiredUnlockable; // Offset: 32
+    void* forbiddenUnlockable; // Offset: 40
+    UnlockableDef* requiredUnlockableDef; // Offset: 48
+    UnlockableDef* forbiddenUnlockableDef; // Offset: 56
+    int32_t selectionWeight; // Offset: 64
+    MonsterSpawnDistance_Value spawnDistance; // Offset: 68
+    bool preventOverhead; // Offset: 72
+    char padding9[3]; // Padding
+    int32_t minimumStageCompletions; // Offset: 76
 };
 
 // Generated from .Category
@@ -1800,37 +1913,41 @@ struct SceneDef {
     void* nameToken; // Offset: 48
     void* subtitleToken; // Offset: 56
     Texture* previewTexture; // Offset: 64
-    Material* portalMaterial; // Offset: 72
-    void* portalSelectionMessageString; // Offset: 80
-    void* loreToken; // Offset: 88
-    GameObject* dioramaPrefab; // Offset: 96
-    MusicTrackDef* mainTrack; // Offset: 104
-    MusicTrackDef* bossTrack; // Offset: 112
-    SceneCollection* destinationsGroup; // Offset: 120
-    SceneCollection* loopedDestinationsGroup; // Offset: 128
-    SceneDef* loopedSceneDef; // Offset: 136
-    SceneDef* destinations; // Offset: 144
-    GameObject* preferredPortalPrefab; // Offset: 152
-    void* _cachedName; // Offset: 160
-    void* sceneNameOverrides; // Offset: 168
-    SceneIndex_Value sceneDefIndex_backing; // Offset: 176
-    SceneType_Value sceneType; // Offset: 180
-    bool isOfflineScene; // Offset: 184
-    char padding22[3]; // Padding
-    int32_t stageOrder; // Offset: 188
-    bool shouldIncludeInLogbook; // Offset: 192
-    char padding24[3]; // Padding
-    Color_Value environmentColor; // Offset: 196
-    bool hasSafeStart; // Offset: 212
-    bool suppressPlayerEntry; // Offset: 213
-    bool suppressNpcEntry; // Offset: 214
-    bool blockOrbitalSkills; // Offset: 215
-    bool validForRandomSelection; // Offset: 216
-    bool allowItemsToSpawnObjects; // Offset: 217
-    bool preventStageAdvanceCounter; // Offset: 218
-    bool needSkipDevotionRespawn; // Offset: 219
-    bool shouldUpdateSceneCollectionAfterLooping; // Offset: 220
-    bool isLockedBeforeLooping; // Offset: 221
+    AssetReferenceTexture* previewTextureReference; // Offset: 72
+    Material* portalMaterial; // Offset: 80
+    void* portalMaterialReference; // Offset: 88
+    void* portalSelectionMessageString; // Offset: 96
+    void* loreToken; // Offset: 104
+    GameObject* dioramaPrefab; // Offset: 112
+    AssetReferenceGameObject* dioramaPrefabAddress; // Offset: 120
+    MusicTrackDef* mainTrack; // Offset: 128
+    MusicTrackDef* bossTrack; // Offset: 136
+    SceneCollection* destinationsGroup; // Offset: 144
+    SceneCollection* loopedDestinationsGroup; // Offset: 152
+    SceneDef* loopedSceneDef; // Offset: 160
+    SceneDef* destinations; // Offset: 168
+    GameObject* preferredPortalPrefab; // Offset: 176
+    AssetReferenceGameObject* portalPrefabAddress; // Offset: 184
+    void* _cachedName; // Offset: 192
+    void* sceneNameOverrides; // Offset: 200
+    SceneIndex_Value sceneDefIndex_backing; // Offset: 208
+    SceneType_Value sceneType; // Offset: 212
+    bool isOfflineScene; // Offset: 216
+    char padding26[3]; // Padding
+    int32_t stageOrder; // Offset: 220
+    bool shouldIncludeInLogbook; // Offset: 224
+    char padding28[3]; // Padding
+    Color_Value environmentColor; // Offset: 228
+    bool hasSafeStart; // Offset: 244
+    bool suppressPlayerEntry; // Offset: 245
+    bool suppressNpcEntry; // Offset: 246
+    bool blockOrbitalSkills; // Offset: 247
+    bool validForRandomSelection; // Offset: 248
+    bool allowItemsToSpawnObjects; // Offset: 249
+    bool preventStageAdvanceCounter; // Offset: 250
+    bool needSkipDevotionRespawn; // Offset: 251
+    bool shouldUpdateSceneCollectionAfterLooping; // Offset: 252
+    bool isLockedBeforeLooping; // Offset: 253
 };
 
 // Generated from RoR2.ConvertPlayerMoneyToExperience
@@ -2248,33 +2365,34 @@ struct ProjectileGhostController {
 struct ProjectileController {
     char padding0[48]; // Padding
     GameObject* ghostPrefab; // Offset: 48
-    Transform* ghostTransformAnchor; // Offset: 56
-    void* startSound; // Offset: 64
-    LoopSoundDef* flightSoundLoop; // Offset: 72
-    Rigidbody* rigidbody; // Offset: 80
-    TeamFilter* teamFilter_backing; // Offset: 88
-    ProjectileGhostController* ghost_backing; // Offset: 96
-    GameObject* owner; // Offset: 104
-    void* onInitialized; // Offset: 112
-    NetworkConnection* clientAuthorityOwner_backing; // Offset: 120
-    Collider* myColliders; // Offset: 128
-    EffectManagerHelper* _efhGhost; // Offset: 136
-    int32_t catalogIndex; // Offset: 144
-    bool cannotBeDeleted; // Offset: 148
-    bool authorityHandlesCollisionEvents; // Offset: 149
-    bool isPrediction_backing; // Offset: 150
-    bool canImpactOnTrigger; // Offset: 151
-    bool shouldPlaySounds_backing; // Offset: 152
-    bool allowPrediction; // Offset: 153
-    uint16_t predictionId; // Offset: 154
-    bool localCollisionHappened; // Offset: 156
-    char padding21[3]; // Padding
-    ProcChainMask_Value procChainMask_backing; // Offset: 160
-    float procCoefficient; // Offset: 164
-    uint8_t combo; // Offset: 168
-    bool CheckChildrenForCollidersAndIncludeDisabled; // Offset: 169
-    char padding25[2]; // Padding
-    NetworkInstanceId_Value ___ownerNetId; // Offset: 172
+    void* ghostPrefabReference; // Offset: 56
+    Transform* ghostTransformAnchor; // Offset: 64
+    void* startSound; // Offset: 72
+    LoopSoundDef* flightSoundLoop; // Offset: 80
+    Rigidbody* rigidbody; // Offset: 88
+    TeamFilter* teamFilter_backing; // Offset: 96
+    ProjectileGhostController* ghost_backing; // Offset: 104
+    GameObject* owner; // Offset: 112
+    void* onInitialized; // Offset: 120
+    NetworkConnection* clientAuthorityOwner_backing; // Offset: 128
+    Collider* myColliders; // Offset: 136
+    EffectManagerHelper* _efhGhost; // Offset: 144
+    int32_t catalogIndex; // Offset: 152
+    bool cannotBeDeleted; // Offset: 156
+    bool authorityHandlesCollisionEvents; // Offset: 157
+    bool isPrediction_backing; // Offset: 158
+    bool canImpactOnTrigger; // Offset: 159
+    bool shouldPlaySounds_backing; // Offset: 160
+    bool allowPrediction; // Offset: 161
+    uint16_t predictionId; // Offset: 162
+    bool localCollisionHappened; // Offset: 164
+    char padding22[3]; // Padding
+    ProcChainMask_Value procChainMask_backing; // Offset: 168
+    float procCoefficient; // Offset: 172
+    uint8_t combo; // Offset: 176
+    bool CheckChildrenForCollidersAndIncludeDisabled; // Offset: 177
+    char padding26[2]; // Padding
+    NetworkInstanceId_Value ___ownerNetId; // Offset: 180
 };
 
 // Generated from RoR2.ItemTierDef
@@ -2284,13 +2402,13 @@ struct ItemTierDef {
     GameObject* highlightPrefab; // Offset: 32
     GameObject* dropletDisplayPrefab; // Offset: 40
     ItemTier_Value _tier; // Offset: 48
-    int colorIndex; // Offset: 52
-    int darkColorIndex; // Offset: 56
+    ColorIndex_Value colorIndex; // Offset: 52
+    ColorIndex_Value darkColorIndex; // Offset: 56
     bool isDroppable; // Offset: 60
     bool canScrap; // Offset: 61
     bool canRestack; // Offset: 62
     char padding9[1]; // Padding
-    int pickupRules; // Offset: 64
+    PickupRules_Value pickupRules; // Offset: 64
 };
 
 // Generated from RoR2.ItemTag
@@ -2309,14 +2427,15 @@ struct ItemDef {
     void* loreToken; // Offset: 56
     UnlockableDef* unlockableDef; // Offset: 64
     GameObject* pickupModelPrefab; // Offset: 72
-    Sprite* pickupIconSprite; // Offset: 80
-    ItemTag* tags; // Offset: 88
-    ExpansionDef* requiredExpansion; // Offset: 96
-    ItemIndex_Value _itemIndex; // Offset: 104
-    ItemTier_Value deprecatedTier; // Offset: 108
-    bool isConsumed; // Offset: 112
-    bool hidden; // Offset: 113
-    bool canRemove; // Offset: 114
+    void* pickupModelReference; // Offset: 80
+    Sprite* pickupIconSprite; // Offset: 88
+    ItemTag* tags; // Offset: 96
+    ExpansionDef* requiredExpansion; // Offset: 104
+    ItemIndex_Value _itemIndex; // Offset: 112
+    ItemTier_Value deprecatedTier; // Offset: 116
+    bool isConsumed; // Offset: 120
+    bool hidden; // Offset: 121
+    bool canRemove; // Offset: 122
 };
 
 // Generated from RoR2.SkillLocator
@@ -2533,7 +2652,7 @@ struct ShopTerminalBehavior {
     ItemTier_Value itemTier; // Offset: 152
     ItemTag_Value bannedItemTag; // Offset: 156
     bool selfGeneratePickup; // Offset: 160
-    bool hasStarted; // Offset: 161
+    bool pickupInitialized; // Offset: 161
 };
 
 // Generated from RoR2.RouletteChestController
@@ -2616,6 +2735,217 @@ struct BarrelInteraction {
     uint32_t expReward; // Offset: 68
     bool shouldProximityHighlight; // Offset: 72
     bool opened; // Offset: 73
+};
+
+// Generated from RoR2.GenericPickupController
+struct GenericPickupController {
+    char padding0[48]; // Padding
+    PickupDisplay* pickupDisplay; // Offset: 48
+    ChestBehavior* chestGeneratedFrom; // Offset: 56
+    SerializablePickupIndex_Value idealPickupIndex; // Offset: 64
+    PickupIndex_Value pickupIndex; // Offset: 72
+    bool Recycled; // Offset: 76
+    bool selfDestructIfPickupIndexIsNotIdeal; // Offset: 77
+    char padding6[2]; // Padding
+    float waitDuration; // Offset: 80
+    FixedTimeStamp_Value waitStartTime; // Offset: 84
+    bool consumed; // Offset: 88
+};
+
+// Generated from RoR2.TimedChestController
+struct TimedChestController {
+    char padding0[48]; // Padding
+    TextMeshPro* displayTimer; // Offset: 48
+    ObjectScaleCurve* displayScaleCurve; // Offset: 56
+    void* contextString; // Offset: 64
+    float lockTime; // Offset: 72
+    Color_Value displayIsAvailableColor; // Offset: 76
+    Color_Value displayIsLockedColor; // Offset: 92
+    bool purchased; // Offset: 108
+    bool shouldProximityHighlight; // Offset: 109
+};
+
+// Generated from RoR2.ShrineCleanseBehavior
+struct ShrineCleanseBehavior {
+    char padding0[24]; // Padding
+    void* contextToken; // Offset: 24
+    GameObject* activationEffectPrefab; // Offset: 32
+};
+
+// Generated from RoR2.GenericInteraction
+struct GenericInteraction {
+    char padding0[48]; // Padding
+    void* contextToken; // Offset: 48
+    InteractorUnityEvent* onActivation; // Offset: 56
+    Interactability_Value interactability; // Offset: 64
+    bool shouldIgnoreSpherecastForInteractibility; // Offset: 68
+    bool shouldProximityHighlight; // Offset: 69
+    bool shouldShowOnScanner; // Offset: 70
+};
+
+// Generated from RoR2.PressurePlateController
+struct PressurePlateController {
+    char padding0[24]; // Padding
+    void* switchDownSoundString; // Offset: 24
+    void* switchUpSoundString; // Offset: 32
+    UnityEvent* OnSwitchDown; // Offset: 40
+    UnityEvent* OnSwitchUp; // Offset: 48
+    Collider* pingCollider; // Offset: 56
+    AnimationCurve* switchVisualPositionFromUpToDown; // Offset: 64
+    AnimationCurve* switchVisualPositionFromDownToUp; // Offset: 72
+    Transform* switchVisualTransform; // Offset: 80
+    bool enableOverlapSphere; // Offset: 88
+    char padding9[3]; // Padding
+    float overlapSphereRadius; // Offset: 92
+    float overlapSphereFrequency; // Offset: 96
+    float overlapSphereStopwatch; // Offset: 100
+    float animationStopwatch; // Offset: 104
+    bool switchDown; // Offset: 108
+};
+
+// Generated from RoR2.Highlight
+struct Highlight {
+    char padding0[24]; // Padding
+    IDisplayNameProvider* displayNameProvider; // Offset: 24
+    Renderer* targetRenderer; // Offset: 32
+    PickupIndex_Value pickupIndex; // Offset: 40
+    float strength; // Offset: 44
+    HighlightColor_Value highlightColor; // Offset: 48
+    Color_Value CustomColor; // Offset: 52
+    bool isOn; // Offset: 68
+};
+
+// Generated from RoR2.PickupDisplay
+struct PickupDisplay {
+    char padding0[24]; // Padding
+    GameObject* tier1ParticleEffect; // Offset: 24
+    GameObject* tier2ParticleEffect; // Offset: 32
+    GameObject* tier3ParticleEffect; // Offset: 40
+    GameObject* equipmentParticleEffect; // Offset: 48
+    GameObject* lunarParticleEffect; // Offset: 56
+    GameObject* bossParticleEffect; // Offset: 64
+    GameObject* voidParticleEffect; // Offset: 72
+    ParticleSystem* coloredParticleSystems; // Offset: 80
+    Highlight* highlight; // Offset: 88
+    GameObject* modelObject; // Offset: 96
+    Renderer* modelRenderer_backing; // Offset: 104
+    GameObject* modelPrefab; // Offset: 112
+    Wave_Value verticalWave; // Offset: 120
+    bool dontInstantiatePickupModel; // Offset: 132
+    char padding14[3]; // Padding
+    float spinSpeed; // Offset: 136
+    PickupIndex_Value pickupIndex; // Offset: 140
+    bool hidden; // Offset: 144
+    char padding17[3]; // Padding
+    float modelScale; // Offset: 148
+    float localTime; // Offset: 152
+    bool shouldUpdate; // Offset: 156
+};
+
+// Generated from RoR2.PickupDef
+struct PickupDef {
+    char padding0[16]; // Padding
+    void* internalName; // Offset: 16
+    GameObject* displayPrefab; // Offset: 24
+    void* displayPrefabReference; // Offset: 32
+    GameObject* dropletDisplayPrefab; // Offset: 40
+    void* nameToken; // Offset: 48
+    UnlockableDef* unlockableDef; // Offset: 56
+    void* interactContextToken; // Offset: 64
+    Texture* iconTexture; // Offset: 72
+    Sprite* iconSprite; // Offset: 80
+    AttemptGrantDelegate* attemptGrant; // Offset: 88
+    PickupIndex_Value pickupIndex_backing; // Offset: 96
+    Color_Value baseColor; // Offset: 100
+    Color_Value darkColor; // Offset: 116
+    ItemIndex_Value itemIndex; // Offset: 132
+    EquipmentIndex_Value equipmentIndex; // Offset: 136
+    ArtifactIndex_Value artifactIndex; // Offset: 140
+    MiscPickupIndex_Value miscPickupIndex; // Offset: 144
+    ItemTier_Value itemTier; // Offset: 148
+    uint32_t coinValue; // Offset: 152
+    bool isLunar; // Offset: 156
+    bool isBoss; // Offset: 157
+};
+
+// Generated from RoR2.Run
+struct Run {
+    char padding0[48]; // Padding
+    NetworkRuleBook* networkRuleBookComponent; // Offset: 48
+    void* nameToken; // Offset: 56
+    PickupDropTable* rebirthDropTable; // Offset: 64
+    SceneDef* startingScenes; // Offset: 72
+    SceneCollection* startingSceneGroup; // Offset: 80
+    String* EventFlagsToResetOnLoop; // Offset: 88
+    ItemMask* availableItems; // Offset: 96
+    ItemMask* expansionLockedItems; // Offset: 104
+    EquipmentMask* availableEquipment; // Offset: 112
+    EquipmentMask* expansionLockedEquipment; // Offset: 120
+    SceneDef* nextStageScene; // Offset: 128
+    SceneDef* blacklistedScenesForFirstScene; // Offset: 136
+    GameObject* gameOverPrefab; // Offset: 144
+    GameObject* lobbyBackgroundPrefab; // Offset: 152
+    GameObject* uiPrefab; // Offset: 160
+    void* uiInstances_backing; // Offset: 168
+    Xoroshiro128Plus* runRNG; // Offset: 176
+    Xoroshiro128Plus* nextStageRng; // Offset: 184
+    Xoroshiro128Plus* stageRngGenerator; // Offset: 192
+    Xoroshiro128Plus* stageRng; // Offset: 200
+    Xoroshiro128Plus* bossRewardRng; // Offset: 208
+    Xoroshiro128Plus* treasureRng; // Offset: 216
+    Xoroshiro128Plus* spawnRng; // Offset: 224
+    Xoroshiro128Plus* randomSurvivorOnRespawnRng; // Offset: 232
+    void* unlockablesUnlockedByAnyUser; // Offset: 240
+    void* unlockablesUnlockedByAllUsers; // Offset: 248
+    void* unlockablesAlreadyFullyObtained; // Offset: 256
+    void* userMasters; // Offset: 264
+    void* availableTier1DropList; // Offset: 272
+    void* availableTier2DropList; // Offset: 280
+    void* availableTier3DropList; // Offset: 288
+    void* availableEquipmentDropList; // Offset: 296
+    void* availableLunarEquipmentDropList; // Offset: 304
+    void* availableLunarItemDropList; // Offset: 312
+    void* availableLunarCombinedDropList; // Offset: 320
+    void* availableBossDropList; // Offset: 328
+    void* availableVoidTier1DropList; // Offset: 336
+    void* availableVoidTier2DropList; // Offset: 344
+    void* availableVoidTier3DropList; // Offset: 352
+    void* availableVoidBossDropList; // Offset: 360
+    void* smallChestDropTierSelector; // Offset: 368
+    void* mediumChestDropTierSelector; // Offset: 376
+    void* largeChestDropTierSelector; // Offset: 384
+    void* eventFlags; // Offset: 392
+    GameModeIndex_Value gameModeIndex; // Offset: 400
+    bool userPickable; // Offset: 404
+    char padding46[3]; // Padding
+    NetworkGuid_Value _uniqueId; // Offset: 408
+    NetworkDateTime_Value startTimeUtc; // Offset: 424
+    bool isRunWeekly; // Offset: 432
+    char padding49[3]; // Padding
+    float fixedTime; // Offset: 436
+    float time; // Offset: 440
+    bool isRunning; // Offset: 444
+    char padding52[3]; // Padding
+    RunStopwatch_Value runStopwatch; // Offset: 448
+    char padding53[3]; // Padding
+    bool isRunStopwatchForcePaused; // Offset: 456
+    char padding54[3]; // Padding
+    int32_t stageClearCount; // Offset: 460
+    uint64_t _seed; // Offset: 464
+    float difficultyCoefficient; // Offset: 472
+    float compensatedDifficultyCoefficient; // Offset: 476
+    float oneOverCompensatedDifficultyCoefficientSquared; // Offset: 480
+    int32_t selectedDifficultyInternal; // Offset: 484
+    float ambientLevel_backing; // Offset: 488
+    int32_t ambientLevelFloor_backing; // Offset: 492
+    int32_t shopPortalCount; // Offset: 496
+    bool lowerPricedChestsTimerOn; // Offset: 500
+    char padding64[3]; // Padding
+    float lowerPricedChestsTimer; // Offset: 504
+    float lowerPricedChestsDuration; // Offset: 508
+    bool shutdown; // Offset: 512
+    bool allowNewParticipants; // Offset: 513
+    bool isGameOverServer_backing; // Offset: 514
 };
 
 #pragma pack(pop)

@@ -2,6 +2,7 @@
 
 #include "core/MonoRuntime.h"
 #include "utils/Math.h"
+#include "game/GameStructs.h"
 
 class GameFunctions {
 private:
@@ -18,6 +19,8 @@ private:
     MonoClass* m_languageClass;
     MonoClass* m_RoR2ApplicationClass;
     MonoClass* m_teleportHelperClass;
+    MonoClass* m_pickupCatalogClass;
+    MonoClass* m_pickupDefClass;
 
 public:
     GameFunctions(MonoRuntime* runtime);
@@ -27,6 +30,7 @@ public:
     void Cursor_SetLockState(int lockState);
     void Cursor_SetVisible(bool visible);
     std::string Language_GetString(MonoString* token);
+    PickupDef* GetPickupDef(int pickupIndex);
     int LoadItems();
     void Inventory_GiveItem(void* m_inventory, int itemIndex, int count);
     bool RoR2Application_IsLoading();
@@ -35,4 +39,5 @@ public:
     void RoR2Application_SetModded(bool modded);
     int RoR2Application_GetLoadGameContentPercentage();
     void TeleportHelper_TeleportBody(void* m_characterBody, Vector3 position);
+    float GetRunStopwatch();
 };

@@ -17,15 +17,21 @@ enum class InteractableCategory {
     Drone,
     Shrine,
     Special,
-    Barrel
+    Barrel,
+    ItemPickup,
+    Portal,
+    Unknown
 };
 
 struct TrackedInteractable {
     void* gameObject;
     void* purchaseInteraction;
     std::string displayName;
+    std::string itemName; // Name of the item in chest/shop
     Vector3 position;
     InteractableCategory category;
+    bool consumed; // For item pickups
+    int32_t pickupIndex; // Store the pickup index
 };
 
 class ChestESPControl;
@@ -41,6 +47,8 @@ private:
     ChestESPControl* shrineESPControl;
     ChestESPControl* specialESPControl;
     ChestESPControl* barrelESPControl;
+    ChestESPControl* itemPickupESPControl;
+    ChestESPControl* portalESPControl;
 
     Vector3 teleporterPosition;
     Vector3 playerPosition;
@@ -53,6 +61,8 @@ private:
     std::mutex interactablesMutex;
 
     void RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible, bool onScreen);
+    void UpdateTimedChestDisplayName(TrackedInteractable* interactable, void* timedChestController);
+    void UpdatePressurePlateDisplayName(TrackedInteractable* interactable, void* pressurePlateController);
     void RenderInteractableESP(TrackedInteractable* interactable, ImVec2 screenPos, float distance, ChestESPSubControl* control, bool isVisible, bool onScreen, bool isAvailable);
     Vector3 GetCameraPosition();
     bool IsVisible(const Vector3& position);
@@ -74,7 +84,16 @@ public:
     void OnPurchaseInteractionSpawned(void* purchaseInteraction);
     void OnPurchaseInteractionDestroyed(void* purchaseInteraction);
     void OnBarrelInteractionSpawned(void* barrelInteraction);
+    void OnGenericPickupControllerSpawned(void* genericPickupController);
+    void OnTimedChestControllerSpawned(void* timedChestController);
+    void OnTimedChestControllerDespawned(void* timedChestController);
+    void OnGenericInteractionSpawned(void* genericInteraction);
+    void OnPickupPickerControllerSpawned(void* pickupPickerController);
+    void OnScrapperControllerSpawned(void* scrapperController);
     void OnStageStart(void* stage);
+    void OnChestBehaviorSpawned(void* chestBehavior);
+    void OnShopTerminalBehaviorSpawned(void* shopTerminalBehavior);
+    void OnPressurePlateControllerSpawned(void* pressurePlateController);
 
     void RenderTeleporterESP();
     void RenderPlayerESP();

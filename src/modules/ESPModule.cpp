@@ -6,6 +6,7 @@
 #include <imgui.h>
 #include <cmath>
 #include <algorithm>
+#include <cstdio>
 
 ESPModule::ESPModule() : ModuleBase() {
     Initialize();
@@ -41,6 +42,8 @@ void ESPModule::Initialize() {
     shrineESPControl = new ChestESPControl("Shrines", "shrine_esp");
     specialESPControl = new ChestESPControl("Special", "special_esp");
     barrelESPControl = new ChestESPControl("Barrels", "barrel_esp");
+    itemPickupESPControl = new ChestESPControl("Item Pickups", "item_pickup_esp");
+    portalESPControl = new ChestESPControl("Portals", "portal_esp");
 }
 
 void ESPModule::Update() {
@@ -53,6 +56,26 @@ void ESPModule::Update() {
     shrineESPControl->Update();
     specialESPControl->Update();
     barrelESPControl->Update();
+
+    // Clean up consumed item pickups
+    {
+        std::lock_guard<std::mutex> lock(interactablesMutex);
+        trackedInteractables.erase(
+            std::remove_if(trackedInteractables.begin(), trackedInteractables.end(),
+                [](TrackedInteractable* tracked) {
+                    if (tracked->category == InteractableCategory::ItemPickup && tracked->gameObject) {
+                        // Check if the pickup has been consumed or recycled
+                        GenericPickupController* gpc = static_cast<GenericPickupController*>(tracked->gameObject);
+                        if (gpc->Recycled || gpc->consumed) {
+                            delete tracked;
+                            return true;
+                        }
+                    }
+                    return false;
+                }),
+            trackedInteractables.end()
+        );
+    }
 }
 
 void ESPModule::DrawUI() {
@@ -67,6 +90,8 @@ void ESPModule::DrawUI() {
         shrineESPControl->Draw();
         specialESPControl->Draw();
         barrelESPControl->Draw();
+        itemPickupESPControl->Draw();
+        portalESPControl->Draw();
     }
 }
 
@@ -543,27 +568,65 @@ InteractableCategory ESPModule::DetermineInteractableCategory(PurchaseInteractio
         displayName.find("Multishop Terminal") != std::string::npos ||
         displayName.find("Cauldron") != std::string::npos ||
         displayName.find("Scrapper") != std::string::npos ||
-        displayName.find("Cleansing Pool") != std::string::npos) {
+        displayName.find("Cleansing Pool") != std::string::npos ||
+        displayName.find("Mili-Tech Printer") != std::string::npos) {
         return InteractableCategory::Shop;
     }
 
-    // Special interactables
+    // Portals
+    if (displayName.find("Portal") != std::string::npos) {
+        return InteractableCategory::Portal;
+    }
+
+    // Special interactables - Environment Specific, Charging Zones, Skill Related
     if (displayName.find("Newt Altar") != std::string::npos ||
         displayName.find("Pillar") != std::string::npos ||
         displayName.find("Frog") != std::string::npos ||
-        displayName.find("Portal") != std::string::npos ||
         displayName.find("Lunar Seer") != std::string::npos ||
         displayName.find("Teleporter") != std::string::npos ||
         displayName.find("Halcyon") != std::string::npos ||
         displayName.find("Obelisk") != std::string::npos ||
         displayName.find("Deep Void Signal") != std::string::npos ||
         displayName.find("Cell Vent") != std::string::npos ||
-        displayName == "") { // Empty name items (rare)
+        displayName.find("Radio Scanner") != std::string::npos ||
+        displayName.find("Pressure Plate") != std::string::npos ||
+        displayName.find("Fan") != std::string::npos ||
+        displayName.find("Broken REX") != std::string::npos ||
+        displayName.find("Broken Robot") != std::string::npos ||
+        displayName.find("Alloy Vulture Nest") != std::string::npos ||
+        displayName.find("Compound Generator") != std::string::npos ||
+        displayName.find("Glass Frog") != std::string::npos ||
+        displayName.find("Artifact Reliquary") != std::string::npos ||
+        displayName.find("Lunar Buds") != std::string::npos ||
+        displayName.find("Lunar Shop Refresher") != std::string::npos ||
+        displayName.find("Survivor Suspended In Time") != std::string::npos ||
+        displayName.find("Halcyon Beacon") != std::string::npos ||
+        displayName.find("Aurelionite Geode") != std::string::npos ||
+        displayName.find("Assessment Focus") != std::string::npos ||
+        displayName.find("Quantum Tunnel") != std::string::npos ||
+        displayName.find("Vending Machine") != std::string::npos ||
+        displayName.find("Beacon: Resupply") != std::string::npos) {
         return InteractableCategory::Special;
     }
 
-    // Everything else is a chest (including barrels, lockboxes, etc.)
-    return InteractableCategory::Chest;
+    // Chests - Explicit chest patterns (more comprehensive detection)
+    if (displayName.find("Chest") != std::string::npos ||
+        displayName.find("Lunar Pod") != std::string::npos ||
+        displayName.find("Lockbox") != std::string::npos ||
+        displayName.find("Cache") != std::string::npos ||
+        displayName.find("Fragment") != std::string::npos ||
+        displayName.find("Barrel") != std::string::npos ||
+        displayName.find("Stalk") != std::string::npos ||
+        displayName.find("Void Cradle") != std::string::npos ||
+        displayName.find("Void Potential") != std::string::npos ||
+        displayName.find("Crashed Multishop Terminal") != std::string::npos ||
+        displayName.find("Timed Security Chest") != std::string::npos ||
+        displayName.find("Scavenger's Backpack") != std::string::npos) {
+        return InteractableCategory::Chest;
+    }
+
+    // Everything else is unknown
+    return InteractableCategory::Unknown;
 }
 
 
@@ -572,13 +635,8 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
 
     PurchaseInteraction* pi = (PurchaseInteraction*)purchaseInteraction;
 
-    // Don't skip shrines anymore - we'll categorize everything
+    void* gameObject = purchaseInteraction;
 
-    // Get the GameObject from the PurchaseInteraction (it's a MonoBehaviour, so we can get the gameObject)
-    // For now, we'll use the PurchaseInteraction pointer as the GameObject identifier
-    void* gameObject = purchaseInteraction; // This will need proper implementation
-
-    // Get position from transform
     Vector3 position = {0, 0, 0};
     if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
         void* transform = Hooks::Component_get_transform(purchaseInteraction);
@@ -587,11 +645,21 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
         }
     }
 
-    // Get display name from the token using Language_GetString
     std::string displayName = G::gameFunctions->Language_GetString((MonoString*)pi->displayNameToken);
+
+    // Skip interactables with empty or whitespace-only names
+    if (displayName.empty() || displayName.find_first_not_of(" \t\r\n") == std::string::npos) {
+        return;
+    }
 
     // Determine category
     InteractableCategory category = DetermineInteractableCategory(pi, displayName);
+
+    // Log error if unknown interactable found
+    if (category == InteractableCategory::Unknown) {
+        G::logger.LogError("Unknown interactable detected: \"" + displayName + "\" - Please report this to the developers!");
+        displayName += " (UNKNOWN)";
+    }
 
     // Create interactable tracking info
     TrackedInteractable* trackedInteractable = new TrackedInteractable();
@@ -600,6 +668,9 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
     trackedInteractable->position = position;
     trackedInteractable->displayName = displayName;
     trackedInteractable->category = category;
+    trackedInteractable->consumed = false;
+    trackedInteractable->pickupIndex = -1;
+    trackedInteractable->itemName = "";
 
     // Add to tracked interactables
     std::lock_guard<std::mutex> lock(interactablesMutex);
@@ -613,6 +684,9 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
         case InteractableCategory::Shrine: categoryName = "Shrine"; break;
         case InteractableCategory::Special: categoryName = "Special"; break;
         case InteractableCategory::Barrel: categoryName = "Barrel"; break;
+        case InteractableCategory::ItemPickup: categoryName = "ItemPickup"; break;
+        case InteractableCategory::Portal: categoryName = "Portal"; break;
+        case InteractableCategory::Unknown: categoryName = "Unknown"; break;
     }
 }
 
@@ -638,7 +712,6 @@ void ESPModule::OnBarrelInteractionSpawned(void* barrelInteraction) {
 
     BarrelInteraction* barrel = (BarrelInteraction*)barrelInteraction;
 
-    // Get position from transform
     Vector3 position = {0, 0, 0};
     if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
         void* transform = Hooks::Component_get_transform(barrelInteraction);
@@ -647,7 +720,6 @@ void ESPModule::OnBarrelInteractionSpawned(void* barrelInteraction) {
         }
     }
 
-
     std::string displayName = G::gameFunctions->Language_GetString((MonoString*)barrel->displayNameToken);
     // Create interactable tracking info for barrels
     TrackedInteractable* trackedInteractable = new TrackedInteractable();
@@ -655,9 +727,190 @@ void ESPModule::OnBarrelInteractionSpawned(void* barrelInteraction) {
     trackedInteractable->purchaseInteraction = nullptr; // Barrels don't use PurchaseInteraction
     trackedInteractable->position = position;
     trackedInteractable->displayName = displayName;
-    trackedInteractable->category = InteractableCategory::Barrel; // Categorize as barrel
+    trackedInteractable->category = InteractableCategory::Barrel;
+    trackedInteractable->consumed = false;
 
     // Add to tracked interactables
+    std::lock_guard<std::mutex> lock(interactablesMutex);
+    trackedInteractables.push_back(trackedInteractable);
+}
+
+void ESPModule::OnGenericInteractionSpawned(void* genericInteraction) {
+    if (!genericInteraction) return;
+
+    GenericInteraction* gi = (GenericInteraction*)genericInteraction;
+
+    // Use the component pointer as the identifier
+    void* gameObject = genericInteraction;
+
+    Vector3 position = {0, 0, 0};
+    if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
+        void* transform = Hooks::Component_get_transform(genericInteraction);
+        if (transform) {
+            Hooks::Transform_get_position_Injected(transform, &position);
+        }
+    }
+
+    // Get display name - GenericInteraction uses contextToken instead of displayNameToken
+    std::string displayName = "Generic Interaction";
+    if (gi->contextToken) {
+        displayName = G::gameFunctions->Language_GetString((MonoString*)gi->contextToken);
+    }
+
+    // Skip interactables with empty or whitespace-only names
+    if (displayName.empty() || displayName.find_first_not_of(" \t\r\n") == std::string::npos) {
+        return;
+    }
+
+    // Filter out unwanted interactions
+    if (displayName == "Open Panel" ||
+        displayName == "Cycle Compound" ||
+        displayName == "Shift Destination") {
+        return;
+    }
+
+    InteractableCategory category = InteractableCategory::Special;
+
+    if (displayName.find("Portal") != std::string::npos) {
+        category = InteractableCategory::Portal;
+    }
+
+    // Create tracking info
+    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    trackedInteractable->gameObject = gameObject;
+    trackedInteractable->purchaseInteraction = nullptr;
+    trackedInteractable->position = position;
+    trackedInteractable->displayName = displayName;
+    trackedInteractable->category = category;
+    trackedInteractable->consumed = false;
+
+    std::lock_guard<std::mutex> lock(interactablesMutex);
+    trackedInteractables.push_back(trackedInteractable);
+}
+
+void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) {
+    if (!genericPickupController) return;
+
+    GenericPickupController* gpc = (GenericPickupController*)genericPickupController;
+
+    // Use the component pointer as the identifier
+    void* gameObject = genericPickupController;
+
+    Vector3 position = {0, 0, 0};
+    if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
+        void* transform = Hooks::Component_get_transform(genericPickupController);
+        if (transform) {
+            Hooks::Transform_get_position_Injected(transform, &position);
+        }
+    }
+
+    // Don't track pickups with invalid pickup index
+    if (gpc->pickupIndex <= 0) {
+        return;
+    }
+
+    std::string displayName = "Item Pickup";
+
+    PickupDef* pickupDef = G::gameFunctions->GetPickupDef(gpc->pickupIndex);
+    if (pickupDef && pickupDef->nameToken) {
+        displayName = G::gameFunctions->Language_GetString((MonoString*)pickupDef->nameToken);
+    } else {
+        // If not found, show the pickup index for debugging
+        displayName = "Item Pickup [" + std::to_string(gpc->pickupIndex) + "]";
+    }
+
+    // Create tracking info - categorize as item pickup
+    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    trackedInteractable->gameObject = gameObject;
+    trackedInteractable->purchaseInteraction = nullptr;
+    trackedInteractable->position = position;
+    trackedInteractable->displayName = displayName;
+    trackedInteractable->category = InteractableCategory::ItemPickup;
+    trackedInteractable->consumed = false;
+
+    std::lock_guard<std::mutex> lock(interactablesMutex);
+    trackedInteractables.push_back(trackedInteractable);
+}
+
+void ESPModule::OnTimedChestControllerSpawned(void* timedChestController) {
+    if (!timedChestController) return;
+
+    TimedChestController* tcc = (TimedChestController*)timedChestController;
+
+    void* gameObject = timedChestController;
+
+    Vector3 position = {0, 0, 0};
+    if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
+        void* transform = Hooks::Component_get_transform(timedChestController);
+        if (transform) {
+            Hooks::Transform_get_position_Injected(transform, &position);
+        }
+    }
+
+    std::string displayName = "Timed Security Chest";
+    void* purchaseInteraction = nullptr;
+
+    // Create tracking info
+    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    trackedInteractable->gameObject = gameObject;
+    trackedInteractable->purchaseInteraction = purchaseInteraction;
+    trackedInteractable->position = position;
+    trackedInteractable->displayName = displayName;
+    trackedInteractable->category = InteractableCategory::Chest;
+    trackedInteractable->consumed = false;
+
+    {
+        std::lock_guard<std::mutex> lock(interactablesMutex);
+        trackedInteractables.push_back(trackedInteractable);
+    }
+}
+
+void ESPModule::OnTimedChestControllerDespawned(void* timedChestController) {
+    if (!timedChestController) return;
+
+    std::lock_guard<std::mutex> lock(interactablesMutex);
+    trackedInteractables.erase(
+        std::remove_if(trackedInteractables.begin(), trackedInteractables.end(),
+                      [timedChestController](TrackedInteractable* tracked) {
+                          if (tracked->gameObject == timedChestController) {
+                              delete tracked;
+                              return true;
+                          }
+                          return false;
+                      }),
+        trackedInteractables.end()
+    );
+}
+
+void ESPModule::OnPickupPickerControllerSpawned(void* pickupPickerController) {
+    // TODO: Implement command selectors but don't show when inside a chest
+    return;
+}
+
+void ESPModule::OnScrapperControllerSpawned(void* scrapperController) {
+    if (!scrapperController) return;
+
+    void* gameObject = scrapperController;
+
+    Vector3 position = {0, 0, 0};
+    if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
+        void* transform = Hooks::Component_get_transform(scrapperController);
+        if (transform) {
+            Hooks::Transform_get_position_Injected(transform, &position);
+        }
+    }
+
+    std::string displayName = "Scrapper";
+
+    // Create tracking info
+    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    trackedInteractable->gameObject = gameObject;
+    trackedInteractable->purchaseInteraction = nullptr;
+    trackedInteractable->position = position;
+    trackedInteractable->displayName = displayName;
+    trackedInteractable->category = InteractableCategory::Shop;
+    trackedInteractable->consumed = false;
+
     std::lock_guard<std::mutex> lock(interactablesMutex);
     trackedInteractables.push_back(trackedInteractable);
 }
@@ -688,7 +941,6 @@ void ESPModule::OnStageStart(void* stage) {
 
     // Reset teleporter position
     teleporterPosition = Vector3{0, 0, 0};
-    G::logger.LogInfo("Stage started - ESP data cleared");
 }
 
 void ESPModule::RenderInteractablesESP() {
@@ -708,13 +960,15 @@ void ESPModule::RenderInteractablesESP() {
             case InteractableCategory::Shrine: categoryControl = shrineESPControl; break;
             case InteractableCategory::Special: categoryControl = specialESPControl; break;
             case InteractableCategory::Barrel: categoryControl = barrelESPControl; break;
+            case InteractableCategory::ItemPickup: categoryControl = itemPickupESPControl; break;
+            case InteractableCategory::Portal: categoryControl = portalESPControl; break;
+            case InteractableCategory::Unknown: categoryControl = specialESPControl; break; // Use special control for unknown
         }
 
         if (!categoryControl || !categoryControl->IsMasterEnabled()) continue;
 
         float distance = interactable->position.Distance(GetCameraPosition());
 
-        // Get the control
         ChestESPSubControl* control = categoryControl->GetSubControl();
 
         if (!control->IsEnabled()) continue;
@@ -724,17 +978,25 @@ void ESPModule::RenderInteractablesESP() {
         if (interactable->category == InteractableCategory::Barrel && interactable->gameObject) {
             BarrelInteraction* barrel = (BarrelInteraction*)interactable->gameObject;
             isAvailable = !barrel->opened;
+        } else if (interactable->category == InteractableCategory::Chest &&
+                   interactable->displayName.find("Timed Security Chest") != std::string::npos &&
+                   interactable->gameObject) {
+            TimedChestController* tcc = (TimedChestController*)interactable->gameObject;
+            isAvailable = !tcc->purchased;
+            UpdateTimedChestDisplayName(interactable, interactable->gameObject);
+        } else if (interactable->category == InteractableCategory::Special &&
+                   interactable->displayName.find("Pressure Plate") != std::string::npos &&
+                   interactable->gameObject) {
+            UpdatePressurePlateDisplayName(interactable, interactable->gameObject);
+            isAvailable = true; // Pressure plates are always "available" to interact with
         } else if (interactable->purchaseInteraction) {
             PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
             isAvailable = pi->available;
         }
 
-        // Skip unavailable if not showing them
         if (!isAvailable && !control->ShouldShowUnavailable()) continue;
-
         if (distance > control->GetMaxDistance()) continue;
 
-        // Convert world position to screen
         Vector3 screenPos3D;
         Hooks::Camera_WorldToScreenPoint_Injected(mainCamera, &interactable->position,
                                                 MonoOrStereoscopicEye::Mono, &screenPos3D);
@@ -750,6 +1012,58 @@ void ESPModule::RenderInteractablesESP() {
 
         RenderInteractableESP(interactable, screenPos, distance, control, isVisible, onScreen, isAvailable);
     }
+}
+
+void ESPModule::UpdateTimedChestDisplayName(TrackedInteractable* interactable, void* timedChestController) {
+    if (!timedChestController) return;
+
+    TimedChestController* tcc = (TimedChestController*)timedChestController;
+
+    std::string baseName = "Timed Security Chest";
+
+    // Calculate time remaining
+    if (tcc->lockTime > 0 && !tcc->purchased) {
+        float currentTime = G::gameFunctions->GetRunStopwatch();
+        float timeRemaining = tcc->lockTime - currentTime;
+
+        // Format time as MM:SS (can be negative)
+        bool isNegative = timeRemaining < 0;
+        float absTime = isNegative ? -timeRemaining : timeRemaining;
+
+        int minutes = static_cast<int>(absTime) / 60;
+        int seconds = static_cast<int>(absTime) % 60;
+
+        char timeStr[16];
+        if (isNegative) {
+            snprintf(timeStr, sizeof(timeStr), " [-%02d:%02d]", minutes, seconds);
+        } else {
+            snprintf(timeStr, sizeof(timeStr), " [%02d:%02d]", minutes, seconds);
+        }
+        baseName += timeStr;
+    }
+
+    // Update if purchased
+    if (tcc->purchased) {
+        baseName += " [OPENED]";
+    }
+
+    interactable->displayName = baseName;
+}
+
+void ESPModule::UpdatePressurePlateDisplayName(TrackedInteractable* interactable, void* pressurePlateController) {
+    if (!pressurePlateController) return;
+
+    PressurePlateController* ppc = (PressurePlateController*)pressurePlateController;
+
+    std::string baseName = "Pressure Plate";
+
+    if (ppc->switchDown) {
+        baseName += " (Active)";
+    } else {
+        baseName += " (Inactive)";
+    }
+
+    interactable->displayName = baseName;
 }
 
 void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 screenPos, float distance,
@@ -778,12 +1092,10 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
     if (control->ShouldShowName()) {
         std::string nameText = interactable->displayName;
 
-        // Add distance if enabled
         if (control->ShouldShowDistance()) {
             nameText += " (" + std::to_string((int)distance) + "m)";
         }
 
-        // Add unavailable suffix if needed
         if (!isAvailable) {
             nameText += " (Unavailable)";
         }
@@ -795,6 +1107,20 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
                                                  true,  // Center text
                                                  nameText.c_str());
         yOffset += fontSize + 2;
+
+        // Show item name for chests and shops if available
+        if (!interactable->itemName.empty() &&
+            (interactable->category == InteractableCategory::Chest ||
+             interactable->category == InteractableCategory::Shop)) {
+            std::string itemText = "[" + interactable->itemName + "]";
+            RenderUtils::RenderText(ImVec2(screenPos.x, screenPos.y - yOffset),
+                                   IM_COL32(255, 215, 0, 255), // Gold color for items
+                                   control->GetNameShadowColorU32(),
+                                   control->IsNameShadowEnabled(),
+                                   true,  // Center text
+                                   itemText.c_str());
+            yOffset += fontSize + 2;
+        }
     }
 
     // Draw cost/reward info
@@ -822,7 +1148,7 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
                         rewardText = "$" + std::to_string(pi->cost);
                         break;
                     case CostTypeIndex_Value::PercentHealth:
-                        rewardText = std::to_string(pi->cost) + "% Health";
+                        rewardText = std::to_string(pi->cost) + "% HP";
                         break;
                     case CostTypeIndex_Value::LunarCoin:
                         rewardText = std::to_string(pi->cost) + " Lunar " + (pi->cost == 1 ? "Coin" : "Coins");
@@ -881,4 +1207,79 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
         }
     }
 
+}
+
+void ESPModule::OnChestBehaviorSpawned(void* chestBehavior) {
+    // TODO: See if we can use this for anything
+    return;
+}
+
+void ESPModule::OnShopTerminalBehaviorSpawned(void* shopTerminalBehavior) {
+    if (!shopTerminalBehavior) return;
+
+    ShopTerminalBehavior* shop = (ShopTerminalBehavior*)shopTerminalBehavior;
+
+    Vector3 shopPos = {0, 0, 0};
+    if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
+        void* transform = Hooks::Component_get_transform(shopTerminalBehavior);
+        if (transform) {
+            Hooks::Transform_get_position_Injected(transform, &shopPos);
+        }
+    }
+
+    // Find the corresponding tracked interactable by position
+    std::lock_guard<std::mutex> lock(interactablesMutex);
+    for (auto& tracked : trackedInteractables) {
+        // Check if positions match
+        if (tracked->position == shopPos && tracked->category == InteractableCategory::Shop) {
+            // Get the pickup index from the shop
+            if (shop->pickupIndex != -1) {
+                tracked->pickupIndex = shop->pickupIndex;
+                // Get pickup name from pickup index using PickupCatalog
+                PickupDef* pickupDef = G::gameFunctions->GetPickupDef(shop->pickupIndex);
+                if (pickupDef && pickupDef->nameToken) {
+                    tracked->itemName = G::gameFunctions->Language_GetString((MonoString*)pickupDef->nameToken);
+                } else {
+                    tracked->itemName = "Unknown [" + std::to_string(shop->pickupIndex) + "]";
+                }
+            }
+            break;
+        }
+    }
+}
+
+void ESPModule::OnPressurePlateControllerSpawned(void* pressurePlateController) {
+    if (!pressurePlateController) return;
+
+    PressurePlateController* ppc = (PressurePlateController*)pressurePlateController;
+
+    Vector3 position = {0, 0, 0};
+    if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
+        void* transform = Hooks::Component_get_transform(pressurePlateController);
+        if (transform) {
+            Hooks::Transform_get_position_Injected(transform, &position);
+        }
+    }
+
+    std::string displayName = "Pressure Plate";
+
+    if (ppc->switchDown) {
+        displayName += " (Active)";
+    } else {
+        displayName += " (Inactive)";
+    }
+
+    // Create tracking info - categorize as special interactable
+    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    trackedInteractable->gameObject = pressurePlateController;
+    trackedInteractable->purchaseInteraction = nullptr;
+    trackedInteractable->position = position;
+    trackedInteractable->displayName = displayName;
+    trackedInteractable->category = InteractableCategory::Special;
+    trackedInteractable->consumed = false;
+    trackedInteractable->pickupIndex = -1;
+    trackedInteractable->itemName = "";
+
+    std::lock_guard<std::mutex> lock(interactablesMutex);
+    trackedInteractables.push_back(trackedInteractable);
 }

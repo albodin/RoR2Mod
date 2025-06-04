@@ -173,7 +173,17 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, BullseyeSearch, GetResults, 0, "System.Collections.Generic.IEnumerable<RoR2.HurtBox>", {});
     HOOK(RoR2, RoR2, PurchaseInteraction, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, BarrelInteraction, Start, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, GenericPickupController, Start, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, TimedChestController, OnEnable, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, TimedChestController, OnDisable, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, GenericInteraction, OnEnable, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, PickupPickerController, Awake, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, ScrapperController, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, Run, AdvanceStage, 1, "System.Void", {"RoR2.SceneDef"});
+    HOOK(RoR2, RoR2, Run, Awake, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, ChestBehavior, Start, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, ShopTerminalBehavior, Start, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, PressurePlateController, Start, 0, "System.Void", {});
 
 
     for (auto& target: hookTargets) {
@@ -522,6 +532,60 @@ void Hooks::hkRoR2BarrelInteractionStart(void* instance) {
     G::espModule->OnBarrelInteractionSpawned(instance);
 }
 
+void Hooks::hkRoR2GenericPickupControllerStart(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2GenericPickupControllerStart"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::espModule->OnGenericPickupControllerSpawned(instance);
+}
+
+void Hooks::hkRoR2TimedChestControllerOnEnable(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2TimedChestControllerOnEnable"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::espModule->OnTimedChestControllerSpawned(instance);
+}
+
+void Hooks::hkRoR2TimedChestControllerOnDisable(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2TimedChestControllerOnDisable"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::espModule->OnTimedChestControllerDespawned(instance);
+}
+
+void Hooks::hkRoR2GenericInteractionOnEnable(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2GenericInteractionOnEnable"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::espModule->OnGenericInteractionSpawned(instance);
+}
+
+void Hooks::hkRoR2PickupPickerControllerAwake(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2PickupPickerControllerAwake"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::espModule->OnPickupPickerControllerSpawned(instance);
+}
+
+void Hooks::hkRoR2ScrapperControllerStart(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2ScrapperControllerStart"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::espModule->OnScrapperControllerSpawned(instance);
+}
+
 void Hooks::hkRoR2RunAdvanceStage(void* instance, void* nextScene) {
     static auto originalFunc = reinterpret_cast<void(*)(void*, void*)>(hooks["RoR2RunAdvanceStage"]);
 
@@ -531,6 +595,42 @@ void Hooks::hkRoR2RunAdvanceStage(void* instance, void* nextScene) {
     }
 
     originalFunc(instance, nextScene);
+}
+
+void Hooks::hkRoR2RunAwake(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2RunAwake"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::runInstance = instance;
+}
+
+void Hooks::hkRoR2ChestBehaviorStart(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2ChestBehaviorStart"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::espModule->OnChestBehaviorSpawned(instance);
+}
+
+void Hooks::hkRoR2ShopTerminalBehaviorStart(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2ShopTerminalBehaviorStart"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::espModule->OnShopTerminalBehaviorSpawned(instance);
+}
+
+void Hooks::hkRoR2PressurePlateControllerStart(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2PressurePlateControllerStart"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::espModule->OnPressurePlateControllerSpawned(instance);
 }
 
 LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
