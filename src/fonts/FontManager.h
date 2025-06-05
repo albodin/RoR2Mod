@@ -27,4 +27,6 @@ public:
     static void InitializeFonts(ImFontAtlas* atlas);
     static void LoadCustomFonts(ImFontAtlas* atlas);
     static ImFont* GetESPFont();
+    static const ImWchar* GetGlyphRanges();
+    static void SetupUnicodeRanges(ImFontGlyphRangesBuilder& builder);
 };

@@ -450,9 +450,9 @@ float GameFunctions::GetRunStopwatch() {
     if (!G::runInstance) {
         return 0.0f;
     }
-    
+
     Run* run = (Run*)G::runInstance;
-    
+
     // Calculate run stopwatch: if paused, return offset; otherwise return fixedTime + offset
     if (run->runStopwatch.isPaused) {
         return run->runStopwatch.offsetFromFixedTime;

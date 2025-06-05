@@ -2,6 +2,7 @@
 #include "ModuleBase.h"
 #include "menu/InputControls.h"
 #include "game/GameStructs.h"
+#include "core/MonoTypes.h"
 #include <vector>
 #include <unordered_map>
 #include <mutex>
@@ -28,6 +29,8 @@ struct TrackedInteractable {
     void* purchaseInteraction;
     std::string displayName;
     std::string itemName; // Name of the item in chest/shop
+    std::string nameToken; // Store the language-independent token
+    std::string costString; // Store the localized cost string
     Vector3 position;
     InteractableCategory category;
     bool consumed; // For item pickups
@@ -51,6 +54,7 @@ private:
     ChestESPControl* portalESPControl;
 
     Vector3 teleporterPosition;
+    std::string teleporterDisplayName;
     Vector3 playerPosition;
     Camera* mainCamera;
 
@@ -60,13 +64,29 @@ private:
     std::mutex entitiesMutex;
     std::mutex interactablesMutex;
 
+    // Cached cost format strings
+    std::string m_moneyFormat;
+    std::string m_percentHealthFormat;
+    std::string m_itemFormat;
+    std::string m_lunarFormat;
+    std::string m_equipmentFormat;
+    std::string m_volatileBatteryFormat;
+    std::string m_artifactKeyFormat;
+    std::string m_rustedKeyFormat;
+    std::string m_encrustedKeyFormat;
+    std::string m_lunarCoinName;
+    std::string m_voidCoinName;
+    bool m_costFormatsInitialized;
+
     void RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible, bool onScreen);
     void UpdateTimedChestDisplayName(TrackedInteractable* interactable, void* timedChestController);
     void UpdatePressurePlateDisplayName(TrackedInteractable* interactable, void* pressurePlateController);
     void RenderInteractableESP(TrackedInteractable* interactable, ImVec2 screenPos, float distance, ChestESPSubControl* control, bool isVisible, bool onScreen, bool isAvailable);
     Vector3 GetCameraPosition();
     bool IsVisible(const Vector3& position);
-    InteractableCategory DetermineInteractableCategory(PurchaseInteraction* pi, const std::string& displayName);
+    InteractableCategory DetermineInteractableCategory(PurchaseInteraction* pi, MonoString* nameToken);
+    void InitializeCostFormats();
+    std::string GetCostString(CostTypeIndex_Value costType, int cost);
 
 public:
     ESPModule();

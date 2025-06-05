@@ -9,6 +9,7 @@
 #include <cstdio>
 
 ESPModule::ESPModule() : ModuleBase() {
+    m_costFormatsInitialized = false;
     Initialize();
 }
 
@@ -119,6 +120,7 @@ void ESPModule::OnTeleporterAwake(void* teleporter) {
     TeleporterInteraction* teleporter_ptr = (TeleporterInteraction*)teleporter;
     if (teleporter_ptr && teleporter_ptr->teleporterPositionIndicator) {
         Hooks::Transform_get_position_Injected(teleporter_ptr->teleporterPositionIndicator->targetTransform, &teleporterPosition);
+        teleporterDisplayName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("TELEPORTER_NAME"));
     }
 }
 
@@ -137,7 +139,13 @@ void ESPModule::RenderTeleporterESP() {
         return;
     }
 
-    RenderUtils::RenderText(screenPos, teleporterESPControl->GetColorU32(), teleporterESPControl->GetOutlineColorU32(), teleporterESPControl->IsOutlineEnabled(), true, "Teleporter (%.1fm)", distance);
+    // Use the localized teleporter name that was set during OnTeleporterAwake
+    std::string teleporterText = teleporterDisplayName.empty() ? "Teleporter" : teleporterDisplayName;
+    teleporterText += " (";
+    teleporterText += std::to_string((int)distance);
+    teleporterText += "m)";
+
+    RenderUtils::RenderText(screenPos, teleporterESPControl->GetColorU32(), teleporterESPControl->GetOutlineColorU32(), teleporterESPControl->IsOutlineEnabled(), true, "%s", teleporterText.c_str());
 }
 
 void ESPModule::OnCharacterBodySpawned(void* characterBody) {
@@ -422,7 +430,7 @@ void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float d
 
     if (control->ShouldShowName() && !entity->displayName.empty()) {
         RenderUtils::RenderText(textPos, control->GetNameColorU32(), IM_COL32(0, 0, 0, 255),
-                              true, true, entity->displayName.c_str());
+                              true, true, "%s", entity->displayName.c_str());
         textPos.y += lineHeight;
     }
 
@@ -545,84 +553,72 @@ bool ESPModule::IsVisible(const Vector3& position) {
     return !hitSomething;
 }
 
-InteractableCategory ESPModule::DetermineInteractableCategory(PurchaseInteraction* pi, const std::string& displayName) {
+InteractableCategory ESPModule::DetermineInteractableCategory(PurchaseInteraction* pi, MonoString* nameToken) {
     // Check for shrines first
     if (pi->isShrine || pi->isGoldShrine) {
         return InteractableCategory::Shrine;
     }
 
-    // Check display name for categorization
-    if (displayName.find("Shrine") != std::string::npos) {
-        return InteractableCategory::Shrine;
+    std::string token = "";
+    if (nameToken) {
+        token = G::g_monoRuntime->StringToUtf8(nameToken);
     }
 
-    // Drones
-    if (displayName.find("Drone") != std::string::npos ||
-        displayName.find("Turret") != std::string::npos ||
-        displayName.find("TC-280") != std::string::npos) {
-        return InteractableCategory::Drone;
-    }
-
-    // Shops and Printers
-    if (displayName.find("3D Printer") != std::string::npos ||
-        displayName.find("Multishop Terminal") != std::string::npos ||
-        displayName.find("Cauldron") != std::string::npos ||
-        displayName.find("Scrapper") != std::string::npos ||
-        displayName.find("Cleansing Pool") != std::string::npos ||
-        displayName.find("Mili-Tech Printer") != std::string::npos) {
+    if (token.find("SHRINE_CLEANSE_") != std::string::npos ||  // Cleansing Pool
+        token.find("DUPLICATOR_") != std::string::npos ||      // 3D Printer variants
+        token.find("MULTISHOP_TERMINAL_") != std::string::npos ||
+        token.find("BAZAAR_CAULDRON_") != std::string::npos ||
+        token.find("SCRAPPER_") != std::string::npos) {
         return InteractableCategory::Shop;
     }
 
-    // Portals
-    if (displayName.find("Portal") != std::string::npos) {
+    if (token.find("SHRINE_") != std::string::npos) {
+        return InteractableCategory::Shrine;
+    }
+
+    if (token.find("DRONE_") != std::string::npos ||
+        token.find("TURRET1_") != std::string::npos) {
+        return InteractableCategory::Drone;
+    }
+
+    if (token.find("PORTAL_") != std::string::npos &&
+        token.find("PORTAL_DIALER") == std::string::npos) {
         return InteractableCategory::Portal;
     }
 
-    // Special interactables - Environment Specific, Charging Zones, Skill Related
-    if (displayName.find("Newt Altar") != std::string::npos ||
-        displayName.find("Pillar") != std::string::npos ||
-        displayName.find("Frog") != std::string::npos ||
-        displayName.find("Lunar Seer") != std::string::npos ||
-        displayName.find("Teleporter") != std::string::npos ||
-        displayName.find("Halcyon") != std::string::npos ||
-        displayName.find("Obelisk") != std::string::npos ||
-        displayName.find("Deep Void Signal") != std::string::npos ||
-        displayName.find("Cell Vent") != std::string::npos ||
-        displayName.find("Radio Scanner") != std::string::npos ||
-        displayName.find("Pressure Plate") != std::string::npos ||
-        displayName.find("Fan") != std::string::npos ||
-        displayName.find("Broken REX") != std::string::npos ||
-        displayName.find("Broken Robot") != std::string::npos ||
-        displayName.find("Alloy Vulture Nest") != std::string::npos ||
-        displayName.find("Compound Generator") != std::string::npos ||
-        displayName.find("Glass Frog") != std::string::npos ||
-        displayName.find("Artifact Reliquary") != std::string::npos ||
-        displayName.find("Lunar Buds") != std::string::npos ||
-        displayName.find("Lunar Shop Refresher") != std::string::npos ||
-        displayName.find("Survivor Suspended In Time") != std::string::npos ||
-        displayName.find("Halcyon Beacon") != std::string::npos ||
-        displayName.find("Aurelionite Geode") != std::string::npos ||
-        displayName.find("Assessment Focus") != std::string::npos ||
-        displayName.find("Quantum Tunnel") != std::string::npos ||
-        displayName.find("Vending Machine") != std::string::npos ||
-        displayName.find("Beacon: Resupply") != std::string::npos) {
-        return InteractableCategory::Special;
+    // Chests - CHEST covers all variants (LUNAR_CHEST_, TIMEDCHEST_, etc.)
+    if (token.find("CHEST") != std::string::npos ||
+        token.find("LOCKBOX") != std::string::npos ||
+        token.find("SCAVBACKPACK_") != std::string::npos) {
+        return InteractableCategory::Chest;
     }
 
-    // Chests - Explicit chest patterns (more comprehensive detection)
-    if (displayName.find("Chest") != std::string::npos ||
-        displayName.find("Lunar Pod") != std::string::npos ||
-        displayName.find("Lockbox") != std::string::npos ||
-        displayName.find("Cache") != std::string::npos ||
-        displayName.find("Fragment") != std::string::npos ||
-        displayName.find("Barrel") != std::string::npos ||
-        displayName.find("Stalk") != std::string::npos ||
-        displayName.find("Void Cradle") != std::string::npos ||
-        displayName.find("Void Potential") != std::string::npos ||
-        displayName.find("Crashed Multishop Terminal") != std::string::npos ||
-        displayName.find("Timed Security Chest") != std::string::npos ||
-        displayName.find("Scavenger's Backpack") != std::string::npos) {
-        return InteractableCategory::Chest;
+    if (token.find("BARREL") != std::string::npos) {
+        return InteractableCategory::Barrel;
+    }
+
+    // Special interactables
+    if (token.find("NEWT_STATUE_") != std::string::npos ||       // Newt Altar
+        token.find("MOON_BATTERY_") != std::string::npos ||      // Pillars
+        token.find("FROG_") != std::string::npos ||
+        token.find("BAZAAR_SEER_") != std::string::npos ||       // Lunar Seer
+        token.find("TELEPORTER_") != std::string::npos ||
+        token.find("GOLDTOTEM_") != std::string::npos ||         // Halcyon Beacon
+        token.find("MSOBELISK_") != std::string::npos ||         // Obelisk
+        token.find("DEEPVOIDBATTERY_") != std::string::npos ||   // Deep Void Signal
+        token.find("NULL_WARD_") != std::string::npos ||         // Cell Vent
+        token.find("RADIOTOWER_") != std::string::npos ||        // Radio Scanner
+        token.find("FAN_") != std::string::npos ||
+        token.find("LOCKEDTREEBOT_") != std::string::npos ||     // Broken Robot
+        token.find("PORTAL_DIALER_") != std::string::npos ||     // Compound Generator
+        token.find("ARTIFACT_TRIAL_") != std::string::npos ||    // Artifact Reliquary
+        token.find("LUNAR_TERMINAL_") != std::string::npos ||    // Lunar Buds
+        token.find("LUNAR_REROLL_") != std::string::npos ||      // Lunar Shop Refresher
+        token.find("LOCKEDMAGE_") != std::string::npos ||        // Survivor Suspended In Time
+        token.find("ZIPLINE_") != std::string::npos ||           // Quantum Tunnel
+        token.find("VENDING_MACHINE_") != std::string::npos ||
+        token.find("GEODE_") != std::string::npos) {             // Aurelionite Geode
+        return InteractableCategory::Special;
     }
 
     // Everything else is unknown
@@ -652,12 +648,16 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
         return;
     }
 
-    // Determine category
-    InteractableCategory category = DetermineInteractableCategory(pi, displayName);
+    // Determine category using language-independent token
+    InteractableCategory category = DetermineInteractableCategory(pi, (MonoString*)pi->displayNameToken);
 
     // Log error if unknown interactable found
     if (category == InteractableCategory::Unknown) {
-        G::logger.LogError("Unknown interactable detected: \"" + displayName + "\" - Please report this to the developers!");
+        std::string token = "";
+        if (pi->displayNameToken) {
+            token = G::g_monoRuntime->StringToUtf8((MonoString*)pi->displayNameToken);
+        }
+        G::logger.LogError("Unknown interactable detected: token=\"" + token + "\" display=\"" + displayName + "\" - Please report this to the developers!");
         displayName += " (UNKNOWN)";
     }
 
@@ -667,10 +667,20 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
     trackedInteractable->purchaseInteraction = purchaseInteraction;
     trackedInteractable->position = position;
     trackedInteractable->displayName = displayName;
+    trackedInteractable->nameToken = "";
+    if (pi->displayNameToken) {
+        trackedInteractable->nameToken = G::g_monoRuntime->StringToUtf8((MonoString*)pi->displayNameToken);
+    }
     trackedInteractable->category = category;
     trackedInteractable->consumed = false;
     trackedInteractable->pickupIndex = -1;
     trackedInteractable->itemName = "";
+
+    // Get the localized cost string
+    trackedInteractable->costString = "";
+    if (pi->cost > 0) {
+        trackedInteractable->costString = GetCostString(pi->costType, pi->cost);
+    }
 
     // Add to tracked interactables
     std::lock_guard<std::mutex> lock(interactablesMutex);
@@ -727,8 +737,13 @@ void ESPModule::OnBarrelInteractionSpawned(void* barrelInteraction) {
     trackedInteractable->purchaseInteraction = nullptr; // Barrels don't use PurchaseInteraction
     trackedInteractable->position = position;
     trackedInteractable->displayName = displayName;
+    trackedInteractable->nameToken = "";
+    if (barrel->displayNameToken) {
+        trackedInteractable->nameToken = G::g_monoRuntime->StringToUtf8((MonoString*)barrel->displayNameToken);
+    }
     trackedInteractable->category = InteractableCategory::Barrel;
     trackedInteractable->consumed = false;
+    trackedInteractable->costString = "";
 
     // Add to tracked interactables
     std::lock_guard<std::mutex> lock(interactablesMutex);
@@ -752,7 +767,7 @@ void ESPModule::OnGenericInteractionSpawned(void* genericInteraction) {
     }
 
     // Get display name - GenericInteraction uses contextToken instead of displayNameToken
-    std::string displayName = "Generic Interaction";
+    std::string displayName = "Generic Interaction"; // Fallback only
     if (gi->contextToken) {
         displayName = G::gameFunctions->Language_GetString((MonoString*)gi->contextToken);
     }
@@ -762,16 +777,23 @@ void ESPModule::OnGenericInteractionSpawned(void* genericInteraction) {
         return;
     }
 
-    // Filter out unwanted interactions
-    if (displayName == "Open Panel" ||
-        displayName == "Cycle Compound" ||
-        displayName == "Shift Destination") {
+    // Convert token to string for filtering (language-independent)
+    std::string token = "";
+    if (gi->contextToken) {
+        token = G::g_monoRuntime->StringToUtf8((MonoString*)gi->contextToken);
+    }
+
+    // Filter out unwanted interactions using tokens
+    if (token == "SURVIVOR_POD_OPEN_PANEL_CONTEXT" ||      // "Open Panel"
+        token == "PORTAL_DIALER_CONTEXT" ||                // "Cycle Compound"
+        token == "LUNAR_TELEPORTER_SHIFT") {               // "Shift Destination"
         return;
     }
 
     InteractableCategory category = InteractableCategory::Special;
 
-    if (displayName.find("Portal") != std::string::npos) {
+    if (token.find("PORTAL_") != std::string::npos &&
+        token.find("PORTAL_DIALER") == std::string::npos) {
         category = InteractableCategory::Portal;
     }
 
@@ -781,8 +803,10 @@ void ESPModule::OnGenericInteractionSpawned(void* genericInteraction) {
     trackedInteractable->purchaseInteraction = nullptr;
     trackedInteractable->position = position;
     trackedInteractable->displayName = displayName;
+    trackedInteractable->nameToken = token;
     trackedInteractable->category = category;
     trackedInteractable->consumed = false;
+    trackedInteractable->costString = "";
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
     trackedInteractables.push_back(trackedInteractable);
@@ -809,7 +833,7 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
         return;
     }
 
-    std::string displayName = "Item Pickup";
+    std::string displayName = "Item Pickup"; // Fallback only
 
     PickupDef* pickupDef = G::gameFunctions->GetPickupDef(gpc->pickupIndex);
     if (pickupDef && pickupDef->nameToken) {
@@ -825,8 +849,10 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
     trackedInteractable->purchaseInteraction = nullptr;
     trackedInteractable->position = position;
     trackedInteractable->displayName = displayName;
+    trackedInteractable->nameToken = ""; // Item pickups don't have name tokens
     trackedInteractable->category = InteractableCategory::ItemPickup;
     trackedInteractable->consumed = false;
+    trackedInteractable->costString = "";
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
     trackedInteractables.push_back(trackedInteractable);
@@ -847,7 +873,7 @@ void ESPModule::OnTimedChestControllerSpawned(void* timedChestController) {
         }
     }
 
-    std::string displayName = "Timed Security Chest";
+    std::string displayName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("TIMEDCHEST_NAME"));
     void* purchaseInteraction = nullptr;
 
     // Create tracking info
@@ -856,8 +882,10 @@ void ESPModule::OnTimedChestControllerSpawned(void* timedChestController) {
     trackedInteractable->purchaseInteraction = purchaseInteraction;
     trackedInteractable->position = position;
     trackedInteractable->displayName = displayName;
+    trackedInteractable->nameToken = "TIMEDCHEST_NAME";
     trackedInteractable->category = InteractableCategory::Chest;
     trackedInteractable->consumed = false;
+    trackedInteractable->costString = "";
 
     {
         std::lock_guard<std::mutex> lock(interactablesMutex);
@@ -900,7 +928,7 @@ void ESPModule::OnScrapperControllerSpawned(void* scrapperController) {
         }
     }
 
-    std::string displayName = "Scrapper";
+    std::string displayName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("SCRAPPER_NAME"));
 
     // Create tracking info
     TrackedInteractable* trackedInteractable = new TrackedInteractable();
@@ -908,8 +936,10 @@ void ESPModule::OnScrapperControllerSpawned(void* scrapperController) {
     trackedInteractable->purchaseInteraction = nullptr;
     trackedInteractable->position = position;
     trackedInteractable->displayName = displayName;
+    trackedInteractable->nameToken = "SCRAPPER_NAME";
     trackedInteractable->category = InteractableCategory::Shop;
     trackedInteractable->consumed = false;
+    trackedInteractable->costString = "";
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
     trackedInteractables.push_back(trackedInteractable);
@@ -939,8 +969,9 @@ void ESPModule::OnStageStart(void* stage) {
         trackedPlayers.clear();
     }
 
-    // Reset teleporter position
+    // Reset teleporter position and display name
     teleporterPosition = Vector3{0, 0, 0};
+    teleporterDisplayName = "";
 }
 
 void ESPModule::RenderInteractablesESP() {
@@ -979,19 +1010,27 @@ void ESPModule::RenderInteractablesESP() {
             BarrelInteraction* barrel = (BarrelInteraction*)interactable->gameObject;
             isAvailable = !barrel->opened;
         } else if (interactable->category == InteractableCategory::Chest &&
-                   interactable->displayName.find("Timed Security Chest") != std::string::npos &&
+                   interactable->nameToken.find("TIMEDCHEST_") != std::string::npos &&
                    interactable->gameObject) {
             TimedChestController* tcc = (TimedChestController*)interactable->gameObject;
             isAvailable = !tcc->purchased;
             UpdateTimedChestDisplayName(interactable, interactable->gameObject);
         } else if (interactable->category == InteractableCategory::Special &&
-                   interactable->displayName.find("Pressure Plate") != std::string::npos &&
+                   interactable->nameToken.find("PRESSURE_PLATE_") != std::string::npos &&
                    interactable->gameObject) {
             UpdatePressurePlateDisplayName(interactable, interactable->gameObject);
             isAvailable = true; // Pressure plates are always "available" to interact with
         } else if (interactable->purchaseInteraction) {
             PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
             isAvailable = pi->available;
+
+            // Update cost string if it has changed
+            if (pi->cost > 0) {
+                std::string newCostString = GetCostString(pi->costType, pi->cost);
+                if (newCostString != interactable->costString) {
+                    interactable->costString = newCostString;
+                }
+            }
         }
 
         if (!isAvailable && !control->ShouldShowUnavailable()) continue;
@@ -1019,7 +1058,13 @@ void ESPModule::UpdateTimedChestDisplayName(TrackedInteractable* interactable, v
 
     TimedChestController* tcc = (TimedChestController*)timedChestController;
 
-    std::string baseName = "Timed Security Chest";
+    // Use the original display name that was already localized when the interactable was created
+    std::string baseName = interactable->displayName;
+    // Remove any previous status suffixes
+    size_t bracketPos = baseName.find(" [");
+    if (bracketPos != std::string::npos) {
+        baseName = baseName.substr(0, bracketPos);
+    }
 
     // Calculate time remaining
     if (tcc->lockTime > 0 && !tcc->purchased) {
@@ -1055,7 +1100,13 @@ void ESPModule::UpdatePressurePlateDisplayName(TrackedInteractable* interactable
 
     PressurePlateController* ppc = (PressurePlateController*)pressurePlateController;
 
-    std::string baseName = "Pressure Plate";
+    // Use the original display name that was already localized when the interactable was created
+    std::string baseName = interactable->displayName;
+    // Remove any previous status suffixes
+    size_t parenPos = baseName.find(" (");
+    if (parenPos != std::string::npos) {
+        baseName = baseName.substr(0, parenPos);
+    }
 
     if (ppc->switchDown) {
         baseName += " (Active)";
@@ -1105,7 +1156,7 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
                                                  control->GetNameShadowColorU32(),
                                                  control->IsNameShadowEnabled(),
                                                  true,  // Center text
-                                                 nameText.c_str());
+                                                 "%s", nameText.c_str());
         yOffset += fontSize + 2;
 
         // Show item name for chests and shops if available
@@ -1118,7 +1169,7 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
                                    control->GetNameShadowColorU32(),
                                    control->IsNameShadowEnabled(),
                                    true,  // Center text
-                                   itemText.c_str());
+                                   "%s", itemText.c_str());
             yOffset += fontSize + 2;
         }
     }
@@ -1137,62 +1188,9 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
                 }
             }
         } else if (interactable->purchaseInteraction) {
-            // Get cost info from PurchaseInteraction
-            PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
-            if (pi->cost > 0) {
-                switch(pi->costType) {
-                    case CostTypeIndex_Value::None:
-                        rewardText = "Free";
-                        break;
-                    case CostTypeIndex_Value::Money:
-                        rewardText = "$" + std::to_string(pi->cost);
-                        break;
-                    case CostTypeIndex_Value::PercentHealth:
-                        rewardText = std::to_string(pi->cost) + "% HP";
-                        break;
-                    case CostTypeIndex_Value::LunarCoin:
-                        rewardText = std::to_string(pi->cost) + " Lunar " + (pi->cost == 1 ? "Coin" : "Coins");
-                        break;
-                    case CostTypeIndex_Value::WhiteItem:
-                        rewardText = std::to_string(pi->cost) + " White " + (pi->cost == 1 ? "Item" : "Items");
-                        break;
-                    case CostTypeIndex_Value::GreenItem:
-                        rewardText = std::to_string(pi->cost) + " Green " + (pi->cost == 1 ? "Item" : "Items");
-                        break;
-                    case CostTypeIndex_Value::RedItem:
-                        rewardText = std::to_string(pi->cost) + " Red " + (pi->cost == 1 ? "Item" : "Items");
-                        break;
-                    case CostTypeIndex_Value::Equipment:
-                        rewardText = std::to_string(pi->cost) + " Equipment";
-                        break;
-                    case CostTypeIndex_Value::VolatileBattery:
-                        rewardText = std::to_string(pi->cost) + " Volatile " + (pi->cost == 1 ? "Battery" : "Batteries");
-                        break;
-                    case CostTypeIndex_Value::LunarItemOrEquipment:
-                        rewardText = std::to_string(pi->cost) + " Lunar Item/Equipment";
-                        break;
-                    case CostTypeIndex_Value::BossItem:
-                        rewardText = std::to_string(pi->cost) + " Boss " + (pi->cost == 1 ? "Item" : "Items");
-                        break;
-                    case CostTypeIndex_Value::ArtifactShellKillerItem:
-                        rewardText = std::to_string(pi->cost) + " Artifact Shell Killer " + (pi->cost == 1 ? "Item" : "Items");
-                        break;
-                    case CostTypeIndex_Value::TreasureCacheItem:
-                        rewardText = std::to_string(pi->cost) + " Treasure Cache " + (pi->cost == 1 ? "Item" : "Items");
-                        break;
-                    case CostTypeIndex_Value::TreasureCacheVoidItem:
-                        rewardText = std::to_string(pi->cost) + " Treasure Cache Void " + (pi->cost == 1 ? "Item" : "Items");
-                        break;
-                    case CostTypeIndex_Value::VoidCoin:
-                        rewardText = std::to_string(pi->cost) + " Void " + (pi->cost == 1 ? "Coin" : "Coins");
-                        break;
-                    case CostTypeIndex_Value::SoulCost:
-                        rewardText = std::to_string(pi->cost) + " Soul Cost";
-                        break;
-                    default:
-                        rewardText = "Cost: " + std::to_string(pi->cost);
-                        break;
-                }
+            // Use the cached cost string that was localized when the interactable was created
+            if (!interactable->costString.empty()) {
+                rewardText = interactable->costString;
             }
         }
 
@@ -1202,7 +1200,7 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
                                                      control->GetCostShadowColorU32(),
                                                      control->IsCostShadowEnabled(),
                                                      true,  // Center text
-                                                     rewardText.c_str());
+                                                     "%s", rewardText.c_str());
             yOffset += fontSize + 2;
         }
     }
@@ -1261,7 +1259,8 @@ void ESPModule::OnPressurePlateControllerSpawned(void* pressurePlateController) 
         }
     }
 
-    std::string displayName = "Pressure Plate";
+    // Note: Pressure plates don't seem to have standard language tokens, they're dynamic
+    std::string displayName = "Pressure Plate"; // TODO: Find proper localization
 
     if (ppc->switchDown) {
         displayName += " (Active)";
@@ -1275,11 +1274,104 @@ void ESPModule::OnPressurePlateControllerSpawned(void* pressurePlateController) 
     trackedInteractable->purchaseInteraction = nullptr;
     trackedInteractable->position = position;
     trackedInteractable->displayName = displayName;
+    trackedInteractable->nameToken = "PRESSURE_PLATE_DYNAMIC"; // Mark as dynamic
     trackedInteractable->category = InteractableCategory::Special;
     trackedInteractable->consumed = false;
     trackedInteractable->pickupIndex = -1;
     trackedInteractable->itemName = "";
+    trackedInteractable->costString = "";
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
     trackedInteractables.push_back(trackedInteractable);
+}
+
+void ESPModule::InitializeCostFormats() {
+    if (m_costFormatsInitialized) return;
+
+    G::logger.LogInfo("Initializing cost formats...");
+
+    m_moneyFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_MONEY_FORMAT"));
+    m_percentHealthFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_PERCENTHEALTH_FORMAT"));
+    m_itemFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_ITEM_FORMAT"));
+    m_lunarFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_LUNAR_FORMAT"));
+    m_equipmentFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_EQUIPMENT_FORMAT"));
+    m_volatileBatteryFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_VOLATILEBATTERY_FORMAT"));
+    m_artifactKeyFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_ARTIFACTSHELLKILLERITEM_FORMAT"));
+    m_rustedKeyFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_TREASURECACHEITEM_FORMAT"));
+    m_encrustedKeyFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_TREASURECACHEVOIDITEM_FORMAT"));
+    m_lunarCoinName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("PICKUP_LUNAR_COIN"));
+    m_voidCoinName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("PICKUP_VOID_COIN"));
+
+    m_costFormatsInitialized = true;
+    G::logger.LogInfo("Cost formats initialized successfully");
+}
+
+std::string ESPModule::GetCostString(CostTypeIndex_Value costType, int cost) {
+    if (!m_costFormatsInitialized) {
+        InitializeCostFormats();
+    }
+
+    std::string format;
+
+    switch (costType) {
+        case CostTypeIndex_Value::None:
+            return std::to_string(cost);
+
+        case CostTypeIndex_Value::Money:
+            format = m_moneyFormat;
+            break;
+
+        case CostTypeIndex_Value::PercentHealth:
+            format = m_percentHealthFormat;
+            break;
+
+        case CostTypeIndex_Value::LunarCoin:
+            return std::to_string(cost) + " " + m_lunarCoinName;
+
+        case CostTypeIndex_Value::WhiteItem:
+        case CostTypeIndex_Value::GreenItem:
+        case CostTypeIndex_Value::RedItem:
+        case CostTypeIndex_Value::BossItem:
+            format = m_itemFormat;
+            break;
+
+        case CostTypeIndex_Value::LunarItemOrEquipment:
+            format = m_lunarFormat;
+            break;
+
+        case CostTypeIndex_Value::Equipment:
+            format = m_equipmentFormat;
+            break;
+
+        case CostTypeIndex_Value::VolatileBattery:
+            format = m_volatileBatteryFormat;
+            break;
+
+        case CostTypeIndex_Value::ArtifactShellKillerItem:
+            format = m_artifactKeyFormat;
+            break;
+
+        case CostTypeIndex_Value::TreasureCacheItem:
+            format = m_rustedKeyFormat;
+            break;
+
+        case CostTypeIndex_Value::TreasureCacheVoidItem:
+            format = m_encrustedKeyFormat;
+            break;
+
+        case CostTypeIndex_Value::VoidCoin:
+            return std::to_string(cost) + " " + m_voidCoinName;
+
+        default:
+            G::logger.LogWarning("Unknown cost type: %d", (int)costType);
+            return std::to_string(cost) + " Unknown";
+    }
+
+    // Replace {0} with the cost value
+    size_t pos = format.find("{0}");
+    if (pos != std::string::npos) {
+        format.replace(pos, 3, std::to_string(cost));
+    }
+
+    return format;
 }

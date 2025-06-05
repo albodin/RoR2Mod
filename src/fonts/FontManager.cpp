@@ -12,9 +12,12 @@ float FontManager::ESPFontSize = 15.0f;
 int FontManager::CurrentFontIndex = 0;
 
 std::vector<FontManager::FontInfo> FontManager::AvailableFonts;
+static const ImWchar* UnicodeRanges = nullptr;
 
 void FontManager::InitializeFonts(ImFontAtlas* atlas) {
     atlas->Clear();
+
+    const ImWchar* glyphRanges = GetGlyphRanges();
 
     ImFontConfig config;
     config.FontDataOwnedByAtlas = false;
@@ -22,7 +25,8 @@ void FontManager::InitializeFonts(ImFontAtlas* atlas) {
     config.OversampleV = 2;
     config.PixelSnapH = true;
 
-    DefaultFont = atlas->AddFontDefault();
+    config.GlyphRanges = glyphRanges;
+    DefaultFont = atlas->AddFontDefault(&config);
     FontInfo defaultFontInfo = {"Default Font", "", DefaultFont};
     AvailableFonts.push_back(defaultFontInfo);
 
@@ -40,7 +44,7 @@ void FontManager::InitializeFonts(ImFontAtlas* atlas) {
     JetBrainsMono = atlas->AddFontFromMemoryCompressedTTF(
         JetBrainsMonoReg_compressed_data,
         JetBrainsMonoReg_compressed_size,
-        BaseFontSize, &config);
+        BaseFontSize, &config, glyphRanges);
     FontInfo jetBrainsMonoInfo = {"JetBrains Mono", "", JetBrainsMono};
     AvailableFonts.push_back(jetBrainsMonoInfo);
 
@@ -72,6 +76,7 @@ void FontManager::LoadCustomFonts(ImFontAtlas* atlas) {
     config.OversampleH = 2;
     config.OversampleV = 2;
     config.PixelSnapH = true;
+    config.GlyphRanges = GetGlyphRanges();
 
     try {
         for (const auto& entry : std::filesystem::directory_iterator(fontDir)) {
@@ -89,7 +94,7 @@ void FontManager::LoadCustomFonts(ImFontAtlas* atlas) {
                     fontName = fontName.substr(0, extPos);
                 }
 
-                ImFont* font = atlas->AddFontFromFileTTF(fontPath.c_str(), BaseFontSize, &config);
+                ImFont* font = atlas->AddFontFromFileTTF(fontPath.c_str(), BaseFontSize, &config, GetGlyphRanges());
 
                 if (font) {
                     FontInfo fontInfo = {fontName, fontPath, font};
@@ -112,4 +117,32 @@ ImFont* FontManager::GetESPFont() {
         return AvailableFonts[CurrentFontIndex].font;
     }
     return DefaultFont;
+}
+
+const ImWchar* FontManager::GetGlyphRanges() {
+    if (UnicodeRanges == nullptr) {
+        static ImFontGlyphRangesBuilder builder;
+        SetupUnicodeRanges(builder);
+        static ImVector<ImWchar> ranges;
+        builder.BuildRanges(&ranges);
+        UnicodeRanges = ranges.Data;
+    }
+    return UnicodeRanges;
+}
+
+void FontManager::SetupUnicodeRanges(ImFontGlyphRangesBuilder& builder) {
+    ImGuiIO& io = ImGui::GetIO();
+
+    builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
+
+    // Add Latin Extended A & B (for European languages including Turkish)
+    // Latin Extended-A: U+0100-U+017F (includes Eastern European characters)
+    // Latin Extended-B: U+0180-U+024F (includes additional phonetic extensions)
+    static const ImWchar latin_extended_ranges[] = { 0x0100, 0x024F, 0 };
+    builder.AddRanges(latin_extended_ranges);
+
+    builder.AddRanges(io.Fonts->GetGlyphRangesCyrillic());
+    builder.AddRanges(io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
+    builder.AddRanges(io.Fonts->GetGlyphRangesJapanese());
+    builder.AddRanges(io.Fonts->GetGlyphRangesKorean());
 }
