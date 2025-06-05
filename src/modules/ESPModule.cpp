@@ -234,7 +234,7 @@ void ESPModule::RenderPlayerESP() {
         Vector3 playerWorldPos;
         Hooks::Transform_get_position_Injected(entity->body->transform, &playerWorldPos);
 
-        float distance = playerWorldPos.Distance(GetCameraPosition());
+        float distance = playerWorldPos.Distance(G::localPlayer->GetPlayerPosition());
 
         bool isVisible = IsVisible(playerWorldPos);
 
@@ -282,7 +282,7 @@ void ESPModule::RenderEnemyESP() {
         Vector3 enemyWorldPos;
         Hooks::Transform_get_position_Injected(entity->body->transform, &enemyWorldPos);
 
-        float distance = enemyWorldPos.Distance(GetCameraPosition());
+        float distance = enemyWorldPos.Distance(G::localPlayer->GetPlayerPosition());
 
         bool isVisible = IsVisible(enemyWorldPos);
 
@@ -998,7 +998,7 @@ void ESPModule::RenderInteractablesESP() {
 
         if (!categoryControl || !categoryControl->IsMasterEnabled()) continue;
 
-        float distance = interactable->position.Distance(GetCameraPosition());
+        float distance = interactable->position.Distance(G::localPlayer->GetPlayerPosition());
 
         ChestESPSubControl* control = categoryControl->GetSubControl();
 
