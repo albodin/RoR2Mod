@@ -14,6 +14,7 @@ PlayerModule::PlayerModule() : ModuleBase(),
     teleportToCursorControl(nullptr),
     huntressRangeControl(nullptr),
     huntressFOVControl(nullptr),
+    huntressEnemyOnlyTargetingControl(nullptr),
     localInventory_cached(nullptr),
     localUser_cached(nullptr),
     cachedHuntressTracker(nullptr) {
@@ -30,6 +31,7 @@ PlayerModule::~PlayerModule() {
     delete teleportToCursorControl;
     delete huntressRangeControl;
     delete huntressFOVControl;
+    delete huntressEnemyOnlyTargetingControl;
 
     for (auto& [index, control] : itemControls) {
         delete control;
@@ -58,6 +60,7 @@ void PlayerModule::Initialize() {
     huntressRangeControl = new FloatControl("Huntress Range", "huntressRange", 20.0f, 0.0f, 1000.0f, 5.0f);
     huntressFOVControl = new FloatControl("Huntress FOV", "huntressFOV", 20.0f, 0.0f, 180.0f, 5.0f);
     huntressWallPenetrationControl = new ToggleControl("Huntress Wall Penetration", "huntressWallPenetration", false);
+    huntressEnemyOnlyTargetingControl = new ToggleControl("Huntress Ignore Breakables", "huntressEnemyOnlyTargeting", false);
 
     teleportToCursorControl->SetOnAction([this]() {
         if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->_cameraRigController) {
@@ -77,6 +80,7 @@ void PlayerModule::Update() {
     teleportToCursorControl->Update();
     huntressRangeControl->Update();
     huntressFOVControl->Update();
+    huntressEnemyOnlyTargetingControl->Update();
 
     for (auto& [index, control] : itemControls) {
         control->Update();
@@ -96,6 +100,7 @@ void PlayerModule::DrawUI() {
         huntressRangeControl->Draw();
         huntressFOVControl->Draw();
         huntressWallPenetrationControl->Draw();
+        huntressEnemyOnlyTargetingControl->Draw();
     }
 
     if (ImGui::CollapsingHeader("Items")) {

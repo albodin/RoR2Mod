@@ -34,6 +34,7 @@ namespace Hooks {
     void hkRoR2CharacterBodyOnDestroy(void*);
     void hkRoR2HuntressTrackerStart(void*);
     void* hkRoR2BullseyeSearchGetResults(void*);
+    void hkRoR2BullseyeSearchRefreshCandidates(void*);
     void hkRoR2PurchaseInteractionStart(void*);
     void hkRoR2BarrelInteractionStart(void*);
     void hkRoR2GenericPickupControllerStart(void*);

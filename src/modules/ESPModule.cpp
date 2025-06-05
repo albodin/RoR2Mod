@@ -657,7 +657,7 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
         if (pi->displayNameToken) {
             token = G::g_monoRuntime->StringToUtf8((MonoString*)pi->displayNameToken);
         }
-        G::logger.LogError("Unknown interactable detected: token=\"" + token + "\" display=\"" + displayName + "\" - Please report this to the developers!");
+        G::logger.LogError("Unknown PurchaseInteraction detected: token=\"" + token + "\" display=\"" + displayName + "\" cost=" + std::to_string(pi->cost) + " isShrine=" + std::to_string(pi->isShrine) + " - Please report this to the developers!");
         displayName += " (UNKNOWN)";
     }
 

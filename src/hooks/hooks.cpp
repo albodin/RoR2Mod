@@ -171,6 +171,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, CharacterBody, OnDestroy, 0, "System.Void", {});
     HOOK(RoR2, RoR2, HuntressTracker, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, BullseyeSearch, GetResults, 0, "System.Collections.Generic.IEnumerable<RoR2.HurtBox>", {});
+    HOOK(RoR2, RoR2, BullseyeSearch, RefreshCandidates, 0, "System.Void", {});
     HOOK(RoR2, RoR2, PurchaseInteraction, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, BarrelInteraction, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, GenericPickupController, Start, 0, "System.Void", {});
@@ -481,6 +482,41 @@ void Hooks::hkRoR2HuntressTrackerStart(void* instance) {
     if (!G::hooksInitialized) return;
 
     G::localPlayer->OnHuntressTrackerStart(instance);
+}
+
+void Hooks::hkRoR2BullseyeSearchRefreshCandidates(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2BullseyeSearchRefreshCandidates"]);
+
+    if (!G::hooksInitialized) {
+        originalFunc(instance);
+        return;
+    }
+
+    // Check if this is the cached HuntressTracker's search
+    HuntressTracker* huntressTracker = G::localPlayer ? G::localPlayer->GetCachedHuntressTracker() : nullptr;
+    if (huntressTracker && huntressTracker->search == instance) {
+        BullseyeSearch* search = static_cast<BullseyeSearch*>(instance);
+        uint8_t originalTeamMask = search->teamMaskFilter;
+
+        // Apply enemy-only targeting if enabled
+        if (G::localPlayer->GetHuntressEnemyOnlyTargetingControl() &&
+            G::localPlayer->GetHuntressEnemyOnlyTargetingControl()->IsEnabled()) {
+            // Only target Monster, Lunar, and Void teams (actual enemies)
+            // Exclude Neutral (breakables), Player (allies)
+            static const uint8_t enemyOnlyMask = (1 << static_cast<int>(TeamIndex_Value::Monster)) |
+                                                (1 << static_cast<int>(TeamIndex_Value::Lunar)) |
+                                                (1 << static_cast<int>(TeamIndex_Value::Void));
+            search->teamMaskFilter = enemyOnlyMask;
+        }
+
+        originalFunc(instance);
+
+        // Restore the original team mask
+        search->teamMaskFilter = originalTeamMask;
+        return;
+    }
+
+    originalFunc(instance);
 }
 
 void* Hooks::hkRoR2BullseyeSearchGetResults(void* instance) {
