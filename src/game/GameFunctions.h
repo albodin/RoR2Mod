@@ -31,6 +31,7 @@ public:
     void Cursor_SetVisible(bool visible);
     std::string Language_GetString(MonoString* token);
     PickupDef* GetPickupDef(int pickupIndex);
+    int LoadPickupNames();
     int LoadItems();
     void Inventory_GiveItem(void* m_inventory, int itemIndex, int count);
     bool RoR2Application_IsLoading();

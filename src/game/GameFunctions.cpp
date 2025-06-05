@@ -135,6 +135,36 @@ PickupDef* GameFunctions::GetPickupDef(int pickupIndex) {
     return reinterpret_cast<PickupDef*>(pickupDefObj);
 }
 
+int GameFunctions::LoadPickupNames() {
+    if (!m_pickupCatalogClass) return -1;
+
+    MonoField* entriesField = m_runtime->GetField(m_pickupCatalogClass, "entries");
+    if (!entriesField) {
+        G::logger.LogError("Failed to find PickupCatalog.entries field");
+        return -1;
+    }
+
+    MonoArray* entriesArray = m_runtime->GetStaticFieldValue<MonoArray*>(m_pickupCatalogClass, entriesField);
+    if (!entriesArray) {
+        G::logger.LogError("Failed to get PickupCatalog.entries array");
+        return -1;
+    }
+
+    int arrayLength = m_runtime->GetArrayLength(entriesArray);
+
+    for (int i = 0; i < arrayLength; i++) {
+        PickupDef* pickupDef = GetPickupDef(i);
+        if (pickupDef && pickupDef->nameToken) {
+            std::string name = Language_GetString((MonoString*)pickupDef->nameToken);
+            if (!name.empty()) {
+                G::espModule->CachePickupName(i, name);
+            }
+        }
+    }
+
+    return arrayLength;
+}
+
 // Function should only be called from safe threads so queue is not needed
 int GameFunctions::LoadItems() {
     if (!m_contentManagerClass || !m_itemDefClass) {

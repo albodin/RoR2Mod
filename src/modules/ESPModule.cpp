@@ -10,6 +10,7 @@
 
 ESPModule::ESPModule() : ModuleBase() {
     m_costFormatsInitialized = false;
+    m_pickupCacheInitialized = false;
     Initialize();
 }
 
@@ -833,15 +834,7 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
         return;
     }
 
-    std::string displayName = "Item Pickup"; // Fallback only
-
-    PickupDef* pickupDef = G::gameFunctions->GetPickupDef(gpc->pickupIndex);
-    if (pickupDef && pickupDef->nameToken) {
-        displayName = G::gameFunctions->Language_GetString((MonoString*)pickupDef->nameToken);
-    } else {
-        // If not found, show the pickup index for debugging
-        displayName = "Item Pickup [" + std::to_string(gpc->pickupIndex) + "]";
-    }
+    std::string displayName = GetPickupName(gpc->pickupIndex);
 
     // Create tracking info - categorize as item pickup
     TrackedInteractable* trackedInteractable = new TrackedInteractable();
@@ -853,6 +846,7 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
     trackedInteractable->category = InteractableCategory::ItemPickup;
     trackedInteractable->consumed = false;
     trackedInteractable->costString = "";
+    trackedInteractable->pickupIndex = gpc->pickupIndex;
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
     trackedInteractables.push_back(trackedInteractable);
@@ -1027,6 +1021,14 @@ void ESPModule::RenderInteractablesESP() {
                    interactable->gameObject) {
             UpdatePressurePlateDisplayName(interactable, interactable->gameObject);
             isAvailable = true; // Pressure plates are always "available" to interact with
+        } else if (interactable->category == InteractableCategory::ItemPickup && interactable->gameObject) {
+            // Check if pickup index has changed and update name using cache only
+            GenericPickupController* gpc = (GenericPickupController*)interactable->gameObject;
+            if (gpc->pickupIndex != interactable->pickupIndex && gpc->pickupIndex > 0) {
+                interactable->pickupIndex = gpc->pickupIndex;
+                interactable->displayName = GetPickupName(gpc->pickupIndex);
+            }
+            isAvailable = !gpc->consumed && !gpc->Recycled;
         } else if (interactable->purchaseInteraction) {
             PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
             isAvailable = pi->available;
@@ -1316,6 +1318,20 @@ void ESPModule::InitializeCostFormats() {
 
     m_costFormatsInitialized = true;
     G::logger.LogInfo("Cost formats initialized successfully");
+}
+
+std::string ESPModule::GetPickupName(int32_t pickupIndex) {
+    auto it = m_pickupIdToNameCache.find(pickupIndex);
+    if (it != m_pickupIdToNameCache.end()) {
+        return it->second;
+    }
+
+    // Fallback for unknown pickup indices
+    return "Item Pickup [" + std::to_string(pickupIndex) + "]";
+}
+
+void ESPModule::CachePickupName(int32_t pickupIndex, const std::string& name) {
+    m_pickupIdToNameCache[pickupIndex] = name;
 }
 
 std::string ESPModule::GetCostString(CostTypeIndex_Value costType, int cost) {

@@ -224,6 +224,13 @@ void Hooks::Init() {
     }
 #endif // DEBUG_PRINT
 
+    // Load and cache all pickup names
+    int pickupCount = G::gameFunctions->LoadPickupNames();
+    if (pickupCount > 0) {
+        G::logger.LogInfo("Loaded %d pickup names", pickupCount);
+    } else {
+        G::logger.LogError("Failed to load pickup names");
+    }
 
     MonoClass* layerMaskClass = G::g_monoRuntime->GetClass("UnityEngine.CoreModule", "UnityEngine", "LayerMask");
     if (layerMaskClass) {

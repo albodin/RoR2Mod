@@ -78,6 +78,10 @@ private:
     std::string m_voidCoinName;
     bool m_costFormatsInitialized;
 
+    // Pickup name cache
+    std::unordered_map<int32_t, std::string> m_pickupIdToNameCache;
+    bool m_pickupCacheInitialized;
+
     void RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible, bool onScreen);
     void UpdateTimedChestDisplayName(TrackedInteractable* interactable, void* timedChestController);
     void UpdatePressurePlateDisplayName(TrackedInteractable* interactable, void* pressurePlateController);
@@ -86,6 +90,7 @@ private:
     bool IsVisible(const Vector3& position);
     InteractableCategory DetermineInteractableCategory(PurchaseInteraction* pi, MonoString* nameToken);
     void InitializeCostFormats();
+    std::string GetPickupName(int32_t pickupIndex);
     std::string GetCostString(CostTypeIndex_Value costType, int cost);
 
 public:
@@ -114,6 +119,8 @@ public:
     void OnChestBehaviorSpawned(void* chestBehavior);
     void OnShopTerminalBehaviorSpawned(void* shopTerminalBehavior);
     void OnPressurePlateControllerSpawned(void* pressurePlateController);
+
+    void CachePickupName(int32_t pickupIndex, const std::string& name);
 
     void RenderTeleporterESP();
     void RenderPlayerESP();
