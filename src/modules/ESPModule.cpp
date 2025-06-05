@@ -1007,8 +1007,15 @@ void ESPModule::RenderInteractablesESP() {
         // Check availability dynamically
         bool isAvailable = true;
         if (interactable->category == InteractableCategory::Barrel && interactable->gameObject) {
-            BarrelInteraction* barrel = (BarrelInteraction*)interactable->gameObject;
-            isAvailable = !barrel->opened;
+            // Check if this barrel has a purchase interaction (equipment barrels)
+            if (interactable->purchaseInteraction) {
+                PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
+                isAvailable = pi->available;
+            } else {
+                // Regular barrel interaction
+                BarrelInteraction* barrel = (BarrelInteraction*)interactable->gameObject;
+                isAvailable = !barrel->opened;
+            }
         } else if (interactable->category == InteractableCategory::Chest &&
                    interactable->nameToken.find("TIMEDCHEST_") != std::string::npos &&
                    interactable->gameObject) {
@@ -1178,10 +1185,15 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
     if (control->ShouldShowCost()) {
         std::string rewardText;
 
-        // Special handling for barrels - show gold and XP rewards
+        // Special handling for barrels
         if (interactable->category == InteractableCategory::Barrel) {
-            // Try to cast back to BarrelInteraction to get rewards
-            if (interactable->purchaseInteraction == nullptr && interactable->gameObject) {
+            if (interactable->purchaseInteraction) {
+                // Equipment barrels - show cost
+                if (!interactable->costString.empty()) {
+                    rewardText = interactable->costString;
+                }
+            } else if (interactable->gameObject) {
+                // Regular barrels - show gold and XP rewards
                 BarrelInteraction* barrel = (BarrelInteraction*)interactable->gameObject;
                 if (barrel->goldReward > 0 || barrel->expReward > 0) {
                     rewardText = "$" + std::to_string(barrel->goldReward) + " + " + std::to_string(barrel->expReward) + " XP";
