@@ -7,6 +7,7 @@ class WorldModule : public ModuleBase {
 private:
     ToggleControl* instantTeleporterControl;
     ToggleControl* instantHoldoutZoneControl;
+    ToggleControl* openExpiredTimedChestsControl;
 
 public:
     WorldModule();
@@ -15,6 +16,8 @@ public:
     void Initialize() override;
     void Update() override;
     void DrawUI() override;
+
+    ToggleControl* GetOpenExpiredTimedChestsControl() const { return openExpiredTimedChestsControl; }
 
     void OnTeleporterInteractionFixedUpdate(void* teleporter);
     void OnHoldoutZoneControllerUpdate(void* holdoutZoneController);

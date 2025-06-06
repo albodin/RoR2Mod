@@ -185,6 +185,8 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, ChestBehavior, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, ShopTerminalBehavior, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, PressurePlateController, Start, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, HoldoutZoneController, Update, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, TimedChestController, GetInteractability, 1, "RoR2.Interactability", {"RoR2.Interactor"});
 
 
     for (auto& target: hookTargets) {
@@ -674,6 +676,34 @@ void Hooks::hkRoR2PressurePlateControllerStart(void* instance) {
     if (!G::hooksInitialized) return;
 
     G::espModule->OnPressurePlateControllerSpawned(instance);
+}
+
+void Hooks::hkRoR2HoldoutZoneControllerUpdate(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2HoldoutZoneControllerUpdate"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::worldModule->OnHoldoutZoneControllerUpdate(instance);
+}
+
+int Hooks::hkRoR2TimedChestControllerGetInteractability(void* instance, void* activator) {
+    static auto originalFunc = reinterpret_cast<int(*)(void*, void*)>(hooks["RoR2TimedChestControllerGetInteractability"]);
+    int result = originalFunc(instance, activator);
+
+    if (!G::hooksInitialized) return result;
+
+    if (G::worldModule->GetOpenExpiredTimedChestsControl()->IsEnabled() &&
+        result == (int)Interactability_Value::ConditionsNotMet) {
+
+        TimedChestController* tcc = (TimedChestController*)instance;
+        // Only override if it's expired (not purchased)
+        if (!tcc->purchased) {
+            return (int)Interactability_Value::Available;
+        }
+    }
+
+    return result;
 }
 
 LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {

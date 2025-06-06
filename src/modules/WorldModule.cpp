@@ -5,28 +5,33 @@
 
 WorldModule::WorldModule() : ModuleBase(),
     instantTeleporterControl(nullptr),
-    instantHoldoutZoneControl(nullptr) {
+    instantHoldoutZoneControl(nullptr),
+    openExpiredTimedChestsControl(nullptr) {
     Initialize();
 }
 
 WorldModule::~WorldModule() {
     delete instantTeleporterControl;
     delete instantHoldoutZoneControl;
+    delete openExpiredTimedChestsControl;
 }
 
 void WorldModule::Initialize() {
     instantTeleporterControl = new ToggleControl("Instant Teleporter", "instantTeleporter", false);
     instantHoldoutZoneControl = new ToggleControl("Instant Holdout Zone", "instantHoldoutZone", false);
+    openExpiredTimedChestsControl = new ToggleControl("Open Expired Timed Chests", "openExpiredTimedChests", false);
 }
 
 void WorldModule::Update() {
     instantTeleporterControl->Update();
     instantHoldoutZoneControl->Update();
+    openExpiredTimedChestsControl->Update();
 }
 
 void WorldModule::DrawUI() {
     instantTeleporterControl->Draw();
     instantHoldoutZoneControl->Draw();
+    openExpiredTimedChestsControl->Draw();
 }
 
 void WorldModule::OnTeleporterInteractionFixedUpdate(void* teleporter) {
