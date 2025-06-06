@@ -48,6 +48,7 @@ namespace Hooks {
     void hkRoR2ChestBehaviorStart(void*);
     void hkRoR2ShopTerminalBehaviorStart(void*);
     void hkRoR2PressurePlateControllerStart(void*);
+    void hkRoR2HoldoutZoneControllerUpdate(void*);
 
     long __stdcall hkPresent11(IDXGISwapChain*, UINT, UINT);
 }

@@ -6,6 +6,7 @@
 class WorldModule : public ModuleBase {
 private:
     ToggleControl* instantTeleporterControl;
+    ToggleControl* instantHoldoutZoneControl;
 
 public:
     WorldModule();
@@ -16,4 +17,5 @@ public:
     void DrawUI() override;
 
     void OnTeleporterInteractionFixedUpdate(void* teleporter);
+    void OnHoldoutZoneControllerUpdate(void* holdoutZoneController);
 };
