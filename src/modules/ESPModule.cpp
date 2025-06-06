@@ -489,9 +489,10 @@ void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float d
         float health = entity->body->healthComponent_backing->health;
         float maxHealth = entity->body->maxHealth_backing;
 
-        ImU32 healthColor = health > maxHealth * 0.5f ? IM_COL32(0, 255, 0, 255) :
-                           health > maxHealth * 0.25f ? IM_COL32(255, 255, 0, 255) :
-                           IM_COL32(255, 0, 0, 255);
+        float healthRatio = std::clamp(health / maxHealth, 0.0f, 1.0f);
+        float red = std::min(2.0f * (1.0f - healthRatio), 1.0f);
+        float green = std::min(2.0f * healthRatio, 1.0f);
+        ImU32 healthColor = IM_COL32(static_cast<int>(red * 255), static_cast<int>(green * 255), 0, 255);
 
         RenderUtils::RenderHealthbar(healthbarPos, healthbarSize, health, maxHealth,
                                    healthColor, IM_COL32(50, 50, 50, 180));
