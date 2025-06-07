@@ -28,6 +28,7 @@ namespace Hooks {
     void hkRoR2LocalUserRebuildControlChain(void*);
     void hkRoR2InventoryHandleInventoryChanged(void*);
     void hkRoR2InventoryRemoveItem(void*, int, int);
+    int hkRoR2ItemStealControllerStolenInventoryInfoStealItem(void*, int, int, bool);
     void hkRoR2SteamworksServerManagerTagsStringUpdated(void*);
     void hkRoR2TeleporterInteractionAwake(void*);
     void hkRoR2TeleporterInteractionFixedUpdate(void*);

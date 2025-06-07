@@ -73,6 +73,8 @@ bool MonoRuntime::Initialize(const char* monoDllName) {
     GET_MONO_FUNC(mono_field_get_name);
     GET_MONO_FUNC(mono_array_length);
     GET_MONO_FUNC(mono_lookup_internal_call);
+    GET_MONO_FUNC(mono_class_get_nested_types);
+    GET_MONO_FUNC(mono_class_get_name);
 
     // These might not exist in all Mono versions, so don't fail if not found
     m_mono_free = reinterpret_cast<mono_free_t>(GetProcAddress(monoModule, "mono_free"));
@@ -152,7 +154,35 @@ MonoClass* MonoRuntime::GetClass(const char* assemblyName, const char* nameSpace
         return it->second;
     }
 
-    // Find the class
+    // Check if this is a nested class (contains +)
+    std::string classNameStr(className);
+    size_t plusPos = classNameStr.find('+');
+    if (plusPos != std::string::npos) {
+        // This is a nested class - split into parent and nested parts
+        std::string parentClassName = classNameStr.substr(0, plusPos);
+        std::string nestedClassName = classNameStr.substr(plusPos + 1);
+
+        // Get the parent class first
+        MonoClass* parentClass = GetClass(assemblyName, nameSpace, parentClassName.c_str());
+        if (parentClass) {
+            // Search for the nested class
+            void* iter = nullptr;
+            MonoClass* nestedClass = nullptr;
+            while ((nestedClass = m_mono_class_get_nested_types(parentClass, &iter))) {
+                if (nestedClass) {
+                    const char* nestedName = m_mono_class_get_name(nestedClass);
+                    if (nestedName && strcmp(nestedName, nestedClassName.c_str()) == 0) {
+                        // Add to cache and return
+                        m_classCache[cacheKey] = nestedClass;
+                        return nestedClass;
+                    }
+                }
+            }
+        }
+        return nullptr;
+    }
+
+    // Find the class normally
     MonoImage* image = GetImage(assemblyName);
     if (!image) {
         G::logger.LogError("Failed to find assembly: %s", assemblyName);
@@ -184,8 +214,11 @@ LPVOID MonoRuntime::GetMethodAddress(const char* assemblyName, const char* nameS
     void* targetAddress = nullptr;
     void* iter = nullptr;
     MonoMethod* method = nullptr;
+
     MonoClass* klass = GetClass(assemblyName, nameSpace, className);
-    if (!klass) return nullptr;
+    if (!klass) {
+        return nullptr;
+    }
 
     while ((method = m_mono_class_get_methods(klass, &iter))) {
         const char* name = m_mono_method_get_name(method);

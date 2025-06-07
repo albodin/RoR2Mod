@@ -5,6 +5,8 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include <map>
+#include <string>
+#include <algorithm>
 #include "minhook/include/MinHook.h"
 #include "menu/menu.h"
 #include "game/GameStructs.h"
@@ -78,6 +80,21 @@ bool CreateHook(
     } \
     else { \
         G::logger.LogError(STRINGIFY(Failed to hook ns##class##method)); \
+        G::running = false; \
+    } \
+}
+
+#define HOOK_NESTED(assembly, ns, parentclass, nestedclass, method, paramcount, returntype, ...) \
+{ \
+    const char* paramTypes[] = __VA_ARGS__; \
+    void (*fp ## ns ## parentclass ## nestedclass ## method)(void); \
+    if (CreateHook(#assembly, #ns, #parentclass "+" #nestedclass, #method, paramcount, returntype, paramTypes, \
+               reinterpret_cast<LPVOID>(&Hooks::hk ## ns ## parentclass ## nestedclass ## method), \
+               reinterpret_cast<LPVOID*>(&fp ## ns ## parentclass ## nestedclass ## method))) { \
+        G::logger.LogInfo(STRINGIFY(Hooked ns##parentclass##nestedclass##method)); \
+    } \
+    else { \
+        G::logger.LogError(STRINGIFY(Failed to hook ns##parentclass##nestedclass##method)); \
         G::running = false; \
     } \
 }
@@ -165,6 +182,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, LocalUser, RebuildControlChain, 0, "System.Void", {});
     HOOK(RoR2, RoR2, Inventory, HandleInventoryChanged, 0, "System.Void", {});
     HOOK(RoR2, RoR2, Inventory, RemoveItem, 2, "System.Void", {"RoR2.ItemIndex", "System.Int32"});
+    HOOK_NESTED(RoR2, RoR2, ItemStealController, StolenInventoryInfo, StealItem, 3, "System.Int32", {"RoR2.ItemIndex", "System.Int32", "System.Nullable<System.Boolean>"});
     HOOK(RoR2, RoR2, SteamworksServerManager, TagsStringUpdated, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TeleporterInteraction, Awake, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TeleporterInteraction, FixedUpdate, 0, "System.Void", {});
@@ -454,6 +472,23 @@ void Hooks::hkRoR2InventoryRemoveItem(void* instance, int itemIndex, int count) 
     }
 
     originalFunc(instance, itemIndex, count);
+}
+
+int Hooks::hkRoR2ItemStealControllerStolenInventoryInfoStealItem(void* instance, int itemIndex, int maxStackToSteal, bool useOrbOverride) {
+    static auto originalFunc = reinterpret_cast<int(*)(void*, int, int, bool)>(hooks["RoR2ItemStealControllerStolenInventoryInfoStealItem"]);
+
+    if (!G::hooksInitialized || !G::localPlayer) {
+        return originalFunc(instance, itemIndex, maxStackToSteal, useOrbOverride);
+    }
+
+    // Check if this item is protected
+    auto& itemControls = G::localPlayer->GetItemControls();
+    if (itemControls.count(itemIndex) > 0 && itemControls[itemIndex]->IsEnabled()) {
+        // Return 0 to indicate no items were stolen
+        return 0;
+    }
+
+    return originalFunc(instance, itemIndex, maxStackToSteal, useOrbOverride);
 }
 
 void Hooks::hkRoR2SteamworksServerManagerTagsStringUpdated(void* instance) {

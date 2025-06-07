@@ -44,6 +44,8 @@ private:
     mono_field_get_name_t m_mono_field_get_name;
     mono_array_length_t m_mono_array_length;
     mono_lookup_internal_call_t m_mono_lookup_internal_call;
+    mono_class_get_nested_types_t m_mono_class_get_nested_types;
+    mono_class_get_name_t m_mono_class_get_name;
 
     // Mono runtime state
     MonoDomain* m_rootDomain;

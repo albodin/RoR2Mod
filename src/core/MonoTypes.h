@@ -54,3 +54,5 @@ typedef MonoField* (__cdecl *mono_class_get_fields_t)(MonoClass* klass, void** i
 typedef const char* (__cdecl *mono_field_get_name_t)(MonoField* field);
 typedef int (*mono_array_length_t)(MonoArray* array);
 typedef void* (*mono_lookup_internal_call_t)(MonoMethod* method);
+typedef MonoClass* (*mono_class_get_nested_types_t)(MonoClass*, void**);
+typedef const char* (*mono_class_get_name_t)(MonoClass*);
