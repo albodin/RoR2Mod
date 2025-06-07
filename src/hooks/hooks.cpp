@@ -164,6 +164,7 @@ void Hooks::Init() {
     HOOK(UnityEngine.CoreModule, UnityEngine, Cursor, set_visible, 1, "System.Void", {"System.Boolean"});
     HOOK(RoR2, RoR2, LocalUser, RebuildControlChain, 0, "System.Void", {});
     HOOK(RoR2, RoR2, Inventory, HandleInventoryChanged, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, Inventory, RemoveItem, 2, "System.Void", {"RoR2.ItemIndex", "System.Int32"});
     HOOK(RoR2, RoR2, SteamworksServerManager, TagsStringUpdated, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TeleporterInteraction, Awake, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TeleporterInteraction, FixedUpdate, 0, "System.Void", {});
@@ -430,6 +431,29 @@ void Hooks::hkRoR2InventoryHandleInventoryChanged(void* instance) {
     }
 
     G::localPlayer->OnInventoryChanged(instance);
+}
+
+void Hooks::hkRoR2InventoryRemoveItem(void* instance, int itemIndex, int count) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*, int, int)>(hooks["RoR2InventoryRemoveItem"]);
+    if (!G::hooksInitialized || !G::localPlayer) {
+        originalFunc(instance, itemIndex, count);
+        return;
+    }
+
+    LocalUser* localUser = G::localPlayer->GetLocalUser();
+    if (!localUser || !localUser->cachedBody_backing ||
+        instance != localUser->cachedBody_backing->inventory_backing) {
+        originalFunc(instance, itemIndex, count);
+        return;
+    }
+
+    // Don't remove item if it's protected
+    auto& itemControls = G::localPlayer->GetItemControls();
+    if (itemControls.count(itemIndex) > 0 && itemControls[itemIndex]->IsEnabled()) {
+        return;
+    }
+
+    originalFunc(instance, itemIndex, count);
 }
 
 void Hooks::hkRoR2SteamworksServerManagerTagsStringUpdated(void* instance) {

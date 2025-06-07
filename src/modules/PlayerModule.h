@@ -29,7 +29,6 @@ private:
     std::vector<int> itemStacks;
 
     std::map<int, IntControl*> itemControls;
-    void* localInventory_cached;
     LocalUser* localUser_cached;
     HuntressTracker* cachedHuntressTracker;
 
@@ -63,15 +62,13 @@ public:
     HuntressTracker* GetCachedHuntressTracker() { return cachedHuntressTracker; }
     std::map<int, IntControl*>& GetItemControls() { return itemControls; }
 
-    void SetCachedInventory(void* inventory) { localInventory_cached = inventory; }
-    void* GetCachedInventory() { return localInventory_cached; }
-
     void SetItemCount(int itemIndex, int count);
     int GetItemCount(int itemIndex);
 
     void DrawItemInputs(ItemTier_Value tier);
 
     Vector3 GetPlayerPosition() { return playerPosition; }
+    LocalUser* GetLocalUser() { return localUser_cached; }
     CharacterBody* GetLocalPlayerBody() {
         return localUser_cached ? localUser_cached->cachedBody_backing : nullptr;
     }

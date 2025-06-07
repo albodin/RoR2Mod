@@ -68,6 +68,7 @@ public:
 class IntControl : public InputControl {
 private:
     int value;
+    int frozenValue; // Value to maintain when protection is enabled
     int minValue;
     int maxValue;
     int step;
@@ -76,7 +77,6 @@ private:
     bool isCapturingIncHotkey;
     bool isCapturingDecHotkey;
     bool disableValueOnToggle;
-    bool valueProtected;
     std::function<void(int)> onChange;
     std::function<void(bool)> onToggle;
 
@@ -91,14 +91,13 @@ public:
     void Increment();
     void Decrement();
     int GetValue() const { return value; }
+    int GetFrozenValue() const { return frozenValue; }
     void SetValue(int newValue);
-    void SetValue(int newValue, bool bypassProtection);
+    void UpdateFrozenValue() { frozenValue = value; }
     void SetOnChange(std::function<void(int)> callback) { onChange = callback; }
     void SetOnToggle(std::function<void(bool)> callback) { onToggle = callback; }
     void SetDisableValueOnToggle(bool disable) { disableValueOnToggle = disable; }
     bool GetDisableValueOnToggle() const { return disableValueOnToggle; }
-    void SetValueProtected(bool isProtected) { valueProtected = isProtected; }
-    bool IsValueProtected() const { return valueProtected; }
 
     json Serialize() const override;
     void Deserialize(const json& data) override;

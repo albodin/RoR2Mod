@@ -15,7 +15,6 @@ PlayerModule::PlayerModule() : ModuleBase(),
     huntressRangeControl(nullptr),
     huntressFOVControl(nullptr),
     huntressEnemyOnlyTargetingControl(nullptr),
-    localInventory_cached(nullptr),
     localUser_cached(nullptr),
     cachedHuntressTracker(nullptr) {
     Initialize();
@@ -163,7 +162,6 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
         return;
     }
 
-    localInventory_cached = localUser_ptr->cachedBody_backing->inventory_backing;
 
     // Process any queued item changes
     std::unique_lock<std::mutex> lock(queuedGiveItemsMutex);
@@ -178,7 +176,13 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
 
 void PlayerModule::OnInventoryChanged(void* inventory) {
     Inventory* inventory_ptr = (Inventory*)inventory;
-    if (!inventory_ptr || !inventory_ptr->itemStacks || inventory != localInventory_cached) {
+    if (!inventory_ptr || !inventory_ptr->itemStacks) {
+        return;
+    }
+    
+    // Check if this is the local player's inventory
+    if (!localUser_cached || !localUser_cached->cachedBody_backing || 
+        inventory != localUser_cached->cachedBody_backing->inventory_backing) {
         return;
     }
 
@@ -186,8 +190,19 @@ void PlayerModule::OnInventoryChanged(void* inventory) {
     int* arrayData = (int*)(inventory_ptr->itemStacks + 8); // Adjusted offset of array with header
     for (int i = 0; i < itemStacks.size(); i++) {
         itemStacks[i] = arrayData[i];
-        if (itemControls.count(i) > 0 && itemControls[i]->GetValue() != arrayData[i]) {
-            itemControls[i]->SetValue(arrayData[i]);
+        if (itemControls.count(i) > 0) {
+            auto control = itemControls[i];
+            
+            // Update the UI control value
+            if (control->GetValue() != arrayData[i]) {
+                control->SetValue(arrayData[i]);
+            }
+            
+            // If item is protected and below frozen value, queue it to be given
+            if (control->IsEnabled() && arrayData[i] < control->GetFrozenValue()) {
+                std::unique_lock<std::mutex> queueLock(queuedGiveItemsMutex);
+                queuedGiveItems.push(std::make_tuple(i, control->GetFrozenValue()));
+            }
         }
     }
 }
@@ -221,7 +236,6 @@ void PlayerModule::InitializeAllItemControls() {
 
         auto control = new IntControl(item.displayName, "item_" + std::to_string(index),
                                      currentCount, 0, INT_MAX, 1, false, false);
-        control->SetValueProtected(true);
 
         control->SetOnChange([this, index](int newValue) {
             if (index < itemStacks.size()) {

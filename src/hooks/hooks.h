@@ -27,6 +27,7 @@ namespace Hooks {
     void hkUnityEngineCursorset_visible(void*, bool);
     void hkRoR2LocalUserRebuildControlChain(void*);
     void hkRoR2InventoryHandleInventoryChanged(void*);
+    void hkRoR2InventoryRemoveItem(void*, int, int);
     void hkRoR2SteamworksServerManagerTagsStringUpdated(void*);
     void hkRoR2TeleporterInteractionAwake(void*);
     void hkRoR2TeleporterInteractionFixedUpdate(void*);

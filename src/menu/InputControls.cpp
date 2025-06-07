@@ -154,9 +154,9 @@ void ToggleControl::Deserialize(const json& data) {
 // IntControl implementation
 IntControl::IntControl(const std::string& label, const std::string& id, int value,
                       int minValue, int maxValue, int step, bool enabled, bool disableValueOnToggle)
-    : InputControl(label, id), value(value), minValue(minValue), maxValue(maxValue), step(step),
+    : InputControl(label, id), value(value), frozenValue(value), minValue(minValue), maxValue(maxValue), step(step),
       incHotkey(ImGuiKey_None), decHotkey(ImGuiKey_None), isCapturingIncHotkey(false), isCapturingDecHotkey(false),
-      disableValueOnToggle(disableValueOnToggle), valueProtected(false), onChange(nullptr), onToggle(nullptr)
+      disableValueOnToggle(disableValueOnToggle), onChange(nullptr), onToggle(nullptr)
 {
     ConfigManager::RegisterControl(this);
 }
@@ -170,14 +170,13 @@ void IntControl::Draw() {
 
     // Toggle checkbox
     if (ImGui::Checkbox("##toggle", &enabled)) {
+        if (enabled) {
+            // When enabling protection, freeze the current value
+            frozenValue = value;
+        }
         if (onToggle) {
             onToggle(enabled);
         }
-    }
-    if (valueProtected && ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::Text("When checked, the game cannot reduce this item's count");
-        ImGui::EndTooltip();
     }
     ImGui::SameLine();
 
@@ -291,13 +290,6 @@ void IntControl::Update() {
 }
 
 void IntControl::SetValue(int newValue) {
-    SetValue(newValue, false);
-}
-
-void IntControl::SetValue(int newValue, bool bypassProtection) {
-    if (valueProtected && newValue < value && !bypassProtection) {
-        return;
-    }
     // Clamp to min/max range
     value = std::min(std::max(newValue, minValue), maxValue);
 }
@@ -311,8 +303,18 @@ void IntControl::Decrement() {
 }
 
 json IntControl::Serialize() const {
+    // Only save item controls if they're enabled
+    if (id.find("item_") == 0 && !enabled) {
+        return json(); // Return empty json for disabled item controls
+    }
+    
     json data = InputControl::Serialize();
-    data["value"] = value;
+    // For enabled item controls, save the frozen value instead of current value
+    if (id.find("item_") == 0 && enabled) {
+        data["value"] = frozenValue;
+    } else {
+        data["value"] = value;
+    }
     data["incHotkey"] = static_cast<int>(incHotkey);
     data["decHotkey"] = static_cast<int>(decHotkey);
     data["step"] = step;
@@ -321,7 +323,13 @@ json IntControl::Serialize() const {
 
 void IntControl::Deserialize(const json& data) {
     InputControl::Deserialize(data);
-    if (data.contains("value")) SetValue(data["value"], true);
+    if (data.contains("value")) {
+        SetValue(data["value"]);
+        // For item controls, also set frozen value when loading
+        if (id.find("item_") == 0) {
+            frozenValue = data["value"];
+        }
+    }
     if (data.contains("incHotkey")) incHotkey = static_cast<ImGuiKey>(data["incHotkey"]);
     if (data.contains("decHotkey")) decHotkey = static_cast<ImGuiKey>(data["decHotkey"]);
     if (data.contains("step")) step = data["step"];
