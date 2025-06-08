@@ -60,7 +60,8 @@ bool InputHelper::DrawHotkeyButton(const char* id, ImGuiKey* key) {
         for (int i = ImGuiKey_NamedKey_BEGIN; i < ImGuiKey_NamedKey_END; i++) {
             if (ImGui::IsKeyPressed(ImGuiKey(i))) {
                 if (i == ImGuiKey_Escape) {
-                    // Cancel capture on Escape
+                    // Set to no key on Escape
+                    *key = ImGuiKey_None;
                     s_capturingKey = false;
                 } else {
                     *key = ImGuiKey(i);
@@ -219,11 +220,34 @@ void IntControl::Draw() {
         ImGui::EndDisabled();
     }
 
-    // Popup for settings
-    if (showSettings)
-        ImGui::OpenPopup(("Settings##" + id).c_str());
+    // Store button position for popup positioning
+    ImVec2 buttonPos = ImGui::GetItemRectMin();
+    ImVec2 buttonSize = ImGui::GetItemRectSize();
 
-    if (ImGui::BeginPopup(("Settings##" + id).c_str())) {
+    // Popup for settings
+    if (showSettings) {
+        ImGui::OpenPopup(("Settings##" + id).c_str());
+    }
+
+    // Use modal popup when capturing keys to prevent ESC from closing it
+    bool isModal = s_capturingKey;
+    bool popupOpen = false;
+
+    // Always set position before opening popup to ensure consistency
+    if (ImGui::IsPopupOpen(("Settings##" + id).c_str())) {
+        ImGui::SetNextWindowPos(ImVec2(buttonPos.x + buttonSize.x + 5, buttonPos.y));
+    }
+
+    if (isModal) {
+        popupOpen = ImGui::BeginPopupModal(("Settings##" + id).c_str(), nullptr,
+            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
+    } else {
+        popupOpen = ImGui::BeginPopup(("Settings##" + id).c_str(),
+            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
+    }
+
+    if (popupOpen) {
+
         ImGui::Text("Settings for %s", label.c_str());
         ImGui::Separator();
 
@@ -307,7 +331,7 @@ json IntControl::Serialize() const {
     if (id.find("item_") == 0 && !enabled) {
         return json(); // Return empty json for disabled item controls
     }
-    
+
     json data = InputControl::Serialize();
     // For enabled item controls, save the frozen value instead of current value
     if (id.find("item_") == 0 && enabled) {
@@ -398,11 +422,34 @@ void FloatControl::Draw() {
         ImGui::EndDisabled();
     }
 
-    // Popup for settings
-    if (showSettings)
-        ImGui::OpenPopup(("Settings##" + id).c_str());
+    // Store button position for popup positioning
+    ImVec2 buttonPos = ImGui::GetItemRectMin();
+    ImVec2 buttonSize = ImGui::GetItemRectSize();
 
-    if (ImGui::BeginPopup(("Settings##" + id).c_str())) {
+    // Popup for settings
+    if (showSettings) {
+        ImGui::OpenPopup(("Settings##" + id).c_str());
+    }
+
+    // Use modal popup when capturing keys to prevent ESC from closing it
+    bool isModal = s_capturingKey;
+    bool popupOpen = false;
+
+    // Always set position before opening popup to ensure consistency
+    if (ImGui::IsPopupOpen(("Settings##" + id).c_str())) {
+        ImGui::SetNextWindowPos(ImVec2(buttonPos.x + buttonSize.x + 5, buttonPos.y));
+    }
+
+    if (isModal) {
+        popupOpen = ImGui::BeginPopupModal(("Settings##" + id).c_str(), nullptr,
+            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
+    } else {
+        popupOpen = ImGui::BeginPopup(("Settings##" + id).c_str(),
+            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
+    }
+
+    if (popupOpen) {
+
         ImGui::Text("Settings for %s", label.c_str());
         ImGui::Separator();
 
@@ -1034,7 +1081,7 @@ void EntityESPControl::Deserialize(const json& data) {
 // ChestESPSubControl implementation
 ChestESPSubControl::ChestESPSubControl(const std::string& label, const std::string& id)
     : InputControl(label, id, false) {
-    
+
     enabled = new ToggleControl("Enabled", id + "_enabled", true, false);
     showName = new ToggleControl("Show Name", id + "_showName", true, false);
     showDistance = new ToggleControl("Show Distance", id + "_showDistance", true, false);
@@ -1045,7 +1092,7 @@ ChestESPSubControl::ChestESPSubControl(const std::string& label, const std::stri
     enableDistanceShadow = new ToggleControl("O", id + "_enableDistanceShadow", true, false, false);
     enableCostShadow = new ToggleControl("O", id + "_enableCostShadow", true, false, false);
     maxDistance = new SliderControl("Max Distance", id + "_maxDistance", 500.0f, 0.0f, 1000.0f, false);
-    
+
     nameColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);  // White
     distanceColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);  // White
     costColor = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);  // Yellow
@@ -1070,7 +1117,7 @@ ChestESPSubControl::~ChestESPSubControl() {
 
 void ChestESPSubControl::Draw() {
     ImGui::PushID(id.c_str());
-    
+
     if (ImGui::CollapsingHeader(label.c_str())) {
         ImGui::Indent();
         enabled->Draw();
@@ -1087,7 +1134,7 @@ void ChestESPSubControl::Draw() {
             ImGui::SameLine();
             ImGui::ColorEdit4(("##" + id + "_name_shadow_color").c_str(), (float*)&nameShadowColor,
                              ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
-            
+
             // Show Distance with color picker and shadow controls
             showDistance->Draw();
             ImGui::SameLine();
@@ -1100,7 +1147,7 @@ void ChestESPSubControl::Draw() {
             ImGui::SameLine();
             ImGui::ColorEdit4(("##" + id + "_distance_shadow_color").c_str(), (float*)&distanceShadowColor,
                              ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
-            
+
             // Show Cost with color picker and shadow controls
             showCost->Draw();
             ImGui::SameLine();
@@ -1113,22 +1160,22 @@ void ChestESPSubControl::Draw() {
             ImGui::SameLine();
             ImGui::ColorEdit4(("##" + id + "_cost_shadow_color").c_str(), (float*)&costShadowColor,
                              ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
-            
+
             // Show Unavailable (no color picker needed)
             showUnavailable->Draw();
-            
+
             // Show Traceline with color picker
             showTraceline->Draw();
             ImGui::SameLine();
             ImGui::ColorEdit4(("##" + id + "_traceline_color").c_str(), (float*)&tracelineColor,
                              ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
-            
+
             // Max Distance slider
             maxDistance->Draw();
         }
         ImGui::Unindent();
     }
-    
+
     ImGui::PopID();
 }
 
@@ -1184,7 +1231,7 @@ json ChestESPSubControl::Serialize() const {
     data["enableDistanceShadow"] = enableDistanceShadow->Serialize();
     data["enableCostShadow"] = enableCostShadow->Serialize();
     data["maxDistance"] = maxDistance->Serialize();
-    
+
     data["nameColor"] = {nameColor.x, nameColor.y, nameColor.z, nameColor.w};
     data["distanceColor"] = {distanceColor.x, distanceColor.y, distanceColor.z, distanceColor.w};
     data["costColor"] = {costColor.x, costColor.y, costColor.z, costColor.w};
@@ -1192,13 +1239,13 @@ json ChestESPSubControl::Serialize() const {
     data["nameShadowColor"] = {nameShadowColor.x, nameShadowColor.y, nameShadowColor.z, nameShadowColor.w};
     data["distanceShadowColor"] = {distanceShadowColor.x, distanceShadowColor.y, distanceShadowColor.z, distanceShadowColor.w};
     data["costShadowColor"] = {costShadowColor.x, costShadowColor.y, costShadowColor.z, costShadowColor.w};
-    
+
     return data;
 }
 
 void ChestESPSubControl::Deserialize(const json& data) {
     // Don't call base class deserialize - we don't use those fields
-    
+
     if (data.contains("enabled")) enabled->Deserialize(data["enabled"]);
     if (data.contains("showName")) showName->Deserialize(data["showName"]);
     if (data.contains("showDistance")) showDistance->Deserialize(data["showDistance"]);
@@ -1209,7 +1256,7 @@ void ChestESPSubControl::Deserialize(const json& data) {
     if (data.contains("enableDistanceShadow")) enableDistanceShadow->Deserialize(data["enableDistanceShadow"]);
     if (data.contains("enableCostShadow")) enableCostShadow->Deserialize(data["enableCostShadow"]);
     if (data.contains("maxDistance")) maxDistance->Deserialize(data["maxDistance"]);
-    
+
     if (data.contains("nameColor") && data["nameColor"].is_array() && data["nameColor"].size() == 4) {
         nameColor = ImVec4(data["nameColor"][0], data["nameColor"][1], data["nameColor"][2], data["nameColor"][3]);
     }
@@ -1236,10 +1283,10 @@ void ChestESPSubControl::Deserialize(const json& data) {
 // ChestESPControl implementation
 ChestESPControl::ChestESPControl(const std::string& label, const std::string& id)
     : InputControl(label, id, false) {
-    
+
     masterEnabled = new ToggleControl("Master Enabled", id + "_master", false, false);
     subControl = new ChestESPSubControl(label + " Settings", id + "_settings");
-    
+
     ConfigManager::RegisterControl(this);
 }
 
@@ -1251,14 +1298,14 @@ ChestESPControl::~ChestESPControl() {
 
 void ChestESPControl::Draw() {
     ImGui::PushID(id.c_str());
-    
+
     if (ImGui::CollapsingHeader(label.c_str())) {
         masterEnabled->Draw();
         ImGui::Indent();
         subControl->Draw();
         ImGui::Unindent();
     }
-    
+
     ImGui::PopID();
 }
 
