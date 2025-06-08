@@ -12,8 +12,8 @@ static float s_labelWidth = 180.0f;
 
 // Helper function for drawing complete settings popup
 template<typename T>
-static void DrawSettingsPopup(const std::string& id, const std::string& label, bool showSettings, 
-                                     InputControl* control, ImGuiKey& decHotkey, ImGuiKey& incHotkey, 
+static void DrawSettingsPopup(const std::string& id, const std::string& label, bool showSettings,
+                                     InputControl* control, ImGuiKey& decHotkey, ImGuiKey& incHotkey,
                                      T& step, T minStep, bool isFloat = false) {
     // Store button position for popup positioning
     ImVec2 buttonPos = ImGui::GetItemRectMin();
@@ -63,13 +63,13 @@ static void DrawSettingsPopup(const std::string& id, const std::string& label, b
         ImGui::Text("Step Size:");
         ImGui::SameLine();
         ImGui::PushItemWidth(120);
-        
+
         if (isFloat) {
             ImGui::InputFloat("##stepsize", reinterpret_cast<float*>(&step), 1, 10);
         } else {
             ImGui::InputInt("##stepsize", reinterpret_cast<int*>(&step), 1, 10);
         }
-        
+
         ImGui::PopItemWidth();
         if (step < minStep) step = minStep;
 
@@ -269,6 +269,7 @@ void IntControl::Draw() {
     ImGui::PushItemWidth(inputWidth);
     int tempValue = value;
     if (ImGui::InputInt("##value", &value, step, step * 10)) {
+        SetValue(value);
         if (tempValue != value && onChange) {
             onChange(value);
         }
