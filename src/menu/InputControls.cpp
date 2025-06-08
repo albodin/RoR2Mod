@@ -9,6 +9,78 @@ static bool s_capturingKey = false;
 static ImGuiKey* s_captureTargetKey = nullptr;
 static float s_labelWidth = 180.0f;
 
+
+// Helper function for drawing complete settings popup
+template<typename T>
+static void DrawSettingsPopup(const std::string& id, const std::string& label, bool showSettings, 
+                                     InputControl* control, ImGuiKey& decHotkey, ImGuiKey& incHotkey, 
+                                     T& step, T minStep, bool isFloat = false) {
+    // Store button position for popup positioning
+    ImVec2 buttonPos = ImGui::GetItemRectMin();
+    ImVec2 buttonSize = ImGui::GetItemRectSize();
+
+    // Popup for settings
+    if (showSettings) {
+        ImGui::OpenPopup(("Settings##" + id).c_str());
+    }
+
+    // Use modal popup when capturing keys to prevent ESC from closing it
+    bool isModal = s_capturingKey;
+    bool popupOpen = false;
+
+    // Always set position before opening popup to ensure consistency
+    if (ImGui::IsPopupOpen(("Settings##" + id).c_str())) {
+        ImGui::SetNextWindowPos(ImVec2(buttonPos.x + buttonSize.x + 5, buttonPos.y));
+    }
+
+    if (isModal) {
+        popupOpen = ImGui::BeginPopupModal(("Settings##" + id).c_str(), nullptr,
+            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
+    } else {
+        popupOpen = ImGui::BeginPopup(("Settings##" + id).c_str(),
+            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
+    }
+
+    if (popupOpen) {
+        ImGui::Text("Settings for %s", label.c_str());
+        ImGui::Separator();
+
+        // Hotkey settings
+        ImGui::Text("Toggle Hotkey:");
+        ImGui::SameLine();
+        control->DrawHotkeyButton();
+
+        ImGui::Text("Decrement Hotkey:");
+        ImGui::SameLine();
+        InputHelper::DrawHotkeyButton((id + "_dec").c_str(), &decHotkey);
+
+        ImGui::Text("Increment Hotkey:");
+        ImGui::SameLine();
+        InputHelper::DrawHotkeyButton((id + "_inc").c_str(), &incHotkey);
+
+        // Step size settings
+        ImGui::Separator();
+        ImGui::Text("Step Size:");
+        ImGui::SameLine();
+        ImGui::PushItemWidth(120);
+        
+        if (isFloat) {
+            ImGui::InputFloat("##stepsize", reinterpret_cast<float*>(&step), 1, 10);
+        } else {
+            ImGui::InputInt("##stepsize", reinterpret_cast<int*>(&step), 1, 10);
+        }
+        
+        ImGui::PopItemWidth();
+        if (step < minStep) step = minStep;
+
+        ImGui::Separator();
+        if (ImGui::Button("Close"))
+            ImGui::CloseCurrentPopup();
+
+        ImGui::EndPopup();
+    }
+}
+
 // InputHelper implementation
 bool InputHelper::IsKeyPressed(ImGuiKey key) {
     return ImGui::IsKeyPressed(key);
@@ -220,65 +292,7 @@ void IntControl::Draw() {
         ImGui::EndDisabled();
     }
 
-    // Store button position for popup positioning
-    ImVec2 buttonPos = ImGui::GetItemRectMin();
-    ImVec2 buttonSize = ImGui::GetItemRectSize();
-
-    // Popup for settings
-    if (showSettings) {
-        ImGui::OpenPopup(("Settings##" + id).c_str());
-    }
-
-    // Use modal popup when capturing keys to prevent ESC from closing it
-    bool isModal = s_capturingKey;
-    bool popupOpen = false;
-
-    // Always set position before opening popup to ensure consistency
-    if (ImGui::IsPopupOpen(("Settings##" + id).c_str())) {
-        ImGui::SetNextWindowPos(ImVec2(buttonPos.x + buttonSize.x + 5, buttonPos.y));
-    }
-
-    if (isModal) {
-        popupOpen = ImGui::BeginPopupModal(("Settings##" + id).c_str(), nullptr,
-            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
-    } else {
-        popupOpen = ImGui::BeginPopup(("Settings##" + id).c_str(),
-            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
-    }
-
-    if (popupOpen) {
-
-        ImGui::Text("Settings for %s", label.c_str());
-        ImGui::Separator();
-
-        // Hotkey settings
-        ImGui::Text("Toggle Hotkey:");
-        ImGui::SameLine();
-        DrawHotkeyButton();
-
-        ImGui::Text("Decrement Hotkey:");
-        ImGui::SameLine();
-        InputHelper::DrawHotkeyButton((id + "_dec").c_str(), &decHotkey);
-
-        ImGui::Text("Increment Hotkey:");
-        ImGui::SameLine();
-        InputHelper::DrawHotkeyButton((id + "_inc").c_str(), &incHotkey);
-
-        // Step size settings
-        ImGui::Separator();
-        ImGui::Text("Step Size:");
-        ImGui::SameLine();
-        ImGui::PushItemWidth(120);
-        ImGui::InputInt("##stepsize", &step, 1, 10);
-        ImGui::PopItemWidth();
-        if (step < 1) step = 1;
-
-        ImGui::Separator();
-        if (ImGui::Button("Close"))
-            ImGui::CloseCurrentPopup();
-
-        ImGui::EndPopup();
-    }
+    DrawSettingsPopup(id, label, showSettings, this, decHotkey, incHotkey, step, 1, false);
 
     ImGui::PopID();
 }
@@ -422,65 +436,7 @@ void FloatControl::Draw() {
         ImGui::EndDisabled();
     }
 
-    // Store button position for popup positioning
-    ImVec2 buttonPos = ImGui::GetItemRectMin();
-    ImVec2 buttonSize = ImGui::GetItemRectSize();
-
-    // Popup for settings
-    if (showSettings) {
-        ImGui::OpenPopup(("Settings##" + id).c_str());
-    }
-
-    // Use modal popup when capturing keys to prevent ESC from closing it
-    bool isModal = s_capturingKey;
-    bool popupOpen = false;
-
-    // Always set position before opening popup to ensure consistency
-    if (ImGui::IsPopupOpen(("Settings##" + id).c_str())) {
-        ImGui::SetNextWindowPos(ImVec2(buttonPos.x + buttonSize.x + 5, buttonPos.y));
-    }
-
-    if (isModal) {
-        popupOpen = ImGui::BeginPopupModal(("Settings##" + id).c_str(), nullptr,
-            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
-    } else {
-        popupOpen = ImGui::BeginPopup(("Settings##" + id).c_str(),
-            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
-    }
-
-    if (popupOpen) {
-
-        ImGui::Text("Settings for %s", label.c_str());
-        ImGui::Separator();
-
-        // Hotkey settings
-        ImGui::Text("Toggle Hotkey:");
-        ImGui::SameLine();
-        DrawHotkeyButton();
-
-        ImGui::Text("Decrement Hotkey:");
-        ImGui::SameLine();
-        InputHelper::DrawHotkeyButton((id + "_dec").c_str(), &decHotkey);
-
-        ImGui::Text("Increment Hotkey:");
-        ImGui::SameLine();
-        InputHelper::DrawHotkeyButton((id + "_inc").c_str(), &incHotkey);
-
-        // Step size settings
-        ImGui::Separator();
-        ImGui::Text("Step Size:");
-        ImGui::SameLine();
-        ImGui::PushItemWidth(120);
-        ImGui::InputFloat("##stepsize", &step, 1, 10);
-        ImGui::PopItemWidth();
-        if (step < 1.0f) step = 1.0f;
-
-        ImGui::Separator();
-        if (ImGui::Button("Close"))
-            ImGui::CloseCurrentPopup();
-
-        ImGui::EndPopup();
-    }
+    DrawSettingsPopup(id, label, showSettings, this, decHotkey, incHotkey, step, 1.0f, true);
 
     ImGui::PopID();
 }
