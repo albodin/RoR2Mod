@@ -22,6 +22,8 @@ private:
     ToggleControl* huntressWallPenetrationControl;
     ToggleControl* huntressEnemyOnlyTargetingControl;
 
+    ToggleControl* flightControl;
+
     std::mutex queuedGiveItemsMutex;
     std::queue<std::tuple<int, int>> queuedGiveItems;
     std::shared_mutex itemsMutex;
@@ -33,6 +35,7 @@ private:
     HuntressTracker* cachedHuntressTracker;
 
     Vector3 playerPosition;
+    bool isProvidingFlight;
 
     void SortItemsByName();
 
@@ -59,6 +62,7 @@ public:
     FloatControl* GetHuntressFOVControl() { return huntressFOVControl; }
     ToggleControl* GetHuntressWallPenetrationControl() { return huntressWallPenetrationControl; }
     ToggleControl* GetHuntressEnemyOnlyTargetingControl() { return huntressEnemyOnlyTargetingControl; }
+    ToggleControl* GetFlightControl() { return flightControl; }
     HuntressTracker* GetCachedHuntressTracker() { return cachedHuntressTracker; }
     std::map<int, IntControl*>& GetItemControls() { return itemControls; }
 

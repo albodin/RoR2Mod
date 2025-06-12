@@ -15,8 +15,10 @@ PlayerModule::PlayerModule() : ModuleBase(),
     huntressRangeControl(nullptr),
     huntressFOVControl(nullptr),
     huntressEnemyOnlyTargetingControl(nullptr),
+    flightControl(nullptr),
     localUser_cached(nullptr),
-    cachedHuntressTracker(nullptr) {
+    cachedHuntressTracker(nullptr),
+    isProvidingFlight(false) {
     Initialize();
 }
 
@@ -31,6 +33,7 @@ PlayerModule::~PlayerModule() {
     delete huntressRangeControl;
     delete huntressFOVControl;
     delete huntressEnemyOnlyTargetingControl;
+    delete flightControl;
 
     for (auto& [index, control] : itemControls) {
         delete control;
@@ -61,6 +64,8 @@ void PlayerModule::Initialize() {
     huntressWallPenetrationControl = new ToggleControl("Huntress Wall Penetration", "huntressWallPenetration", false);
     huntressEnemyOnlyTargetingControl = new ToggleControl("Huntress Ignore Breakables", "huntressEnemyOnlyTargeting", false);
 
+    flightControl = new ToggleControl("Flight", "flight", false);
+
     teleportToCursorControl->SetOnAction([this]() {
         if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->_cameraRigController) {
             G::gameFunctions->TeleportHelper_TeleportBody(localUser_cached->cachedBody_backing,
@@ -80,6 +85,7 @@ void PlayerModule::Update() {
     huntressRangeControl->Update();
     huntressFOVControl->Update();
     huntressEnemyOnlyTargetingControl->Update();
+    flightControl->Update();
 
     for (auto& [index, control] : itemControls) {
         control->Update();
@@ -94,6 +100,7 @@ void PlayerModule::DrawUI() {
     baseCritControl->Draw();
     baseJumpCountControl->Draw();
     teleportToCursorControl->Draw();
+    flightControl->Draw();
 
     if (ImGui::CollapsingHeader("Huntress Settings")) {
         huntressRangeControl->Draw();
@@ -148,6 +155,41 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
         localUser_ptr->cachedBody_backing->baseJumpCount = baseJumpCountControl->GetValue();
     }
 
+    // Flight Implementation
+    if (localUser_ptr->cachedBody_backing->characterMotor_backing) {
+        CharacterMotor* motor = localUser_ptr->cachedBody_backing->characterMotor_backing;
+
+        if (flightControl->IsEnabled() && !isProvidingFlight) {
+            motor->_flightParameters.channeledFlightGranterCount++;
+            motor->_gravityParameters.channeledAntiGravityGranterCount++;
+
+            // Manually trigger the same logic as the property setters
+            // CheckShouldUseFlight: return channeledFlightGranterCount > 0
+            motor->isFlying_backing = (motor->_flightParameters.channeledFlightGranterCount > 0);
+
+            // CheckShouldUseGravity: return environmentalAntiGravityGranterCount <= 0 && (antiGravityNeutralizerCount > 0 || channeledAntiGravityGranterCount <= 0)
+            motor->useGravity_backing = (motor->_gravityParameters.environmentalAntiGravityGranterCount <= 0 &&
+                                       (motor->_gravityParameters.antiGravityNeutralizerCount > 0 ||
+                                        motor->_gravityParameters.channeledAntiGravityGranterCount <= 0));
+
+            isProvidingFlight = true;
+        } else if (!flightControl->IsEnabled() && isProvidingFlight) {
+            motor->_flightParameters.channeledFlightGranterCount--;
+            motor->_gravityParameters.channeledAntiGravityGranterCount--;
+
+            // Manually trigger the same logic as the property setters
+            // CheckShouldUseFlight: return channeledFlightGranterCount > 0
+            motor->isFlying_backing = (motor->_flightParameters.channeledFlightGranterCount > 0);
+
+            // CheckShouldUseGravity: return environmentalAntiGravityGranterCount <= 0 && (antiGravityNeutralizerCount > 0 || channeledAntiGravityGranterCount <= 0)
+            motor->useGravity_backing = (motor->_gravityParameters.environmentalAntiGravityGranterCount <= 0 &&
+                                       (motor->_gravityParameters.antiGravityNeutralizerCount > 0 ||
+                                        motor->_gravityParameters.channeledAntiGravityGranterCount <= 0));
+
+            isProvidingFlight = false;
+        }
+    }
+
     if (cachedHuntressTracker) {
         if (huntressRangeControl->IsEnabled()) {
             cachedHuntressTracker->maxTrackingDistance = huntressRangeControl->GetValue();
@@ -179,9 +221,9 @@ void PlayerModule::OnInventoryChanged(void* inventory) {
     if (!inventory_ptr || !inventory_ptr->itemStacks) {
         return;
     }
-    
+
     // Check if this is the local player's inventory
-    if (!localUser_cached || !localUser_cached->cachedBody_backing || 
+    if (!localUser_cached || !localUser_cached->cachedBody_backing ||
         inventory != localUser_cached->cachedBody_backing->inventory_backing) {
         return;
     }
@@ -192,12 +234,12 @@ void PlayerModule::OnInventoryChanged(void* inventory) {
         itemStacks[i] = arrayData[i];
         if (itemControls.count(i) > 0) {
             auto control = itemControls[i];
-            
+
             // Update the UI control value
             if (control->GetValue() != arrayData[i]) {
                 control->SetValue(arrayData[i]);
             }
-            
+
             // If item is protected and below frozen value, queue it to be given
             if (control->IsEnabled() && arrayData[i] < control->GetFrozenValue()) {
                 std::unique_lock<std::mutex> queueLock(queuedGiveItemsMutex);

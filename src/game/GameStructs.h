@@ -33,6 +33,7 @@ struct SkillLocator;
 struct SkillFamily;
 struct MultiShopController;
 struct PickupDisplay;
+struct CharacterMotor;
 
 typedef void* GameObject;
 typedef void* NetworkIdentity;
@@ -48,7 +49,6 @@ typedef void* MPEventSystem;
 typedef void* UserProfile;
 typedef void* PauseScreenController;
 typedef void* Action;
-typedef void* CharacterMotor;
 typedef void* StatSheet;
 typedef void* Transform;
 typedef void* Camera;
@@ -136,6 +136,9 @@ typedef void* AssetReferenceTexture;
 typedef void* AssetReferenceGameObject;
 typedef void* NetworkRuleBook;
 typedef void* EquipmentMask;
+typedef void* CapsuleCollider;
+typedef void* HitGroundDelegate;
+typedef void* MovementHitDelegate;
 
 typedef int32_t Int32;
 typedef unsigned char Byte;
@@ -791,6 +794,18 @@ struct NetworkDateTime_Value {
     int64_t _binaryValue;
 };
 
+// Generated from RoR2.CharacterGravityParameters
+struct CharacterGravityParameters_Value {
+    int32_t environmentalAntiGravityGranterCount;
+    int32_t antiGravityNeutralizerCount;
+    int32_t channeledAntiGravityGranterCount;
+};
+
+// Generated from RoR2.CharacterFlightParameters
+struct CharacterFlightParameters_Value {
+    int32_t channeledFlightGranterCount;
+};
+
 /* Normal Class Objects with headers */
 
 // Generated from RoR2.HealthComponent
@@ -884,6 +899,49 @@ struct TeamComponent {
 struct DestructionNotifier {
     char padding0[24]; // Padding
     ModelLocator* subscriber_backing; // Offset: 24
+};
+
+// Generated from RoR2.CharacterMotor
+struct CharacterMotor {
+    char padding0[56]; // Padding
+    CharacterDirection* characterDirection; // Offset: 56
+    NetworkIdentity* networkIdentity; // Offset: 64
+    CharacterBody* body; // Offset: 72
+    CapsuleCollider* capsuleCollider; // Offset: 80
+    HitGroundDelegate* onHitGroundAuthority; // Offset: 88
+    void* onMotorStart; // Offset: 96
+    MovementHitDelegate* onMovementHit; // Offset: 104
+    float walkSpeedPenaltyCoefficient; // Offset: 112
+    float gravityScale; // Offset: 116
+    bool muteWalkMotion; // Offset: 120
+    char padding10[3]; // Padding
+    float mass; // Offset: 124
+    float airControl; // Offset: 128
+    bool disableAirControlUntilCollision; // Offset: 132
+    bool generateParametersOnAwake; // Offset: 133
+    bool doNotTriggerJumpVolumes; // Offset: 134
+    bool alive; // Offset: 135
+    float restStopwatch; // Offset: 136
+    Vector3 previousPosition; // Offset: 140
+    bool hasEffectiveAuthority_backing; // Offset: 152
+    bool isAirControlForced; // Offset: 153
+    char padding20[2]; // Padding
+    int32_t jumpCount; // Offset: 156
+    bool netIsGrounded; // Offset: 160
+    char padding22[3]; // Padding
+    Vector3 netGroundNormal; // Offset: 164
+    Vector3 velocity; // Offset: 176
+    Vector3 lastVelocity; // Offset: 188
+    Vector3 rootMotion; // Offset: 200
+    Vector3 _moveDirection; // Offset: 212
+    FixedTimeStamp_Value lastGroundedTime_backing; // Offset: 224
+    int32_t _safeCollisionEnableCount; // Offset: 228
+    CharacterGravityParameters_Value _gravityParameters; // Offset: 232
+    bool useGravity_backing; // Offset: 244
+    bool useHangtimeGravity; // Offset: 245
+    char padding32[2]; // Padding
+    CharacterFlightParameters_Value _flightParameters; // Offset: 248
+    bool isFlying_backing; // Offset: 252
 };
 
 // Generated from RoR2.ModelLocator
