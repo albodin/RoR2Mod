@@ -5,7 +5,7 @@ Automatically bumps version based on commit message keywords:
 - "BREAKING CHANGE", "!:" -> major version
 - "feat:", "add:" -> minor version  
 - "fix:", "patch:", "bugfix:" -> patch version
-- Otherwise -> build number only
+- Otherwise -> no version change
 """
 
 import os
@@ -24,7 +24,7 @@ def read_version_file():
     version_file = get_project_root() / "src" / "version.h"
     
     if not version_file.exists():
-        return 1, 0, 0, 0
+        return 1, 0, 0
     
     with open(version_file, 'r') as f:
         content = f.read()
@@ -32,25 +32,21 @@ def read_version_file():
     major = int(re.search(r'#define VERSION_MAJOR (\d+)', content).group(1))
     minor = int(re.search(r'#define VERSION_MINOR (\d+)', content).group(1))
     patch = int(re.search(r'#define VERSION_PATCH (\d+)', content).group(1))
-    build = int(re.search(r'#define VERSION_BUILD (\d+)', content).group(1))
     
-    return major, minor, patch, build
+    return major, minor, patch
 
-def write_version_file(major, minor, patch, build):
+def write_version_file(major, minor, patch):
     """Write new version to version.h"""
     version_file = get_project_root() / "src" / "version.h"
     version_string = f"{major}.{minor}.{patch}"
-    version_string_full = f"{major}.{minor}.{patch}.{build}"
     
     content = f"""#pragma once
 
 #define VERSION_MAJOR {major}
 #define VERSION_MINOR {minor}
 #define VERSION_PATCH {patch}
-#define VERSION_BUILD {build}
 
 #define VERSION_STRING "{version_string}"
-#define VERSION_STRING_FULL "{version_string_full}"
 
 // Auto-generated version info
 // This file is automatically updated by version_bump.py
@@ -59,7 +55,7 @@ def write_version_file(major, minor, patch, build):
     with open(version_file, 'w') as f:
         f.write(content)
     
-    print(f"Version updated to {version_string} (build {build})")
+    print(f"Version updated to {version_string}")
     return version_string
 
 def is_git_dirty():
@@ -125,12 +121,12 @@ def analyze_commit_message(message):
         if re.search(pattern, msg_lower):
             return 'minor'
     
-    # Default to build bump only
-    return 'build'
+    # Default to no version change
+    return 'none'
 
 def main():
     """Main version bumping logic"""
-    major, minor, patch, build = read_version_file()
+    major, minor, patch = read_version_file()
     
     # Determine if we should use auto mode
     use_auto_mode = len(sys.argv) <= 1 or (len(sys.argv) > 1 and sys.argv[1].lower() == 'auto')
@@ -174,15 +170,12 @@ def main():
             patch = 0
         elif bump_type == 'patch':
             patch += 1
-        elif bump_type == 'build':
-            # Only increment build for CI/CD purposes
-            build += 1
         else:
-            print(f"Usage: {sys.argv[0]} [major|minor|patch|build|auto]")
+            print(f"Usage: {sys.argv[0]} [major|minor|patch|auto]")
             print(f"Current version: {major}.{minor}.{patch}")
             return
     
-    version_string = write_version_file(major, minor, patch, build)
+    version_string = write_version_file(major, minor, patch)
     
     # If this is part of a commit, stage the version file
     if is_git_dirty():
