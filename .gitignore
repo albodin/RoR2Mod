@@ -35,3 +35,6 @@ CMakeUserPresets.json
 .vscode/*
 !.vscode/tasks.json
 !.vscode/launch.json
+
+# Local Files
+*.local*
