@@ -86,6 +86,14 @@ def get_commit_count():
 
 def get_staged_commit_message():
     """Get the commit message being prepared"""
+    # First try to read from stdin if available
+    if not sys.stdin.isatty():
+        try:
+            return sys.stdin.read().strip()
+        except:
+            pass
+    
+    # Fallback to COMMIT_EDITMSG file
     commit_msg_file = get_project_root() / ".git" / "COMMIT_EDITMSG"
     if commit_msg_file.exists():
         with open(commit_msg_file, 'r') as f:
@@ -101,23 +109,21 @@ def analyze_commit_message(message):
     if 'breaking change' in msg_lower or '!:' in message:
         return 'major'
     
-    # Check for features/additions (minor version bump)
-    feature_patterns = [
-        r'^feat:', r'^feature:', r'^add:', r'^added:',
-        r'\bfeature\b', r'\badds?\b', r'\bimplement', r'\bnew\b'
-    ]
-    for pattern in feature_patterns:
-        if re.search(pattern, msg_lower):
-            return 'minor'
-    
-    # Check for fixes (patch version bump)
+    # Check for fixes first (patch version bump) - more specific patterns
     fix_patterns = [
-        r'^fix:', r'^fixed:', r'^patch:', r'^bugfix:',
-        r'\bfix(?:es|ed)?\b', r'\bbugfix', r'\bpatch\b', r'\brepair'
+        r'^fix:', r'^fixed:', r'^patch:', r'^bugfix:'
     ]
     for pattern in fix_patterns:
         if re.search(pattern, msg_lower):
             return 'patch'
+    
+    # Check for features/additions (minor version bump)
+    feature_patterns = [
+        r'^feat:', r'^feature:', r'^add:', r'^added:'
+    ]
+    for pattern in feature_patterns:
+        if re.search(pattern, msg_lower):
+            return 'minor'
     
     # Default to build bump only
     return 'build'
@@ -126,32 +132,11 @@ def main():
     """Main version bumping logic"""
     major, minor, patch, build = read_version_file()
     
-    if len(sys.argv) > 1:
-        # Manual version bumping
-        bump_type = sys.argv[1].lower()
-        
-        if bump_type == 'major':
-            major += 1
-            minor = 0
-            patch = 0
-        elif bump_type == 'minor':
-            minor += 1
-            patch = 0
-        elif bump_type == 'patch':
-            patch += 1
-        elif bump_type == 'build':
-            # Only increment build for CI/CD purposes
-            build += 1
-        elif bump_type == 'auto':
-            # Force auto mode
-            pass
-        else:
-            print(f"Usage: {sys.argv[0]} [major|minor|patch|build|auto]")
-            print(f"Current version: {major}.{minor}.{patch}")
-            return
+    # Determine if we should use auto mode
+    use_auto_mode = len(sys.argv) <= 1 or (len(sys.argv) > 1 and sys.argv[1].lower() == 'auto')
     
-    # Auto-detect version bump from commit message (when no args or 'auto')
-    if len(sys.argv) <= 1 or (len(sys.argv) > 1 and sys.argv[1].lower() == 'auto'):
+    if use_auto_mode:
+        # Auto-detect version bump from commit message
         commit_msg = get_staged_commit_message()
         
         if commit_msg:
@@ -171,8 +156,31 @@ def main():
                 patch += 1
             else:
                 # For regular commits, don't change version
-                print(f"No version change needed for this commit")
+                print(f"No semantic version keywords found - no version change needed")
                 return
+        else:
+            print("No commit message found")
+            return
+    else:
+        # Manual version bumping
+        bump_type = sys.argv[1].lower()
+        
+        if bump_type == 'major':
+            major += 1
+            minor = 0
+            patch = 0
+        elif bump_type == 'minor':
+            minor += 1
+            patch = 0
+        elif bump_type == 'patch':
+            patch += 1
+        elif bump_type == 'build':
+            # Only increment build for CI/CD purposes
+            build += 1
+        else:
+            print(f"Usage: {sys.argv[0]} [major|minor|patch|build|auto]")
+            print(f"Current version: {major}.{minor}.{patch}")
+            return
     
     version_string = write_version_file(major, minor, patch, build)
     
