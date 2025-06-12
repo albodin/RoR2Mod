@@ -8,6 +8,10 @@ private:
     ToggleControl* instantTeleporterControl;
     ToggleControl* instantHoldoutZoneControl;
     ToggleControl* openExpiredTimedChestsControl;
+    ToggleControl* forceBluePortalControl;
+    ToggleControl* forceGoldenPortalControl;
+    ToggleControl* forceCelestialPortalControl;
+    ToggleControl* forceAllPortalsControl;
 
 public:
     WorldModule();
@@ -18,7 +22,9 @@ public:
     void DrawUI() override;
 
     ToggleControl* GetOpenExpiredTimedChestsControl() const { return openExpiredTimedChestsControl; }
+    ToggleControl* GetForceAllPortalsControl() const { return forceAllPortalsControl; }
 
+    void OnTeleporterInteractionAwake(void* teleporter);
     void OnTeleporterInteractionFixedUpdate(void* teleporter);
     void OnHoldoutZoneControllerUpdate(void* holdoutZoneController);
 };

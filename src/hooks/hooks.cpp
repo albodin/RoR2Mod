@@ -206,6 +206,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, PressurePlateController, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, HoldoutZoneController, Update, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TimedChestController, GetInteractability, 1, "RoR2.Interactability", {"RoR2.Interactor"});
+    HOOK(RoR2, RoR2, PortalSpawner, Start, 0, "System.Void", {});
 
 
     for (auto& target: hookTargets) {
@@ -511,6 +512,7 @@ void Hooks::hkRoR2TeleporterInteractionAwake(void* instance) {
     }
 
     G::espModule->OnTeleporterAwake(instance);
+    G::worldModule->OnTeleporterInteractionAwake(instance);
 }
 
 void Hooks::hkRoR2TeleporterInteractionFixedUpdate(void* instance) {
@@ -744,6 +746,21 @@ void Hooks::hkRoR2HoldoutZoneControllerUpdate(void* instance) {
     if (!G::hooksInitialized) return;
 
     G::worldModule->OnHoldoutZoneControllerUpdate(instance);
+}
+
+void Hooks::hkRoR2PortalSpawnerStart(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2PortalSpawnerStart"]);
+
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    PortalSpawner* portalSpawner = (PortalSpawner*)instance;
+    if (!portalSpawner) return;
+
+    if (G::worldModule->GetForceAllPortalsControl()->IsEnabled()) {
+        portalSpawner->willSpawn = true;
+    }
 }
 
 int Hooks::hkRoR2TimedChestControllerGetInteractability(void* instance, void* activator) {
