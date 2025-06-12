@@ -1,6 +1,7 @@
 #include "globals/globals.h"
 #include "hooks.h"
 #include "kiero.h"
+#include "version.h"
 #include "imgui/imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
@@ -853,10 +854,10 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
         ImGui::SetNextWindowBgAlpha(0.35f);
         ImGui::Begin("Watermark", 0, window_flags);
         if (G::hooksInitialized) {
-            ImGui::Text("RoR2Mod V1.0");
+            ImGui::Text("RoR2Mod V" VERSION_STRING);
         }
         else {
-            ImGui::Text("RoR2Mod V1.0 - NOT READY");
+            ImGui::Text("RoR2Mod V" VERSION_STRING " - NOT READY");
         }
         ImGui::End();
     }
