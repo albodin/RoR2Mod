@@ -38,3 +38,8 @@ CMakeUserPresets.json
 
 # Local Files
 *.local*
+
+# Reference code (decompiled C# source)
+RoR2CSCode/
+
+.serena
