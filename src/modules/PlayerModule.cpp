@@ -17,7 +17,6 @@ PlayerModule::PlayerModule() : ModuleBase(),
     huntressEnemyOnlyTargetingControl(nullptr),
     flightControl(nullptr),
     localUser_cached(nullptr),
-    cachedHuntressTracker(nullptr),
     isProvidingFlight(false) {
     Initialize();
 }
@@ -190,13 +189,14 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
         }
     }
 
-    if (cachedHuntressTracker) {
+    HuntressTracker* currentTracker = GetCurrentLocalTracker();
+    if (currentTracker) {
         if (huntressRangeControl->IsEnabled()) {
-            cachedHuntressTracker->maxTrackingDistance = huntressRangeControl->GetValue();
+            currentTracker->maxTrackingDistance = huntressRangeControl->GetValue();
         }
 
         if (huntressFOVControl->IsEnabled()) {
-            cachedHuntressTracker->maxTrackingAngle = huntressFOVControl->GetValue();
+            currentTracker->maxTrackingAngle = huntressFOVControl->GetValue();
         }
     }
 
@@ -325,5 +325,28 @@ void PlayerModule::DrawItemInputs(ItemTier_Value tier) {
 void PlayerModule::OnHuntressTrackerStart(void* huntressTracker) {
     if (!huntressTracker) return;
     HuntressTracker* tracker = (HuntressTracker*)huntressTracker;
-    cachedHuntressTracker = tracker;
+
+    // Only cache player team trackers
+    if (tracker->teamComponent &&
+        tracker->teamComponent->_teamIndex == TeamIndex_Value::Player) {
+
+        std::lock_guard<std::mutex> lock(trackerCacheMutex);
+        playerHuntressTrackers[tracker->characterBody] = tracker;
+    }
+}
+
+HuntressTracker* PlayerModule::GetCurrentLocalTracker() {
+    if (!localUser_cached || !localUser_cached->cachedBody_backing) {
+        return nullptr;
+    }
+
+    std::lock_guard<std::mutex> lock(trackerCacheMutex);
+    auto it = playerHuntressTrackers.find(localUser_cached->cachedBody_backing);
+    return (it != playerHuntressTrackers.end()) ? it->second : nullptr;
+}
+
+void PlayerModule::OnCharacterBodyDestroyed(void* characterBody) {
+    std::lock_guard<std::mutex> lock(trackerCacheMutex);
+    CharacterBody* body = (CharacterBody*)characterBody;
+    playerHuntressTrackers.erase(body);
 }

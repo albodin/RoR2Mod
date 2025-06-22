@@ -572,6 +572,7 @@ void Hooks::hkRoR2CharacterBodyOnDestroy(void* instance) {
 
     if (G::hooksInitialized) {
         G::espModule->OnCharacterBodyDestroyed(instance);
+        G::localPlayer->OnCharacterBodyDestroyed(instance);
     }
 
     originalFunc(instance);
@@ -595,7 +596,7 @@ void Hooks::hkRoR2BullseyeSearchRefreshCandidates(void* instance) {
     }
 
     // Check if this is the cached HuntressTracker's search
-    HuntressTracker* huntressTracker = G::localPlayer ? G::localPlayer->GetCachedHuntressTracker() : nullptr;
+    HuntressTracker* huntressTracker = G::localPlayer ? G::localPlayer->GetCurrentLocalTracker() : nullptr;
     if (huntressTracker && huntressTracker->search == instance) {
         BullseyeSearch* search = static_cast<BullseyeSearch*>(instance);
         uint8_t originalTeamMask = search->teamMaskFilter;
@@ -634,7 +635,7 @@ void* Hooks::hkRoR2BullseyeSearchGetResults(void* instance) {
 
         // If this matches the cached HuntressTracker's search, we will temporarily
         // disable line-of-sight filtering
-        HuntressTracker* huntressTracker = G::localPlayer->GetCachedHuntressTracker();
+        HuntressTracker* huntressTracker = G::localPlayer->GetCurrentLocalTracker();
         if (huntressTracker && huntressTracker->search == instance) {
             BullseyeSearch* search = static_cast<BullseyeSearch*>(instance);
             bool originalFilterByLoS = search->filterByLoS;

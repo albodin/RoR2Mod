@@ -7,6 +7,7 @@
 #include <vector>
 #include <shared_mutex>
 #include <queue>
+#include <mutex>
 
 class PlayerModule : public ModuleBase {
 private:
@@ -33,7 +34,10 @@ private:
 
     std::map<int, IntControl*> itemControls;
     LocalUser* localUser_cached;
-    HuntressTracker* cachedHuntressTracker;
+    
+    // Huntress tracker cache management
+    std::map<CharacterBody*, HuntressTracker*> playerHuntressTrackers;
+    std::mutex trackerCacheMutex;
 
     Vector3 playerPosition;
     bool isProvidingFlight;
@@ -64,7 +68,7 @@ public:
     ToggleControl* GetHuntressWallPenetrationControl() { return huntressWallPenetrationControl; }
     ToggleControl* GetHuntressEnemyOnlyTargetingControl() { return huntressEnemyOnlyTargetingControl; }
     ToggleControl* GetFlightControl() { return flightControl; }
-    HuntressTracker* GetCachedHuntressTracker() { return cachedHuntressTracker; }
+    HuntressTracker* GetCurrentLocalTracker();
     std::map<int, IntControl*>& GetItemControls() { return itemControls; }
 
     void SetItemCount(int itemIndex, int count);
@@ -79,4 +83,5 @@ public:
     }
 
     void OnHuntressTrackerStart(void* huntressTracker);
+    void OnCharacterBodyDestroyed(void* characterBody);
 };
