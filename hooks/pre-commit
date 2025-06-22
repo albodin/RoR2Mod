@@ -1,0 +1,15 @@
+#!/bin/bash
+# pre-commit hook
+
+# Check if we're in the project root
+if [ ! -f "scripts/version_bump.py" ]; then
+    exit 0
+fi
+
+# Skip if we're amending to avoid infinite loops
+if [ -f ".git/AMENDING_VERSION" ]; then
+    rm -f .git/AMENDING_VERSION
+    exit 0
+fi
+
+exit 0

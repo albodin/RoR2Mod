@@ -1,0 +1,44 @@
+#!/bin/bash
+# prepare-commit-msg hook - handles semantic versioning
+
+# Check if we're in the project root
+if [ ! -f "scripts/version_bump.py" ]; then
+    exit 0
+fi
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+
+# Skip for merges and rebases
+if [ "$COMMIT_SOURCE" = "merge" ] || [ "$COMMIT_SOURCE" = "squash" ]; then
+    exit 0
+fi
+
+# Skip if we're in an amend operation to avoid loops
+if [ -f ".git/AMENDING_VERSION" ]; then
+    exit 0
+fi
+
+# Process version bump
+if [ -f "$COMMIT_MSG_FILE" ] && [ -s "$COMMIT_MSG_FILE" ]; then
+    # Get the actual commit message
+    COMMIT_MSG=$(head -1 "$COMMIT_MSG_FILE" | sed '/^#/d' | sed '/^$/d')
+    
+    if [ -n "$COMMIT_MSG" ]; then
+        echo "Analyzing commit message for semantic versioning..."
+        ORIGINAL_VERSION=$(grep 'VERSION_STRING ' src/version.h | cut -d'"' -f2 2>/dev/null || echo "unknown")
+        
+        # Process version bump
+        echo "$COMMIT_MSG" | python3 scripts/version_bump.py auto
+        
+        # Check if version changed and stage it
+        NEW_VERSION=$(grep 'VERSION_STRING ' src/version.h | cut -d'"' -f2 2>/dev/null || echo "unknown")
+        
+        if [ "$ORIGINAL_VERSION" != "$NEW_VERSION" ]; then
+            git add src/version.h
+            echo "Version bumped from $ORIGINAL_VERSION to $NEW_VERSION"
+        fi
+    fi
+fi
+
+exit 0

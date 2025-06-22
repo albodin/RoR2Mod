@@ -1,0 +1,28 @@
+#!/bin/bash
+# post-commit hook - amend VSCode commits with version changes
+
+# Check if we're in the project root
+if [ ! -f "scripts/version_bump.py" ]; then
+    exit 0
+fi
+
+# Check if version.h has changes that weren't included in the commit
+if ! git diff --quiet HEAD~1 HEAD -- src/version.h 2>/dev/null; then
+    # Version.h was already in the commit, nothing to do
+    exit 0
+fi
+
+# Check if version.h has staged changes (from prepare-commit-msg)
+if ! git diff --quiet --cached src/version.h 2>/dev/null; then
+    echo "Adding version changes to commit..."
+    
+    # Prevent infinite loop
+    touch .git/AMENDING_VERSION
+    
+    # Amend the commit to include version.h
+    git commit --amend --no-edit --no-verify
+    
+    echo "Version file added to commit via amendment"
+fi
+
+exit 0

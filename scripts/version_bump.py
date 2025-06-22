@@ -82,34 +82,18 @@ def get_commit_count():
 
 def get_staged_commit_message():
     """Get the commit message being prepared"""
-    # Debug logging
-    debug_file = get_project_root() / ".git" / "version_bump_debug.log"
-    with open(debug_file, 'a') as f:
-        f.write(f"\n[{sys.argv[0]}] Called at {subprocess.run(['date'], capture_output=True, text=True).stdout.strip()}\n")
-        f.write(f"stdin.isatty(): {sys.stdin.isatty()}\n")
-    
     # First try to read from stdin if available
     if not sys.stdin.isatty():
         try:
-            msg = sys.stdin.read().strip()
-            with open(debug_file, 'a') as f:
-                f.write(f"Got message from stdin: '{msg}'\n")
-            return msg
-        except Exception as e:
-            with open(debug_file, 'a') as f:
-                f.write(f"Failed to read from stdin: {e}\n")
+            return sys.stdin.read().strip()
+        except:
+            pass
     
     # Fallback to COMMIT_EDITMSG file
     commit_msg_file = get_project_root() / ".git" / "COMMIT_EDITMSG"
     if commit_msg_file.exists():
         with open(commit_msg_file, 'r') as f:
-            msg = f.read().strip()
-            with open(debug_file, 'a') as f:
-                f.write(f"Got message from COMMIT_EDITMSG: '{msg}'\n")
-            return msg
-    
-    with open(debug_file, 'a') as f:
-        f.write("No commit message found\n")
+            return f.read().strip()
     return ""
 
 def analyze_commit_message(message):

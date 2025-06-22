@@ -9,6 +9,16 @@ This project uses **Semantic Versioning** with automatic detection based on comm
 - **PATCH**: Bug fixes, backwards compatible
 - **BUILD**: Internal build number (not shown to users)
 
+## Setup
+
+The automatic version bumping requires git hooks to be installed. Run this command after cloning:
+
+```bash
+./hooks/install.sh
+```
+
+This installs the necessary git hooks.
+
 ## Automatic Version Bumping
 
 The version is automatically updated based on keywords in your commit message:
