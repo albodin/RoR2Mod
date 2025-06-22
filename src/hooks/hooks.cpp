@@ -231,6 +231,36 @@ void Hooks::Init() {
 
     G::localPlayer->InitializeItems();
 
+    // Initialize enemies
+    int enemyCount = -1;
+    do {
+        enemyCount = G::gameFunctions->LoadEnemies();
+        if (enemyCount == -1) {
+            Sleep(2000);
+        }
+    } while (enemyCount == -1);
+    G::logger.LogInfo("Enemies loaded successfully");
+
+    // Initialize elite types
+    int eliteCount = -1;
+    do {
+        eliteCount = G::gameFunctions->LoadElites();
+        if (eliteCount == -1) {
+            Sleep(1000);
+        }
+    } while (eliteCount == -1);
+    G::logger.LogInfo("Elites loaded successfully");
+
+    // Initialize enemy spawning module
+    G::enemySpawningModule->InitializeEnemies();
+
+#ifdef DEBUG_PRINT
+    std::shared_lock<std::shared_mutex> enemyLock(G::enemiesMutex);
+    for (auto& enemy: G::enemies) {
+        G::logger.LogInfo("Enemy: " + enemy.displayName + ", name: " + enemy.masterName + ", index: " + std::to_string(enemy.masterIndex));
+    }
+#endif
+
 #ifdef DEBUG_PRINT
     std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
     for (auto& item: G::items) {
@@ -440,6 +470,7 @@ void Hooks::hkRoR2LocalUserRebuildControlChain(void* instance) {
     }
 
     G::localPlayer->OnLocalUserUpdate(instance);
+    G::enemySpawningModule->OnLocalUserUpdate(instance);
 }
 
 void Hooks::hkRoR2InventoryHandleInventoryChanged(void* instance) {
@@ -836,6 +867,7 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
 
     G::localPlayer->Update();
     G::espModule->Update();
+    G::enemySpawningModule->Update();
 
     ImGuiIO& io = ImGui::GetIO();
     io.MouseDrawCursor = G::showMenuControl->IsEnabled();

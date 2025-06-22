@@ -77,6 +77,7 @@ private:
     bool isCapturingIncHotkey;
     bool isCapturingDecHotkey;
     bool disableValueOnToggle;
+    bool showCheckbox;
     std::function<void(int)> onChange;
     std::function<void(bool)> onToggle;
 
@@ -98,6 +99,7 @@ public:
     void SetOnToggle(std::function<void(bool)> callback) { onToggle = callback; }
     void SetDisableValueOnToggle(bool disable) { disableValueOnToggle = disable; }
     bool GetDisableValueOnToggle() const { return disableValueOnToggle; }
+    void SetShowCheckbox(bool show) { showCheckbox = show; }
 
     json Serialize() const override;
     void Deserialize(const json& data) override;
@@ -389,6 +391,46 @@ public:
 
     ChestESPSubControl* GetSubControl();
     bool IsMasterEnabled() const;
+
+    json Serialize() const override;
+    void Deserialize(const json& data) override;
+};
+
+// Dropdown control with hotkey navigation
+class ComboControl : public InputControl {
+private:
+    int selectedIndex;
+    std::vector<std::string> items;
+    std::vector<int> itemValues;  // Optional associated values
+    ImGuiKey prevHotkey;
+    ImGuiKey nextHotkey;
+    bool isCapturingPrevHotkey;
+    bool isCapturingNextHotkey;
+    std::function<void(int)> onChange;
+    bool showHotkeys;
+
+public:
+    ComboControl(const std::string& label, const std::string& id,
+                const std::vector<std::string>& items,
+                int defaultIndex = 0, bool showHotkeys = true);
+    ComboControl(const std::string& label, const std::string& id,
+                const std::vector<std::string>& items,
+                const std::vector<int>& values,
+                int defaultIndex = 0, bool showHotkeys = true);
+    virtual ~ComboControl();
+
+    void Draw() override;
+    void Update() override;
+
+    int GetSelectedIndex() const { return selectedIndex; }
+    int GetSelectedValue() const;
+    const std::string& GetSelectedItem() const;
+    void SetSelectedIndex(int index);
+    void SelectNext();
+    void SelectPrevious();
+
+    void SetOnChange(std::function<void(int)> callback) { onChange = callback; }
+    void SetItems(const std::vector<std::string>& newItems, const std::vector<int>& newValues = {});
 
     json Serialize() const override;
     void Deserialize(const json& data) override;

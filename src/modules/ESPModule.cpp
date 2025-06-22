@@ -159,8 +159,10 @@ void ESPModule::OnCharacterBodySpawned(void* characterBody) {
     newEntity->displayName = G::gameFunctions->Language_GetString((MonoString*)body->baseNameToken);
     newEntity->body = body;
 
+    TeamIndex_Value teamIndex = body->teamComponent_backing->_teamIndex;
+
     // For players, try to get the actual username
-    if (body->teamComponent_backing && body->teamComponent_backing->_teamIndex == TeamIndex_Value::Player) {
+    if (teamIndex == TeamIndex_Value::Player) {
         if (body->_master && body->_master->playerCharacterMasterController_backing) {
             PlayerCharacterMasterController* pcmc = body->_master->playerCharacterMasterController_backing;
             if (pcmc->resolvedNetworkUserInstance && pcmc->resolvedNetworkUserInstance->userName) {
@@ -173,7 +175,7 @@ void ESPModule::OnCharacterBodySpawned(void* characterBody) {
     }
 
     // Categorize by team
-    switch (body->teamComponent_backing->_teamIndex) {
+    switch (teamIndex) {
         case TeamIndex_Value::Monster:
         case TeamIndex_Value::Lunar:
         case TeamIndex_Value::Void:
@@ -184,6 +186,7 @@ void ESPModule::OnCharacterBodySpawned(void* characterBody) {
             break;
 
         default:
+            delete newEntity;
             break;
     }
 }

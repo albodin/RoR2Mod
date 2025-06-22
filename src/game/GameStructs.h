@@ -139,6 +139,8 @@ typedef void* EquipmentMask;
 typedef void* CapsuleCollider;
 typedef void* HitGroundDelegate;
 typedef void* MovementHitDelegate;
+typedef void* SerializableLoadout;
+typedef void* ItemCountPair;
 
 typedef int32_t Int32;
 typedef unsigned char Byte;
@@ -379,25 +381,6 @@ enum class GameModeIndex_Value: int32_t {
 };
 
 /* No Header Structs */
-
-struct RoR2Item {
-    int index;
-    std::string displayName;
-    std::string name;
-    std::string nameToken;
-    std::string pickupToken;
-    std::string descriptionToken;
-    std::string loreToken;
-    ItemTier_Value tier;
-    std::string tierName;
-    bool isDroppable;
-    bool canScrap;
-    bool canRestack;
-    bool canRemove;
-    bool isConsumed;
-    bool hidden;
-    std::vector<int> tags;
-};
 
 struct Quaternion {
     float x;
@@ -3004,6 +2987,19 @@ struct Run {
     bool shutdown; // Offset: 512
     bool allowNewParticipants; // Offset: 513
     bool isGameOverServer_backing; // Offset: 514
+};
+
+// Generated from RoR2.CharacterSpawnCard
+struct CharacterSpawnCard {
+    char padding0[64]; // Padding
+    SerializableLoadout* _loadout; // Offset: 64
+    Inventory* inventoryToCopy; // Offset: 72
+    void* inventoryItemCopyFilter; // Offset: 80
+    EquipmentDef* equipmentToGrant; // Offset: 88
+    ItemCountPair* itemsToGrant; // Offset: 96
+    Loadout* runtimeLoadout; // Offset: 104
+    bool noElites; // Offset: 112
+    bool forbiddenAsBoss; // Offset: 113
 };
 
 #pragma pack(pop)

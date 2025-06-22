@@ -26,6 +26,12 @@ namespace G {
     std::queue<std::function<void()>> queuedActions;
     std::shared_mutex itemsMutex;
     std::vector<RoR2Item> items;
+    std::map<std::string, int> specialItems;
+    std::shared_mutex enemiesMutex;
+    std::vector<RoR2Enemy> enemies;
+
+    std::map<std::string, int> eliteBuffIndices;
+    std::vector<std::string> eliteNames;
 
     ToggleControl* showMenuControl = new ToggleControl("Show Menu", "showMenu");
     ButtonControl* runningButtonControl = new ButtonControl("Running", "running", "Unload Menu", [](){G::running = false;});
@@ -33,5 +39,6 @@ namespace G {
     PlayerModule* localPlayer = new PlayerModule();
     ESPModule* espModule = new ESPModule();
     WorldModule* worldModule = new WorldModule();
+    EnemySpawningModule* enemySpawningModule = new EnemySpawningModule();
     void* runInstance = nullptr;
 }

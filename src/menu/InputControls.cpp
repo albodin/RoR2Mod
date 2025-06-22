@@ -229,7 +229,7 @@ IntControl::IntControl(const std::string& label, const std::string& id, int valu
                       int minValue, int maxValue, int step, bool enabled, bool disableValueOnToggle)
     : InputControl(label, id), value(value), frozenValue(value), minValue(minValue), maxValue(maxValue), step(step),
       incHotkey(ImGuiKey_None), decHotkey(ImGuiKey_None), isCapturingIncHotkey(false), isCapturingDecHotkey(false),
-      disableValueOnToggle(disableValueOnToggle), onChange(nullptr), onToggle(nullptr)
+      disableValueOnToggle(disableValueOnToggle), showCheckbox(true), onChange(nullptr), onToggle(nullptr)
 {
     ConfigManager::RegisterControl(this);
 }
@@ -241,24 +241,28 @@ IntControl::~IntControl() {
 void IntControl::Draw() {
     ImGui::PushID(id.c_str());
 
-    // Toggle checkbox
-    if (ImGui::Checkbox("##toggle", &enabled)) {
-        if (enabled) {
-            // When enabling protection, freeze the current value
-            frozenValue = value;
+    // Toggle checkbox (only if showCheckbox is true)
+    if (showCheckbox) {
+        if (ImGui::Checkbox("##toggle", &enabled)) {
+            if (enabled) {
+                // When enabling protection, freeze the current value
+                frozenValue = value;
+            }
+            if (onToggle) {
+                onToggle(enabled);
+            }
         }
-        if (onToggle) {
-            onToggle(enabled);
-        }
+        ImGui::SameLine();
     }
-    ImGui::SameLine();
 
     float curPosX = ImGui::GetCursorPosX();
     ImGui::SetCursorPosX(curPosX);
     ImGui::Text("%s", label.c_str());
 
     ImGui::SameLine();
-    ImGui::SetCursorPosX(curPosX + s_labelWidth);
+    if (showCheckbox) {
+        ImGui::SetCursorPosX(curPosX + s_labelWidth);
+    }
     if (disableValueOnToggle && !enabled) {
         ImGui::BeginDisabled();
     }
@@ -523,8 +527,10 @@ void ButtonControl::Draw() {
     ImGui::SameLine();
 
     // Style for highlight effect when triggered by hotkey
+    bool pushedStyle = false;
     if (highlighted) {
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.5f, 0.2f, 1.0f));
+        pushedStyle = true;
         highlightTimer -= ImGui::GetIO().DeltaTime;
         if (highlightTimer <= 0.0f) {
             highlighted = false;
@@ -538,7 +544,7 @@ void ButtonControl::Draw() {
         }
     }
 
-    if (highlighted) {
+    if (pushedStyle) {
         ImGui::PopStyleColor();
     }
 
@@ -1285,4 +1291,136 @@ void ChestESPControl::Deserialize(const json& data) {
     InputControl::Deserialize(data);
     if (data.contains("masterEnabled")) masterEnabled->Deserialize(data["masterEnabled"]);
     if (data.contains("settings")) subControl->Deserialize(data["settings"]);
+}
+
+
+// ComboControl implementation
+ComboControl::ComboControl(const std::string& label, const std::string& id,
+                         const std::vector<std::string>& items,
+                         int defaultIndex, bool showHotkeys)
+    : InputControl(label, id), items(items), selectedIndex(defaultIndex),
+      prevHotkey(ImGuiKey_None), nextHotkey(ImGuiKey_None),
+      isCapturingPrevHotkey(false), isCapturingNextHotkey(false),
+      onChange(nullptr), showHotkeys(showHotkeys)
+{
+    ConfigManager::RegisterControl(this);
+}
+
+ComboControl::ComboControl(const std::string& label, const std::string& id,
+                         const std::vector<std::string>& items,
+                         const std::vector<int>& values,
+                         int defaultIndex, bool showHotkeys)
+    : InputControl(label, id), items(items), itemValues(values), selectedIndex(defaultIndex),
+      prevHotkey(ImGuiKey_None), nextHotkey(ImGuiKey_None),
+      isCapturingPrevHotkey(false), isCapturingNextHotkey(false),
+      onChange(nullptr), showHotkeys(showHotkeys)
+{
+    ConfigManager::RegisterControl(this);
+}
+
+ComboControl::~ComboControl() {
+    ConfigManager::UnregisterControl(this);
+}
+
+void ComboControl::Draw() {
+    ImGui::PushID(id.c_str());
+
+    ImGui::Text("%s:", label.c_str());
+    ImGui::SameLine();
+
+    const char* preview = (selectedIndex >= 0 && selectedIndex < items.size())
+        ? items[selectedIndex].c_str() : "Select...";
+
+    if (ImGui::BeginCombo("##combo", preview)) {
+        for (int i = 0; i < items.size(); i++) {
+            const bool isSelected = (selectedIndex == i);
+            if (ImGui::Selectable(items[i].c_str(), isSelected)) {
+                SetSelectedIndex(i);
+            }
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    if (showHotkeys) {
+        ImGui::SameLine();
+        ImGui::Text("Prev:");
+        ImGui::SameLine();
+        InputHelper::DrawHotkeyButton((id + "_prev").c_str(), &prevHotkey);
+
+        ImGui::SameLine();
+        ImGui::Text("Next:");
+        ImGui::SameLine();
+        InputHelper::DrawHotkeyButton((id + "_next").c_str(), &nextHotkey);
+    }
+
+    ImGui::PopID();
+}
+
+void ComboControl::Update() {
+    if (prevHotkey != ImGuiKey_None && InputHelper::IsKeyPressed(prevHotkey)) {
+        SelectPrevious();
+    }
+    if (nextHotkey != ImGuiKey_None && InputHelper::IsKeyPressed(nextHotkey)) {
+        SelectNext();
+    }
+}
+
+int ComboControl::GetSelectedValue() const {
+    if (!itemValues.empty() && selectedIndex >= 0 && selectedIndex < itemValues.size()) {
+        return itemValues[selectedIndex];
+    }
+    return selectedIndex;
+}
+
+const std::string& ComboControl::GetSelectedItem() const {
+    static std::string empty;
+    if (selectedIndex >= 0 && selectedIndex < items.size()) {
+        return items[selectedIndex];
+    }
+    return empty;
+}
+
+void ComboControl::SetSelectedIndex(int index) {
+    if (index >= 0 && index < items.size()) {
+        selectedIndex = index;
+        if (onChange) {
+            onChange(GetSelectedValue());
+        }
+    }
+}
+
+void ComboControl::SelectNext() {
+    if (items.empty()) return;
+    SetSelectedIndex((selectedIndex + 1) % items.size());
+}
+
+void ComboControl::SelectPrevious() {
+    if (items.empty()) return;
+    SetSelectedIndex((selectedIndex - 1 + items.size()) % items.size());
+}
+
+void ComboControl::SetItems(const std::vector<std::string>& newItems, const std::vector<int>& newValues) {
+    items = newItems;
+    itemValues = newValues;
+    if (selectedIndex >= items.size()) {
+        selectedIndex = items.empty() ? -1 : 0;
+    }
+}
+
+json ComboControl::Serialize() const {
+    json data = InputControl::Serialize();
+    data["selectedIndex"] = selectedIndex;
+    data["prevHotkey"] = static_cast<int>(prevHotkey);
+    data["nextHotkey"] = static_cast<int>(nextHotkey);
+    return data;
+}
+
+void ComboControl::Deserialize(const json& data) {
+    InputControl::Deserialize(data);
+    if (data.contains("selectedIndex")) selectedIndex = data["selectedIndex"];
+    if (data.contains("prevHotkey")) prevHotkey = static_cast<ImGuiKey>(data["prevHotkey"]);
+    if (data.contains("nextHotkey")) nextHotkey = static_cast<ImGuiKey>(data["nextHotkey"]);
 }

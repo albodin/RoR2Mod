@@ -9,12 +9,14 @@
 
 #include "core/MonoRuntime.h"
 #include "game/GameStructs.h"
+#include "utils/ModStructs.h"
 #include "game/GameFunctions.h"
 #include "utils/Logger.h"
 #include "menu/InputControls.h"
 #include "modules/PlayerModule.h"
 #include "modules/ESPModule.h"
 #include "modules/WorldModule.h"
+#include "modules/EnemySpawningModule.h"
 
 typedef long(__stdcall* Present)(IDXGISwapChain*, UINT, UINT);
 
@@ -45,6 +47,13 @@ namespace G {
 
     extern std::shared_mutex itemsMutex;
     extern std::vector<RoR2Item> items;
+    extern std::map<std::string, int> specialItems; // name -> index for special items like UseAmbientLevel
+
+    extern std::shared_mutex enemiesMutex;
+    extern std::vector<RoR2Enemy> enemies;
+
+    extern std::map<std::string, int> eliteBuffIndices; // name -> BuffIndex for elite buffs
+    extern std::vector<std::string> eliteNames; // For UI dropdown
 
     extern ToggleControl* showMenuControl;
     extern ButtonControl* runningButtonControl;
@@ -52,5 +61,6 @@ namespace G {
     extern PlayerModule* localPlayer;
     extern ESPModule* espModule;
     extern WorldModule* worldModule;
+    extern EnemySpawningModule* enemySpawningModule;
     extern void* runInstance;
 }

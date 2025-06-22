@@ -2,6 +2,7 @@
 #include "ModuleBase.h"
 #include "menu/InputControls.h"
 #include "game/GameStructs.h"
+#include "utils/ModStructs.h"
 #include <map>
 #include <vector>
 #include <shared_mutex>

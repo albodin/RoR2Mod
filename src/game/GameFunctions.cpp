@@ -17,23 +17,13 @@ GameFunctions::GameFunctions(MonoRuntime* runtime) {
     m_teleportHelperClass = runtime->GetClass("Assembly-CSharp", "RoR2", "TeleportHelper");
     m_pickupCatalogClass = runtime->GetClass("Assembly-CSharp", "RoR2", "PickupCatalog");
     m_pickupDefClass = runtime->GetClass("Assembly-CSharp", "RoR2", "PickupDef");
-}
-
-
-void GameFunctions::CharacterMaster_UpdateBodyGodMode(void* m_characterMaster) {
-    std::function<void()> task = [this, m_characterMaster]() {
-        if (!m_characterMasterClass) return;
-
-        MonoMethod* method = m_runtime->GetMethod(m_characterMasterClass, "UpdateBodyGodMode", 0);
-        if (!method) {
-            G::logger.LogError("Failed to find UpdateBodyGodMode method");
-            return;
-        }
-
-        m_runtime->InvokeMethod(method, m_characterMaster, nullptr);
-    };
-    std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
-    G::queuedActions.push(task);
+    m_masterCatalogClass = runtime->GetClass("Assembly-CSharp", "RoR2", "MasterCatalog");
+    m_bodyCatalogClass = runtime->GetClass("Assembly-CSharp", "RoR2", "BodyCatalog");
+    m_masterSummonClass = runtime->GetClass("Assembly-CSharp", "RoR2", "MasterSummon");
+    m_runClass = runtime->GetClass("Assembly-CSharp", "RoR2", "Run");
+    m_teamManagerClass = runtime->GetClass("Assembly-CSharp", "RoR2", "TeamManager");
+    m_buffCatalogClass = runtime->GetClass("Assembly-CSharp", "RoR2", "BuffCatalog");
+    m_buffDefClass = runtime->GetClass("Assembly-CSharp", "RoR2", "BuffDef");
 }
 
 void GameFunctions::Cursor_SetLockState(int lockState) {
@@ -337,7 +327,9 @@ int GameFunctions::LoadItems() {
         if (item.displayName == item.nameToken && !item.nameToken.empty()) {
             G::logger.LogError("Item displayName '%s' is the same as nameToken '%s', skipping", item.displayName.c_str(), item.nameToken.c_str());
         } else if (item.displayName.empty()) {
-            G::logger.LogError("Item displayName is empty, name: '%s', skipping", item.name.c_str());
+            // Store special items with empty display names in separate map
+            G::specialItems[item.name] = item.index;
+            G::logger.LogInfo("Stored special item '%s' at index %d", item.name.c_str(), item.index);
         } else if (item.displayName.find("(Consumed)") != std::string::npos) {
             G::logger.LogError("Item displayName '%s' contains '(Consumed)', skipping", item.displayName.c_str());
         } else {
@@ -347,6 +339,260 @@ int GameFunctions::LoadItems() {
     }
 
     return itemCount;
+}
+
+int GameFunctions::LoadEnemies() {
+    if (!m_masterCatalogClass) {
+        G::logger.LogError("Failed to load enemy definitions, MasterCatalog class not found");
+        return -1;
+    }
+
+    MonoField* masterPrefabsField = m_runtime->GetField(m_masterCatalogClass, "masterPrefabs");
+    if (!masterPrefabsField) {
+        G::logger.LogError("Failed to find masterPrefabs field");
+        return -1;
+    }
+
+    MonoArray* masterPrefabsArray = m_runtime->GetStaticFieldValue<MonoArray*>(m_masterCatalogClass, masterPrefabsField);
+    if (!masterPrefabsArray) {
+        G::logger.LogError("Failed to get masterPrefabs array");
+        return -1;
+    }
+
+    int masterCount = m_runtime->GetArrayLength(masterPrefabsArray);
+    if (masterCount <= 0) {
+        G::logger.LogError("Master count is zero or negative");
+        return -1;
+    }
+
+    G::logger.LogInfo("Found " + std::to_string(masterCount) + " masters");
+
+    MonoClass* arrayClass = m_runtime->GetObjectClass((MonoObject*)masterPrefabsArray);
+    MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
+    if (!getItemMethod) {
+        G::logger.LogError("Failed to get array access method");
+        return -1;
+    }
+
+    std::unique_lock<std::shared_mutex> lock(G::enemiesMutex);
+    G::enemies.clear();
+
+    for (int i = 0; i < masterCount; i++) {
+        void* params[1] = { &i };
+        MonoObject* masterPrefab = m_runtime->InvokeMethod(getItemMethod, masterPrefabsArray, params);
+        if (!masterPrefab) continue;
+
+        // Get GameObject name
+        MonoClass* gameObjectClass = m_runtime->GetObjectClass(masterPrefab);
+        MonoProperty* nameProp = m_runtime->GetProperty(gameObjectClass, "name");
+        if (!nameProp) continue;
+
+        MonoMethod* getNameMethod = m_runtime->GetPropertyGetMethod(nameProp);
+        if (!getNameMethod) continue;
+
+        MonoObject* nameObj = m_runtime->InvokeMethod(getNameMethod, masterPrefab, nullptr);
+        if (!nameObj) continue;
+
+        std::string masterName = m_runtime->StringToUtf8((MonoString*)nameObj);
+        if (masterName.empty()) continue;
+
+        RoR2Enemy enemy;
+        enemy.masterIndex = i;
+        enemy.masterName = masterName;
+
+        // Remove "Master" suffix if present
+        if (masterName.size() > 6 && masterName.substr(masterName.size() - 6) == "Master") {
+            enemy.displayName = masterName.substr(0, masterName.size() - 6);
+        } else {
+            enemy.displayName = masterName;
+        }
+
+        G::enemies.push_back(enemy);
+    }
+
+    G::logger.LogInfo("Loaded " + std::to_string(G::enemies.size()) + " enemies");
+    return static_cast<int>(G::enemies.size());
+}
+
+int GameFunctions::LoadElites() {
+    if (!m_buffCatalogClass) {
+        G::logger.LogError("Failed to load elite definitions, BuffCatalog class not found");
+        return -1;
+    }
+
+    G::eliteNames.clear();
+    G::eliteBuffIndices.clear();
+
+    // Add "None" option for no elite
+    G::eliteNames.push_back("None");
+
+    // Get the buff definitions array from BuffCatalog
+    MonoField* buffDefsField = m_runtime->GetField(m_buffCatalogClass, "buffDefs");
+    if (!buffDefsField) {
+        G::logger.LogError("Failed to find BuffCatalog.buffDefs field");
+        return -1;
+    }
+
+    MonoArray* buffDefsArray = m_runtime->GetStaticFieldValue<MonoArray*>(m_buffCatalogClass, buffDefsField);
+    if (!buffDefsArray) {
+        G::logger.LogError("Failed to get BuffCatalog.buffDefs array");
+        return -1;
+    }
+
+    int buffCount = m_runtime->GetArrayLength(buffDefsArray);
+    G::logger.LogInfo("Found %d buffs in BuffCatalog", buffCount);
+
+    if (!m_buffDefClass) {
+        G::logger.LogError("BuffDef class not available");
+        return -1;
+    }
+
+    MonoField* eliteDefField = m_runtime->GetField(m_buffDefClass, "eliteDef");
+    if (!eliteDefField) {
+        G::logger.LogError("Failed to find BuffDef.eliteDef field");
+        return -1;
+    }
+
+    MonoClass* arrayClass = m_runtime->GetObjectClass((MonoObject*)buffDefsArray);
+    MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
+    if (!getItemMethod) {
+        G::logger.LogError("Failed to get array access method");
+        return -1;
+    }
+
+    // Iterate through all buffs to find elite ones
+    for (int i = 0; i < buffCount; i++) {
+        void* params[1] = { &i };
+        MonoObject* buffDefObj = m_runtime->InvokeMethod(getItemMethod, buffDefsArray, params);
+        if (!buffDefObj) continue;
+
+        // Check if this buff is an elite buff (eliteDef != null)
+        MonoObject* eliteDefObj = m_runtime->GetFieldValue<MonoObject*>(buffDefObj, eliteDefField);
+        if (!eliteDefObj) continue;
+
+        // Get the elite name from EliteDef
+        MonoClass* eliteDefClass = m_runtime->GetObjectClass(eliteDefObj);
+        MonoProperty* eliteNameProp = m_runtime->GetProperty(eliteDefClass, "name");
+        if (!eliteNameProp) continue;
+
+        MonoMethod* getEliteNameMethod = m_runtime->GetPropertyGetMethod(eliteNameProp);
+        if (!getEliteNameMethod) continue;
+
+        MonoObject* eliteNameObj = m_runtime->InvokeMethod(getEliteNameMethod, eliteDefObj, nullptr);
+        if (!eliteNameObj) continue;
+
+        std::string eliteName = m_runtime->StringToUtf8((MonoString*)eliteNameObj);
+        if (eliteName.empty()) continue;
+
+        G::eliteNames.push_back(eliteName);
+        G::eliteBuffIndices[eliteName] = i;
+
+        G::logger.LogInfo("Found elite buff: %s at index %d", eliteName.c_str(), i);
+    }
+
+    G::logger.LogInfo("Loaded %zu elite types", G::eliteNames.size() - 1); // -1 for "None"
+    return static_cast<int>(G::eliteNames.size() - 1);
+}
+
+bool GameFunctions::ApplyEliteToMaster(void* characterMaster, int eliteBuffIndex) {
+    if (!characterMaster || eliteBuffIndex <= 0) {
+        return false;
+    }
+
+    // Get the inventory from the CharacterMaster
+    MonoProperty* inventoryProp = m_runtime->GetProperty(m_characterMasterClass, "inventory");
+    if (!inventoryProp) {
+        G::logger.LogError("Failed to find CharacterMaster.inventory property");
+        return false;
+    }
+
+    MonoMethod* getInventoryMethod = m_runtime->GetPropertyGetMethod(inventoryProp);
+    if (!getInventoryMethod) {
+        G::logger.LogError("Failed to find inventory getter method");
+        return false;
+    }
+
+    MonoObject* inventory = m_runtime->InvokeMethod(getInventoryMethod, characterMaster, nullptr);
+    if (!inventory) {
+        G::logger.LogError("Failed to get inventory from CharacterMaster");
+        return false;
+    }
+
+    // Get the BuffDef for the elite using cached BuffCatalog class
+    MonoMethod* getBuffDefMethod = m_runtime->GetMethod(m_buffCatalogClass, "GetBuffDef", 1);
+    if (!getBuffDefMethod) {
+        G::logger.LogError("Failed to find BuffCatalog.GetBuffDef method");
+        return false;
+    }
+
+    void* buffIndexParams[1] = { &eliteBuffIndex };
+    MonoObject* buffDef = m_runtime->InvokeMethod(getBuffDefMethod, nullptr, buffIndexParams);
+    if (!buffDef) {
+        G::logger.LogError("Failed to get BuffDef for elite index %d", eliteBuffIndex);
+        return false;
+    }
+
+    // Get the eliteDef from the BuffDef using cached class
+    MonoField* eliteDefField = m_runtime->GetField(m_buffDefClass, "eliteDef");
+    if (!eliteDefField) {
+        G::logger.LogError("Failed to find BuffDef.eliteDef field");
+        return false;
+    }
+
+    MonoObject* eliteDef = m_runtime->GetFieldValue<MonoObject*>(buffDef, eliteDefField);
+    if (!eliteDef) {
+        G::logger.LogError("BuffDef at index %d does not have an eliteDef", eliteBuffIndex);
+        return false;
+    }
+
+    // Get the eliteEquipmentDef from the EliteDef
+    MonoClass* eliteDefClass = m_runtime->GetObjectClass(eliteDef);
+    MonoField* eliteEquipmentDefField = m_runtime->GetField(eliteDefClass, "eliteEquipmentDef");
+    if (!eliteEquipmentDefField) {
+        G::logger.LogError("Failed to find EliteDef.eliteEquipmentDef field");
+        return false;
+    }
+
+    MonoObject* equipmentDef = m_runtime->GetFieldValue<MonoObject*>(eliteDef, eliteEquipmentDefField);
+    if (!equipmentDef) {
+        G::logger.LogWarning("Elite at index %d has no equipment", eliteBuffIndex);
+        return false;
+    }
+
+    // Get the equipment index from the EquipmentDef
+    MonoClass* equipmentDefClass = m_runtime->GetObjectClass(equipmentDef);
+    MonoProperty* equipmentIndexProp = m_runtime->GetProperty(equipmentDefClass, "equipmentIndex");
+    if (!equipmentIndexProp) {
+        G::logger.LogError("Failed to find EquipmentDef.equipmentIndex property");
+        return false;
+    }
+
+    MonoMethod* getEquipmentIndexMethod = m_runtime->GetPropertyGetMethod(equipmentIndexProp);
+    if (!getEquipmentIndexMethod) {
+        G::logger.LogError("Failed to find equipmentIndex getter method");
+        return false;
+    }
+
+    MonoObject* equipmentIndexObj = m_runtime->InvokeMethod(getEquipmentIndexMethod, equipmentDef, nullptr);
+    if (!equipmentIndexObj) {
+        G::logger.LogError("Failed to get equipment index");
+        return false;
+    }
+
+    int equipmentIndex = *(int*)m_runtime->m_mono_object_unbox(equipmentIndexObj);
+
+    // Set the equipment on the inventory
+    MonoMethod* setEquipmentIndexMethod = m_runtime->GetMethod(m_inventoryClass, "SetEquipmentIndex", 1);
+    if (!setEquipmentIndexMethod) {
+        G::logger.LogError("Failed to find Inventory.SetEquipmentIndex method");
+        return false;
+    }
+
+    void* equipParams[1] = { &equipmentIndex };
+    m_runtime->InvokeMethod(setEquipmentIndexMethod, inventory, equipParams);
+
+    G::logger.LogInfo("Applied elite equipment index %d (from buff index %d) to spawned enemy", equipmentIndex, eliteBuffIndex);
+    return true;
 }
 
 void GameFunctions::Inventory_GiveItem(void* m_inventory, int itemIndex, int count) {
@@ -490,3 +736,132 @@ float GameFunctions::GetRunStopwatch() {
         return run->fixedTime + run->runStopwatch.offsetFromFixedTime;
     }
 }
+
+bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int teamIndex, bool matchDifficulty, int eliteIndex) {
+    std::function<bool()> task = [this, masterIndex, position, teamIndex, matchDifficulty, eliteIndex]() -> bool {
+        if (!m_masterSummonClass || !m_masterCatalogClass) {
+            return false;
+        }
+
+        MonoField* masterPrefabsField = m_runtime->GetField(m_masterCatalogClass, "masterPrefabs");
+        if (!masterPrefabsField) return false;
+
+        MonoArray* masterPrefabsArray = m_runtime->GetStaticFieldValue<MonoArray*>(m_masterCatalogClass, masterPrefabsField);
+        if (!masterPrefabsArray) return false;
+
+        int masterCount = m_runtime->GetArrayLength(masterPrefabsArray);
+        if (masterIndex < 0 || masterIndex >= masterCount) return false;
+
+        MonoClass* arrayClass = m_runtime->GetObjectClass((MonoObject*)masterPrefabsArray);
+        MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
+        if (!getItemMethod) return false;
+
+        int localMasterIndex = masterIndex;
+        void* params[1] = { &localMasterIndex };
+        MonoObject* masterPrefab = m_runtime->InvokeMethod(getItemMethod, masterPrefabsArray, params);
+        if (!masterPrefab) return false;
+
+        MonoObject* masterSummon = m_runtime->CreateObject(m_masterSummonClass);
+        if (!masterSummon) return false;
+
+        // Set masterPrefab
+        MonoField* masterPrefabField = m_runtime->GetField(m_masterSummonClass, "masterPrefab");
+        if (masterPrefabField) {
+            m_runtime->SetFieldValue(masterSummon, masterPrefabField, masterPrefab);
+        }
+
+        // Set position
+        MonoField* positionField = m_runtime->GetField(m_masterSummonClass, "position");
+        if (positionField) {
+            Vector3 localPosition = position;
+            m_runtime->SetFieldValue(masterSummon, positionField, &localPosition);
+        }
+
+        // Set rotation (identity quaternion)
+        MonoField* rotationField = m_runtime->GetField(m_masterSummonClass, "rotation");
+        if (rotationField) {
+            struct { float x, y, z, w; } rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+            m_runtime->SetFieldValue(masterSummon, rotationField, &rotation);
+        }
+
+        // Set teamIndexOverride (nullable enum)
+        MonoField* teamIndexField = m_runtime->GetField(m_masterSummonClass, "teamIndexOverride");
+        if (teamIndexField) {
+            NullableTeamIndex nullableTeamIndex;
+            nullableTeamIndex.hasValue = true;
+            nullableTeamIndex.value = static_cast<int8_t>(teamIndex);
+            m_runtime->SetFieldValue(masterSummon, teamIndexField, &nullableTeamIndex);
+        }
+
+        // Set ignoreTeamMemberLimit
+        MonoField* ignoreTeamLimitField = m_runtime->GetField(m_masterSummonClass, "ignoreTeamMemberLimit");
+        if (ignoreTeamLimitField) {
+            bool ignoreLimit = true;
+            m_runtime->SetFieldValue(masterSummon, ignoreTeamLimitField, &ignoreLimit);
+        }
+
+        // Set summonerBodyObject to null
+        MonoField* summonerBodyField = m_runtime->GetField(m_masterSummonClass, "summonerBodyObject");
+        if (summonerBodyField) {
+            void* nullPtr = nullptr;
+            m_runtime->SetFieldValue(masterSummon, summonerBodyField, &nullPtr);
+        }
+
+        // Perform the spawn
+        MonoMethod* performMethod = m_runtime->GetMethod(m_masterSummonClass, "Perform", 0);
+        if (!performMethod) return false;
+
+        MonoObject* spawnedMaster = m_runtime->InvokeMethod(performMethod, masterSummon, nullptr);
+        if (!spawnedMaster) return false;
+
+        // Give UseAmbientLevel item if difficulty matching is enabled
+        if (matchDifficulty && m_characterMasterClass && m_inventoryClass) {
+            static int useAmbientLevelIndex = -1;
+
+            // Find UseAmbientLevel item index if not already cached
+            if (useAmbientLevelIndex == -1) {
+                std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
+                auto it = G::specialItems.find("UseAmbientLevel");
+                if (it != G::specialItems.end()) {
+                    useAmbientLevelIndex = it->second;
+                    G::logger.LogInfo("Found UseAmbientLevel item at index %d", useAmbientLevelIndex);
+                }
+            }
+
+            if (useAmbientLevelIndex >= 0) {
+                // Get the inventory from the spawned CharacterMaster
+                MonoProperty* inventoryProp = m_runtime->GetProperty(m_characterMasterClass, "inventory");
+                if (inventoryProp) {
+                    MonoMethod* getInventoryMethod = m_runtime->GetPropertyGetMethod(inventoryProp);
+                    if (getInventoryMethod) {
+                        MonoObject* inventory = m_runtime->InvokeMethod(getInventoryMethod, spawnedMaster, nullptr);
+                        if (inventory) {
+                            // Give UseAmbientLevel item to make enemy scale with current difficulty
+                            Inventory_GiveItem(inventory, useAmbientLevelIndex, 1);
+                        } else {
+                            G::logger.LogWarning("Could not get inventory from spawned master");
+                        }
+                    } else {
+                        G::logger.LogError("Failed to find inventory getter method");
+                    }
+                } else {
+                    G::logger.LogError("Failed to find inventory property on CharacterMaster");
+                }
+            } else {
+                G::logger.LogError("Could not find UseAmbientLevel item in items list");
+            }
+        }
+
+        // Apply elite status if requested
+        if (eliteIndex > 0) {
+            ApplyEliteToMaster(spawnedMaster, eliteIndex);
+        }
+
+        return true;
+    };
+
+    std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
+    G::queuedActions.push([task]() { task(); });
+    return true;
+}
+

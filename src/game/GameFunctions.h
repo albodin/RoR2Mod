@@ -4,6 +4,14 @@
 #include "utils/Math.h"
 #include "game/GameStructs.h"
 
+// Nullable<TeamIndex> structure for Mono interop
+#pragma pack(push, 1)
+struct NullableTeamIndex {
+    bool hasValue;
+    int8_t value;
+};
+#pragma pack(pop)
+
 class GameFunctions {
 private:
     MonoRuntime* m_runtime;
@@ -21,18 +29,27 @@ private:
     MonoClass* m_teleportHelperClass;
     MonoClass* m_pickupCatalogClass;
     MonoClass* m_pickupDefClass;
+    MonoClass* m_masterCatalogClass;
+    MonoClass* m_bodyCatalogClass;
+    MonoClass* m_masterSummonClass;
+    MonoClass* m_runClass;
+    MonoClass* m_teamManagerClass;
+    MonoClass* m_buffCatalogClass;
+    MonoClass* m_buffDefClass;
 
 public:
     GameFunctions(MonoRuntime* runtime);
     ~GameFunctions() = default;
 
-    void CharacterMaster_UpdateBodyGodMode(void* m_characterMaster);
     void Cursor_SetLockState(int lockState);
     void Cursor_SetVisible(bool visible);
     std::string Language_GetString(MonoString* token);
     PickupDef* GetPickupDef(int pickupIndex);
     int LoadPickupNames();
     int LoadItems();
+    int LoadEnemies();
+    int LoadElites();
+    bool ApplyEliteToMaster(void* characterMaster, int eliteIndex);
     void Inventory_GiveItem(void* m_inventory, int itemIndex, int count);
     bool RoR2Application_IsLoading();
     bool RoR2Application_IsLoadFinished();
@@ -41,4 +58,5 @@ public:
     int RoR2Application_GetLoadGameContentPercentage();
     void TeleportHelper_TeleportBody(void* m_characterBody, Vector3 position);
     float GetRunStopwatch();
+    bool SpawnEnemyAtPosition(int masterIndex, Vector3 position, int teamIndex = 2, bool matchDifficulty = false, int eliteIndex = 0);
 };

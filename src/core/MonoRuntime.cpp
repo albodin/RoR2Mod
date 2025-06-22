@@ -75,6 +75,8 @@ bool MonoRuntime::Initialize(const char* monoDllName) {
     GET_MONO_FUNC(mono_lookup_internal_call);
     GET_MONO_FUNC(mono_class_get_nested_types);
     GET_MONO_FUNC(mono_class_get_name);
+    GET_MONO_FUNC(mono_object_new);
+    GET_MONO_FUNC(mono_field_set_value);
 
     // These might not exist in all Mono versions, so don't fail if not found
     m_mono_free = reinterpret_cast<mono_free_t>(GetProcAddress(monoModule, "mono_free"));
@@ -329,4 +331,14 @@ MonoClass* MonoRuntime::GetObjectClass(MonoObject* obj) {
 void* MonoRuntime::GetInternalCallPointer(MonoMethod* method) {
     if (!AttachThread() || !method || !m_mono_lookup_internal_call) return nullptr;
     return m_mono_lookup_internal_call(method);
+}
+
+MonoObject* MonoRuntime::CreateObject(MonoClass* klass) {
+    if (!AttachThread() || !klass || !m_mono_object_new) return nullptr;
+    return m_mono_object_new(m_rootDomain, klass);
+}
+
+void MonoRuntime::SetFieldValue(MonoObject* obj, MonoField* field, void* value) {
+    if (!AttachThread() || !obj || !field || !m_mono_field_set_value) return;
+    m_mono_field_set_value(obj, field, value);
 }
