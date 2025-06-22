@@ -349,4 +349,9 @@ void PlayerModule::OnCharacterBodyDestroyed(void* characterBody) {
     std::lock_guard<std::mutex> lock(trackerCacheMutex);
     CharacterBody* body = (CharacterBody*)characterBody;
     playerHuntressTrackers.erase(body);
+
+    // Reset flight state when local player's body is destroyed
+    if (localUser_cached && body == localUser_cached->cachedBody_backing) {
+        isProvidingFlight = false;
+    }
 }
