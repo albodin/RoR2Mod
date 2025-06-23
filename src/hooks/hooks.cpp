@@ -508,8 +508,12 @@ void Hooks::hkRoR2InventoryRemoveItem(void* instance, int itemIndex, int count) 
     originalFunc(instance, itemIndex, count);
 }
 
-int Hooks::hkRoR2ItemStealControllerStolenInventoryInfoStealItem(void* instance, int itemIndex, int maxStackToSteal, bool useOrbOverride) {
-    static auto originalFunc = reinterpret_cast<int(*)(void*, int, int, bool)>(hooks["RoR2ItemStealControllerStolenInventoryInfoStealItem"]);
+int Hooks::hkRoR2ItemStealControllerStolenInventoryInfoStealItem(void* instance, int itemIndex, int maxStackToSteal, void* useOrbOverride) {
+    static auto originalFunc = reinterpret_cast<int(*)(void*, int, int, void*)>(hooks["RoR2ItemStealController+StolenInventoryInfoStealItem"]);
+
+    if (!originalFunc) {
+        return 0;
+    }
 
     if (!G::hooksInitialized || !G::localPlayer) {
         return originalFunc(instance, itemIndex, maxStackToSteal, useOrbOverride);
