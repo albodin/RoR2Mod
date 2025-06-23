@@ -606,6 +606,9 @@ void Hooks::hkRoR2BullseyeSearchRefreshCandidates(void* instance) {
         BullseyeSearch* search = static_cast<BullseyeSearch*>(instance);
         uint8_t originalTeamMask = search->teamMaskFilter;
 
+        // Store original sortMode for restoration
+        SortMode_Value originalSortMode = search->sortMode;
+
         // Apply enemy-only targeting if enabled
         if (G::localPlayer->GetHuntressEnemyOnlyTargetingControl() &&
             G::localPlayer->GetHuntressEnemyOnlyTargetingControl()->IsEnabled()) {
@@ -617,10 +620,17 @@ void Hooks::hkRoR2BullseyeSearchRefreshCandidates(void* instance) {
             search->teamMaskFilter = enemyOnlyMask;
         }
 
+        // Apply targeting mode override if enabled
+        if (G::localPlayer->GetHuntressTargetingModeOverrideControl() &&
+            G::localPlayer->GetHuntressTargetingModeOverrideControl()->IsEnabled()) {
+            search->sortMode = (SortMode_Value)G::localPlayer->GetHuntressTargetingModeControl()->GetSelectedValue();
+        }
+
         originalFunc(instance);
 
-        // Restore the original team mask
+        // Restore the original team mask and sort mode
         search->teamMaskFilter = originalTeamMask;
+        search->sortMode = originalSortMode;
         return;
     }
 

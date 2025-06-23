@@ -15,6 +15,8 @@ PlayerModule::PlayerModule() : ModuleBase(),
     huntressRangeControl(nullptr),
     huntressFOVControl(nullptr),
     huntressEnemyOnlyTargetingControl(nullptr),
+    huntressTargetingModeOverrideControl(nullptr),
+    huntressTargetingModeControl(nullptr),
     flightControl(nullptr),
     localUser_cached(nullptr),
     isProvidingFlight(false) {
@@ -32,6 +34,8 @@ PlayerModule::~PlayerModule() {
     delete huntressRangeControl;
     delete huntressFOVControl;
     delete huntressEnemyOnlyTargetingControl;
+    delete huntressTargetingModeOverrideControl;
+    delete huntressTargetingModeControl;
     delete flightControl;
 
     for (auto& [index, control] : itemControls) {
@@ -63,6 +67,11 @@ void PlayerModule::Initialize() {
     huntressWallPenetrationControl = new ToggleControl("Huntress Wall Penetration", "huntressWallPenetration", false);
     huntressEnemyOnlyTargetingControl = new ToggleControl("Huntress Ignore Breakables", "huntressEnemyOnlyTargeting", false);
 
+    huntressTargetingModeOverrideControl = new ToggleControl("Override Huntress Targeting Mode", "huntressTargetingModeOverride", false);
+    huntressTargetingModeControl = new ComboControl("Targeting Mode", "huntressTargetingMode",
+        {"None", "Distance", "Angle", "Distance + Angle"},
+        {0, 1, 2, 3}, 3);
+
     flightControl = new ToggleControl("Flight", "flight", false);
 
     teleportToCursorControl->SetOnAction([this]() {
@@ -84,6 +93,8 @@ void PlayerModule::Update() {
     huntressRangeControl->Update();
     huntressFOVControl->Update();
     huntressEnemyOnlyTargetingControl->Update();
+    huntressTargetingModeOverrideControl->Update();
+    huntressTargetingModeControl->Update();
     flightControl->Update();
 
     for (auto& [index, control] : itemControls) {
@@ -106,6 +117,12 @@ void PlayerModule::DrawUI() {
         huntressFOVControl->Draw();
         huntressWallPenetrationControl->Draw();
         huntressEnemyOnlyTargetingControl->Draw();
+        huntressTargetingModeOverrideControl->Draw();
+        if (huntressTargetingModeOverrideControl->IsEnabled()) {
+            ImGui::Indent();
+            huntressTargetingModeControl->Draw();
+            ImGui::Unindent();
+        }
     }
 
     if (ImGui::CollapsingHeader("Items")) {

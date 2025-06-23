@@ -23,6 +23,8 @@ private:
     FloatControl* huntressFOVControl;
     ToggleControl* huntressWallPenetrationControl;
     ToggleControl* huntressEnemyOnlyTargetingControl;
+    ToggleControl* huntressTargetingModeOverrideControl;
+    ComboControl* huntressTargetingModeControl;
 
     ToggleControl* flightControl;
 
@@ -34,7 +36,7 @@ private:
 
     std::map<int, IntControl*> itemControls;
     LocalUser* localUser_cached;
-    
+
     // Huntress tracker cache management
     std::map<CharacterBody*, HuntressTracker*> playerHuntressTrackers;
     std::mutex trackerCacheMutex;
@@ -67,6 +69,8 @@ public:
     FloatControl* GetHuntressFOVControl() { return huntressFOVControl; }
     ToggleControl* GetHuntressWallPenetrationControl() { return huntressWallPenetrationControl; }
     ToggleControl* GetHuntressEnemyOnlyTargetingControl() { return huntressEnemyOnlyTargetingControl; }
+    ToggleControl* GetHuntressTargetingModeOverrideControl() { return huntressTargetingModeOverrideControl; }
+    ComboControl* GetHuntressTargetingModeControl() { return huntressTargetingModeControl; }
     ToggleControl* GetFlightControl() { return flightControl; }
     HuntressTracker* GetCurrentLocalTracker();
     std::map<int, IntControl*>& GetItemControls() { return itemControls; }
