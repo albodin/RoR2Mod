@@ -253,6 +253,7 @@ void Hooks::Init() {
 
     // Initialize enemy spawning module
     G::enemySpawningModule->InitializeEnemies();
+    G::enemySpawningModule->InitializeItems();
 
 #ifdef DEBUG_PRINT
     std::shared_lock<std::shared_mutex> enemyLock(G::enemiesMutex);

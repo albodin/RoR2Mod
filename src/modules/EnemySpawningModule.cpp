@@ -44,6 +44,11 @@ EnemySpawningModule::~EnemySpawningModule() {
     delete difficultyMatchingControl;
     delete eliteSelectControl;
     delete spawnButtonControl;
+
+    for (auto& [index, control] : itemControls) {
+        delete control;
+    }
+    itemControls.clear();
 }
 
 
@@ -55,6 +60,10 @@ void EnemySpawningModule::Update() {
     difficultyMatchingControl->Update();
     eliteSelectControl->Update();
     spawnButtonControl->Update();
+
+    for (auto& [index, control] : itemControls) {
+        control->Update();
+    }
 }
 
 void EnemySpawningModule::DrawUI() {
@@ -65,6 +74,24 @@ void EnemySpawningModule::DrawUI() {
         spawnCountControl->Draw();
         difficultyMatchingControl->Draw();
         eliteSelectControl->Draw();
+
+        // Draw items section
+        if (ImGui::CollapsingHeader("Items")) {
+            std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
+            if (ImGui::CollapsingHeader("Tier1")) {
+                DrawItemInputs(ItemTier_Value::Tier1);
+            }
+            if (ImGui::CollapsingHeader("Tier2")) {
+                DrawItemInputs(ItemTier_Value::Tier2);
+            }
+            if (ImGui::CollapsingHeader("Tier3")) {
+                DrawItemInputs(ItemTier_Value::Tier3);
+            }
+            if (ImGui::CollapsingHeader("Lunar")) {
+                DrawItemInputs(ItemTier_Value::Lunar);
+            }
+        }
+
         spawnButtonControl->Draw();
 
         // Show selected enemy info
@@ -95,6 +122,7 @@ void EnemySpawningModule::OnLocalUserUpdate(void* localUser) {
         int teamIndex = std::get<2>(spawn);
         bool matchDifficulty = std::get<3>(spawn);
         int eliteBuffIndex = std::get<4>(spawn);
+        std::vector<std::pair<int, int>> items = std::get<5>(spawn);
         Vector3 spawnPosition = localUser_ptr->_cameraRigController->crosshairWorldPosition_backing;
 
         // Find elite name from buff index
@@ -108,7 +136,7 @@ void EnemySpawningModule::OnLocalUserUpdate(void* localUser) {
         G::logger.LogInfo("Spawning %d %s enemies with difficulty matching %s (masterIndex: %d, team: %d)", count, eliteType.c_str(), matchDifficulty ? "enabled" : "disabled", masterIndex, teamIndex);
 
         for (int i = 0; i < count; i++) {
-            bool success = G::gameFunctions->SpawnEnemyAtPosition(masterIndex, spawnPosition, teamIndex, matchDifficulty, eliteBuffIndex);
+            bool success = G::gameFunctions->SpawnEnemyAtPosition(masterIndex, spawnPosition, teamIndex, matchDifficulty, eliteBuffIndex, items);
             if (!success) {
                 G::logger.LogError("Failed to spawn enemy %d of %d (masterIndex: %d)", i + 1, count, masterIndex);
             }
@@ -128,6 +156,55 @@ void EnemySpawningModule::InitializeEnemies() {
     }
 
     G::logger.LogInfo("Enemy spawning module initialized with %zu enemies", enemies.size());
+}
+
+void EnemySpawningModule::InitializeItems() {
+    std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
+    
+    items = G::items;
+    SortItemsByName();
+    InitializeAllItemControls();
+    
+    G::logger.LogInfo("Enemy spawning module initialized with %zu items", items.size());
+}
+
+void EnemySpawningModule::SortItemsByName() {
+    std::sort(items.begin(), items.end(), [](const RoR2Item& a, const RoR2Item& b) {
+        if (a.tier != b.tier) {
+            return a.tier < b.tier;
+        }
+        return a.displayName < b.displayName;
+    });
+}
+
+void EnemySpawningModule::InitializeAllItemControls() {
+    for (auto& [index, control] : itemControls) {
+        delete control;
+    }
+    itemControls.clear();
+
+    std::shared_lock<std::shared_mutex> lock(itemsMutex);
+    for (int i = 0; i < items.size(); i++) {
+        const auto& item = items[i];
+        int index = item.index;
+        
+        auto control = new IntControl(item.displayName, "enemySpawn_item_" + std::to_string(index), 0, 0, INT_MAX, 1, false, false);
+        control->SetShowCheckbox(false);
+        itemControls[index] = control;
+    }
+}
+
+void EnemySpawningModule::DrawItemInputs(ItemTier_Value tier) {
+    std::shared_lock<std::shared_mutex> lock(itemsMutex);
+
+    for (const auto& item : items) {
+        if (item.tier != tier) continue;
+        int index = item.index;
+
+        if (itemControls.count(index) > 0) {
+            itemControls[index]->Draw();
+        }
+    }
 }
 
 void EnemySpawningModule::PrepareEnemyLists() {
@@ -153,5 +230,15 @@ void EnemySpawningModule::PrepareEnemyLists() {
 void EnemySpawningModule::SpawnEnemy(int masterIndex, int count, int eliteIndex) {
     std::unique_lock<std::mutex> lock(queuedSpawnsMutex);
     int teamIndex = teamSelectControl->GetSelectedIndex();
-    queuedSpawns.push(std::make_tuple(masterIndex, count, teamIndex, difficultyMatchingControl->IsEnabled(), eliteIndex));
+    
+    // Collect current item values
+    std::vector<std::pair<int, int>> currentItems;
+    for (const auto& [index, control] : itemControls) {
+        int itemCount = control->GetValue();
+        if (itemCount > 0) {
+            currentItems.push_back(std::make_pair(index, itemCount));
+        }
+    }
+    
+    queuedSpawns.push(std::make_tuple(masterIndex, count, teamIndex, difficultyMatchingControl->IsEnabled(), eliteIndex, currentItems));
 }

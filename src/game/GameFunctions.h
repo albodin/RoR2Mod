@@ -58,5 +58,5 @@ public:
     int RoR2Application_GetLoadGameContentPercentage();
     void TeleportHelper_TeleportBody(void* m_characterBody, Vector3 position);
     float GetRunStopwatch();
-    bool SpawnEnemyAtPosition(int masterIndex, Vector3 position, int teamIndex = 2, bool matchDifficulty = false, int eliteIndex = 0);
+    bool SpawnEnemyAtPosition(int masterIndex, Vector3 position, int teamIndex = 2, bool matchDifficulty = false, int eliteIndex = 0, const std::vector<std::pair<int, int>>& items = {});
 };

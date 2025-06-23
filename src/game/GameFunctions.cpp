@@ -737,8 +737,8 @@ float GameFunctions::GetRunStopwatch() {
     }
 }
 
-bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int teamIndex, bool matchDifficulty, int eliteIndex) {
-    std::function<bool()> task = [this, masterIndex, position, teamIndex, matchDifficulty, eliteIndex]() -> bool {
+bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int teamIndex, bool matchDifficulty, int eliteIndex, const std::vector<std::pair<int, int>>& items) {
+    std::function<bool()> task = [this, masterIndex, position, teamIndex, matchDifficulty, eliteIndex, items]() -> bool {
         if (!m_masterSummonClass || !m_masterCatalogClass) {
             return false;
         }
@@ -814,41 +814,51 @@ bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int 
         MonoObject* spawnedMaster = m_runtime->InvokeMethod(performMethod, masterSummon, nullptr);
         if (!spawnedMaster) return false;
 
-        // Give UseAmbientLevel item if difficulty matching is enabled
-        if (matchDifficulty && m_characterMasterClass && m_inventoryClass) {
-            static int useAmbientLevelIndex = -1;
-
-            // Find UseAmbientLevel item index if not already cached
-            if (useAmbientLevelIndex == -1) {
-                std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
-                auto it = G::specialItems.find("UseAmbientLevel");
-                if (it != G::specialItems.end()) {
-                    useAmbientLevelIndex = it->second;
-                    G::logger.LogInfo("Found UseAmbientLevel item at index %d", useAmbientLevelIndex);
-                }
-            }
-
-            if (useAmbientLevelIndex >= 0) {
-                // Get the inventory from the spawned CharacterMaster
-                MonoProperty* inventoryProp = m_runtime->GetProperty(m_characterMasterClass, "inventory");
-                if (inventoryProp) {
-                    MonoMethod* getInventoryMethod = m_runtime->GetPropertyGetMethod(inventoryProp);
-                    if (getInventoryMethod) {
-                        MonoObject* inventory = m_runtime->InvokeMethod(getInventoryMethod, spawnedMaster, nullptr);
-                        if (inventory) {
-                            // Give UseAmbientLevel item to make enemy scale with current difficulty
-                            Inventory_GiveItem(inventory, useAmbientLevelIndex, 1);
-                        } else {
-                            G::logger.LogWarning("Could not get inventory from spawned master");
+        // Give items if difficulty matching is enabled or custom items are requested
+        if ((matchDifficulty || !items.empty()) && m_characterMasterClass && m_inventoryClass) {
+            // Get the inventory from the spawned CharacterMaster
+            MonoProperty* inventoryProp = m_runtime->GetProperty(m_characterMasterClass, "inventory");
+            if (inventoryProp) {
+                MonoMethod* getInventoryMethod = m_runtime->GetPropertyGetMethod(inventoryProp);
+                if (getInventoryMethod) {
+                    MonoObject* inventory = m_runtime->InvokeMethod(getInventoryMethod, spawnedMaster, nullptr);
+                    if (inventory) {
+                        // Give UseAmbientLevel item if difficulty matching is enabled
+                        if (matchDifficulty) {
+                            static int useAmbientLevelIndex = -1;
+                            
+                            // Find UseAmbientLevel item index if not already cached
+                            if (useAmbientLevelIndex == -1) {
+                                std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
+                                auto it = G::specialItems.find("UseAmbientLevel");
+                                if (it != G::specialItems.end()) {
+                                    useAmbientLevelIndex = it->second;
+                                    G::logger.LogInfo("Found UseAmbientLevel item at index %d", useAmbientLevelIndex);
+                                }
+                            }
+                            
+                            if (useAmbientLevelIndex >= 0) {
+                                Inventory_GiveItem(inventory, useAmbientLevelIndex, 1);
+                            } else {
+                                G::logger.LogError("Could not find UseAmbientLevel item in items list");
+                            }
+                        }
+                        
+                        // Give custom items
+                        for (const auto& [itemIndex, count] : items) {
+                            if (count > 0) {
+                                Inventory_GiveItem(inventory, itemIndex, count);
+                                G::logger.LogInfo("Gave %d of item %d to spawned enemy", count, itemIndex);
+                            }
                         }
                     } else {
-                        G::logger.LogError("Failed to find inventory getter method");
+                        G::logger.LogWarning("Could not get inventory from spawned master");
                     }
                 } else {
-                    G::logger.LogError("Failed to find inventory property on CharacterMaster");
+                    G::logger.LogError("Failed to find inventory getter method");
                 }
             } else {
-                G::logger.LogError("Could not find UseAmbientLevel item in items list");
+                G::logger.LogError("Failed to find inventory property on CharacterMaster");
             }
         }
 
