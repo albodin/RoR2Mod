@@ -17,6 +17,8 @@ PlayerModule::PlayerModule() : ModuleBase(),
     huntressEnemyOnlyTargetingControl(nullptr),
     huntressTargetingModeOverrideControl(nullptr),
     huntressTargetingModeControl(nullptr),
+    blockPhysicsEffectsControl(nullptr),
+    blockPullsControl(nullptr),
     flightControl(nullptr),
     localUser_cached(nullptr),
     isProvidingFlight(false) {
@@ -36,6 +38,8 @@ PlayerModule::~PlayerModule() {
     delete huntressEnemyOnlyTargetingControl;
     delete huntressTargetingModeOverrideControl;
     delete huntressTargetingModeControl;
+    delete blockPhysicsEffectsControl;
+    delete blockPullsControl;
     delete flightControl;
 
     for (auto& [index, control] : itemControls) {
@@ -72,6 +76,10 @@ void PlayerModule::Initialize() {
         {"None", "Distance", "Angle", "Distance + Angle"},
         {0, 1, 2, 3}, 3);
 
+    // Initialize physics blocking controls
+    blockPhysicsEffectsControl = new ToggleControl("Block Enemy Forces", "blockPhysicsEffects", false);
+    blockPullsControl = new ToggleControl("Block Displacements", "blockPulls", true);
+
     flightControl = new ToggleControl("Flight", "flight", false);
 
     teleportToCursorControl->SetOnAction([this]() {
@@ -95,6 +103,8 @@ void PlayerModule::Update() {
     huntressEnemyOnlyTargetingControl->Update();
     huntressTargetingModeOverrideControl->Update();
     huntressTargetingModeControl->Update();
+    blockPhysicsEffectsControl->Update();
+    blockPullsControl->Update();
     flightControl->Update();
 
     for (auto& [index, control] : itemControls) {
@@ -123,6 +133,11 @@ void PlayerModule::DrawUI() {
             huntressTargetingModeControl->Draw();
             ImGui::Unindent();
         }
+    }
+
+    if (ImGui::CollapsingHeader("Physics Settings")) {
+        blockPhysicsEffectsControl->Draw();
+        blockPullsControl->Draw();
     }
 
     if (ImGui::CollapsingHeader("Items")) {

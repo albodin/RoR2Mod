@@ -189,6 +189,8 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, TeleporterInteraction, FixedUpdate, 0, "System.Void", {});
     HOOK(RoR2, RoR2, CharacterBody, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, CharacterBody, OnDestroy, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, CharacterMotor, AddDisplacement, 1, "System.Void", {"UnityEngine.Vector3"});
+    HOOK(RoR2, RoR2, CharacterMotor, ApplyForce, 3, "System.Void", {"UnityEngine.Vector3", "System.Boolean", "System.Boolean"});
     HOOK(RoR2, RoR2, HuntressTracker, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, BullseyeSearch, GetResults, 0, "System.Collections.Generic.IEnumerable<RoR2.HurtBox>", {});
     HOOK(RoR2, RoR2, BullseyeSearch, RefreshCandidates, 0, "System.Void", {});
@@ -581,6 +583,43 @@ void Hooks::hkRoR2CharacterBodyOnDestroy(void* instance) {
     }
 
     originalFunc(instance);
+}
+
+void Hooks::hkRoR2CharacterMotorAddDisplacement(void* instance, Vector3* displacement) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*, Vector3*)>(hooks["RoR2CharacterMotorAddDisplacement"]);
+
+    if (!G::hooksInitialized) {
+        originalFunc(instance, displacement);
+        return;
+    }
+
+    LocalUser* localUser = G::localPlayer ? G::localPlayer->GetLocalUser() : nullptr;
+    if (localUser && localUser->cachedBody_backing &&
+        localUser->cachedBody_backing->characterMotor_backing == instance &&
+        G::localPlayer->GetBlockPhysicsEffectsControl()->IsEnabled() &&
+        G::localPlayer->GetBlockPullsControl()->IsEnabled()) {
+        return;
+    }
+
+    originalFunc(instance, displacement);
+}
+
+void Hooks::hkRoR2CharacterMotorApplyForce(void* instance, Vector3* force, bool alwaysApply, bool disableAirControl) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*, Vector3*, bool, bool)>(hooks["RoR2CharacterMotorApplyForce"]);
+
+    if (!G::hooksInitialized) {
+        originalFunc(instance, force, alwaysApply, disableAirControl);
+        return;
+    }
+
+    LocalUser* localUser = G::localPlayer ? G::localPlayer->GetLocalUser() : nullptr;
+    if (localUser && localUser->cachedBody_backing &&
+        localUser->cachedBody_backing->characterMotor_backing == instance &&
+        G::localPlayer->GetBlockPhysicsEffectsControl()->IsEnabled()) {
+        return;
+    }
+
+    originalFunc(instance, force, alwaysApply, disableAirControl);
 }
 
 void Hooks::hkRoR2HuntressTrackerStart(void* instance) {

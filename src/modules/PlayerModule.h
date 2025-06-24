@@ -26,6 +26,9 @@ private:
     ToggleControl* huntressTargetingModeOverrideControl;
     ComboControl* huntressTargetingModeControl;
 
+    ToggleControl* blockPhysicsEffectsControl;
+    ToggleControl* blockPullsControl;
+
     ToggleControl* flightControl;
 
     std::mutex queuedGiveItemsMutex;
@@ -71,6 +74,8 @@ public:
     ToggleControl* GetHuntressEnemyOnlyTargetingControl() { return huntressEnemyOnlyTargetingControl; }
     ToggleControl* GetHuntressTargetingModeOverrideControl() { return huntressTargetingModeOverrideControl; }
     ComboControl* GetHuntressTargetingModeControl() { return huntressTargetingModeControl; }
+    ToggleControl* GetBlockPhysicsEffectsControl() { return blockPhysicsEffectsControl; }
+    ToggleControl* GetBlockPullsControl() { return blockPullsControl; }
     ToggleControl* GetFlightControl() { return flightControl; }
     HuntressTracker* GetCurrentLocalTracker();
     std::map<int, IntControl*>& GetItemControls() { return itemControls; }

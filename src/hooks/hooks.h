@@ -34,6 +34,8 @@ namespace Hooks {
     void hkRoR2TeleporterInteractionFixedUpdate(void*);
     void hkRoR2CharacterBodyStart(void*);
     void hkRoR2CharacterBodyOnDestroy(void*);
+    void hkRoR2CharacterMotorAddDisplacement(void*, Vector3*);
+    void hkRoR2CharacterMotorApplyForce(void*, Vector3*, bool, bool);
     void hkRoR2HuntressTrackerStart(void*);
     void* hkRoR2BullseyeSearchGetResults(void*);
     void hkRoR2BullseyeSearchRefreshCandidates(void*);
