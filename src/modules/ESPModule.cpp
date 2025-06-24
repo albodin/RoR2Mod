@@ -230,6 +230,10 @@ void ESPModule::RenderPlayerESP() {
         trackedPlayers.end()
     );
 
+    // Collect and prepare render items with distance calculations
+    std::vector<ESPEntityRenderItem> renderItems;
+    renderItems.reserve(trackedPlayers.size());
+
     for (TrackedEntity* entity : trackedPlayers) {
         if (!entity->body || !entity->body->transform || !entity->body->healthComponent_backing) continue;
 
@@ -258,7 +262,22 @@ void ESPModule::RenderPlayerESP() {
             continue;
         }
 
-        RenderEntityESP(entity, screenPos, distance, control, isVisible, onScreen);
+        renderItems.emplace_back(entity, distance, isVisible, onScreen, screenPos);
+    }
+
+    // Sort by distance (farthest to nearest) so closest appear on top
+    std::sort(renderItems.begin(), renderItems.end(),
+        [](const ESPEntityRenderItem& a, const ESPEntityRenderItem& b) {
+            return a.distance > b.distance; // Descending order (far to near)
+        });
+
+    // Render in sorted order
+    for (const auto& item : renderItems) {
+        EntityESPSubControl* control = item.isVisible ?
+            playerESPControl->GetVisibleControl() :
+            playerESPControl->GetNonVisibleControl();
+
+        RenderEntityESP(item.entity, item.screenPos, item.distance, control, item.isVisible, item.onScreen);
     }
 }
 
@@ -279,6 +298,10 @@ void ESPModule::RenderEnemyESP() {
             }),
         trackedEnemies.end()
     );
+
+    // Collect and prepare render items with distance calculations
+    std::vector<ESPEntityRenderItem> renderItems;
+    renderItems.reserve(trackedEnemies.size());
 
     for (TrackedEntity* entity : trackedEnemies) {
         if (!entity->body || !entity->body->transform || !entity->body->healthComponent_backing) continue;
@@ -306,7 +329,22 @@ void ESPModule::RenderEnemyESP() {
             continue;
         }
 
-        RenderEntityESP(entity, screenPos, distance, control, isVisible, onScreen);
+        renderItems.emplace_back(entity, distance, isVisible, onScreen, screenPos);
+    }
+
+    // Sort by distance (farthest to nearest) so closest appear on top
+    std::sort(renderItems.begin(), renderItems.end(),
+        [](const ESPEntityRenderItem& a, const ESPEntityRenderItem& b) {
+            return a.distance > b.distance; // Descending order (far to near)
+        });
+
+    // Render in sorted order
+    for (const auto& item : renderItems) {
+        EntityESPSubControl* control = item.isVisible ?
+            enemyESPControl->GetVisibleControl() :
+            enemyESPControl->GetNonVisibleControl();
+
+        RenderEntityESP(item.entity, item.screenPos, item.distance, control, item.isVisible, item.onScreen);
     }
 }
 
@@ -977,6 +1015,10 @@ void ESPModule::RenderInteractablesESP() {
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
 
+    // Collect and prepare render items with distance calculations
+    std::vector<ESPInteractableRenderItem> renderItems;
+    renderItems.reserve(trackedInteractables.size());
+
     for (auto interactable : trackedInteractables) {
         if (!interactable || !interactable->gameObject) continue;
 
@@ -1062,7 +1104,33 @@ void ESPModule::RenderInteractablesESP() {
         bool onScreen = screenPos.x >= 0 && screenPos.x <= ImGui::GetIO().DisplaySize.x &&
                        screenPos.y >= 0 && screenPos.y <= ImGui::GetIO().DisplaySize.y;
 
-        RenderInteractableESP(interactable, screenPos, distance, control, isVisible, onScreen, isAvailable);
+        renderItems.emplace_back(interactable, distance, isVisible, onScreen, isAvailable, screenPos);
+    }
+
+    // Sort by distance (farthest to nearest) so closest appear on top
+    std::sort(renderItems.begin(), renderItems.end(),
+        [](const ESPInteractableRenderItem& a, const ESPInteractableRenderItem& b) {
+            return a.distance > b.distance; // Descending order (far to near)
+        });
+
+    // Render in sorted order
+    for (const auto& item : renderItems) {
+        // Determine control again (needed for rendering)
+        ChestESPControl* categoryControl = nullptr;
+        switch(item.interactable->category) {
+            case InteractableCategory::Chest: categoryControl = chestESPControl; break;
+            case InteractableCategory::Shop: categoryControl = shopESPControl; break;
+            case InteractableCategory::Drone: categoryControl = droneESPControl; break;
+            case InteractableCategory::Shrine: categoryControl = shrineESPControl; break;
+            case InteractableCategory::Special: categoryControl = specialESPControl; break;
+            case InteractableCategory::Barrel: categoryControl = barrelESPControl; break;
+            case InteractableCategory::ItemPickup: categoryControl = itemPickupESPControl; break;
+            case InteractableCategory::Portal: categoryControl = portalESPControl; break;
+            case InteractableCategory::Unknown: categoryControl = specialESPControl; break;
+        }
+
+        ChestESPSubControl* control = categoryControl->GetSubControl();
+        RenderInteractableESP(item.interactable, item.screenPos, item.distance, control, item.isVisible, item.onScreen, item.isAvailable);
     }
 }
 

@@ -37,6 +37,30 @@ struct TrackedInteractable {
     int32_t pickupIndex; // Store the pickup index
 };
 
+// Helper structures for depth-based rendering
+struct ESPEntityRenderItem {
+    TrackedEntity* entity;
+    float distance;
+    bool isVisible;
+    bool onScreen;
+    ImVec2 screenPos;
+
+    ESPEntityRenderItem(TrackedEntity* e, float d, bool visible, bool onScr, const ImVec2& pos)
+        : entity(e), distance(d), isVisible(visible), onScreen(onScr), screenPos(pos) {}
+};
+
+struct ESPInteractableRenderItem {
+    TrackedInteractable* interactable;
+    float distance;
+    bool isVisible;
+    bool onScreen;
+    bool isAvailable;
+    ImVec2 screenPos;
+
+    ESPInteractableRenderItem(TrackedInteractable* inter, float d, bool visible, bool onScr, bool available, const ImVec2& pos)
+        : interactable(inter), distance(d), isVisible(visible), onScreen(onScr), isAvailable(available), screenPos(pos) {}
+};
+
 class ChestESPControl;
 
 class ESPModule : public ModuleBase {
