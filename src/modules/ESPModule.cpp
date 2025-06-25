@@ -3,10 +3,315 @@
 #include "hooks/hooks.h"
 #include "utils/RenderUtils.h"
 #include "fonts/FontManager.h"
+#include "config/ConfigManager.h"
 #include <imgui.h>
 #include <cmath>
 #include <algorithm>
 #include <cstdio>
+#include <sstream>
+
+// ESPRenderOrderManager implementation
+ESPRenderOrderManager::ESPRenderOrderManager() {
+    ResetToDefault();
+}
+
+const std::vector<ESPSubCategory>& ESPRenderOrderManager::GetSubOrder(ESPMainCategory mainCat) const {
+    auto it = m_subCategoryOrders.find(mainCat);
+    if (it != m_subCategoryOrders.end()) {
+        return it->second;
+    }
+    static std::vector<ESPSubCategory> empty;
+    return empty;
+}
+
+void ESPRenderOrderManager::SetSubOrder(ESPMainCategory mainCat, const std::vector<ESPSubCategory>& order) {
+    m_subCategoryOrders[mainCat] = order;
+}
+
+std::vector<ESPCategoryInfo> ESPRenderOrderManager::GetRenderOrder() const {
+    std::vector<ESPCategoryInfo> renderOrder;
+
+    // Use main category order directly (lowest priority first for proper rendering)
+    for (ESPMainCategory mainCat : m_mainCategoryOrder) {
+        auto it = m_subCategoryOrders.find(mainCat);
+        if (it != m_subCategoryOrders.end()) {
+            for (ESPSubCategory subCat : it->second) {
+                std::string displayName = GetCategoryDisplayName(mainCat);
+                if (subCat != ESPSubCategory::Single) {
+                    displayName += " (" + GetSubCategoryDisplayName(subCat) + ")";
+                }
+                renderOrder.emplace_back(mainCat, subCat, displayName);
+            }
+        }
+    }
+
+    return renderOrder;
+}
+
+void ESPRenderOrderManager::MoveCategoryUp(ESPMainCategory category) {
+    auto it = std::find(m_mainCategoryOrder.begin(), m_mainCategoryOrder.end(), category);
+    if (it != m_mainCategoryOrder.end() && it != m_mainCategoryOrder.begin()) {
+        std::swap(*it, *(it - 1));
+    }
+}
+
+void ESPRenderOrderManager::MoveCategoryDown(ESPMainCategory category) {
+    auto it = std::find(m_mainCategoryOrder.begin(), m_mainCategoryOrder.end(), category);
+    if (it != m_mainCategoryOrder.end() && it != m_mainCategoryOrder.end() - 1) {
+        std::swap(*it, *(it + 1));
+    }
+}
+
+void ESPRenderOrderManager::MoveSubCategoryUp(ESPMainCategory mainCat, ESPSubCategory subCat) {
+    auto& subOrder = m_subCategoryOrders[mainCat];
+    auto it = std::find(subOrder.begin(), subOrder.end(), subCat);
+    if (it != subOrder.end() && it != subOrder.begin()) {
+        std::swap(*it, *(it - 1));
+    }
+}
+
+void ESPRenderOrderManager::MoveSubCategoryDown(ESPMainCategory mainCat, ESPSubCategory subCat) {
+    auto& subOrder = m_subCategoryOrders[mainCat];
+    auto it = std::find(subOrder.begin(), subOrder.end(), subCat);
+    if (it != subOrder.end() && it != subOrder.end() - 1) {
+        std::swap(*it, *(it + 1));
+    }
+}
+
+void ESPRenderOrderManager::ResetToDefault() {
+    // Default main category order (matches current ESP rendering order)
+    m_mainCategoryOrder = {
+        ESPMainCategory::Teleporter,
+        ESPMainCategory::Enemies,
+        ESPMainCategory::Players,
+        ESPMainCategory::Chests,
+        ESPMainCategory::Shops,
+        ESPMainCategory::Drones,
+        ESPMainCategory::Shrines,
+        ESPMainCategory::Specials,
+        ESPMainCategory::Barrels,
+        ESPMainCategory::ItemPickups,
+        ESPMainCategory::Portals
+    };
+
+    // Default sub-category orders
+    m_subCategoryOrders.clear();
+
+    // Entities have Visible/NonVisible sub-categories
+    m_subCategoryOrders[ESPMainCategory::Players] = {ESPSubCategory::Visible, ESPSubCategory::NonVisible};
+    m_subCategoryOrders[ESPMainCategory::Enemies] = {ESPSubCategory::Visible, ESPSubCategory::NonVisible};
+
+    // All others use Single sub-category
+    for (int i = 0; i < (int)ESPMainCategory::COUNT; i++) {
+        ESPMainCategory cat = (ESPMainCategory)i;
+        if (cat != ESPMainCategory::Players && cat != ESPMainCategory::Enemies) {
+            m_subCategoryOrders[cat] = {ESPSubCategory::Single};
+        }
+    }
+}
+
+bool ESPRenderOrderManager::ValidateConfiguration() const {
+    // Check if main category order contains all categories exactly once
+    if (m_mainCategoryOrder.size() != (int)ESPMainCategory::COUNT) {
+        return false;
+    }
+
+    // Check for duplicates and ensure all categories are present
+    std::vector<bool> categoryPresent(static_cast<int>(ESPMainCategory::COUNT), false);
+    for (ESPMainCategory cat : m_mainCategoryOrder) {
+        int index = static_cast<int>(cat);
+        if (index < 0 || index >= static_cast<int>(ESPMainCategory::COUNT)) {
+            return false; // Invalid category
+        }
+        if (categoryPresent[index]) {
+            return false; // Duplicate category
+        }
+        categoryPresent[index] = true;
+    }
+
+    // Check that all categories are present
+    for (bool present : categoryPresent) {
+        if (!present) {
+            return false;
+        }
+    }
+
+    // Validate sub-category orders
+    for (const auto& pair : m_subCategoryOrders) {
+        ESPMainCategory mainCat = pair.first;
+        const std::vector<ESPSubCategory>& subOrder = pair.second;
+
+        // Check if main category is valid
+        if (static_cast<int>(mainCat) < 0 || static_cast<int>(mainCat) >= static_cast<int>(ESPMainCategory::COUNT)) {
+            return false;
+        }
+
+        // Check if sub-categories are valid and no duplicates
+        std::vector<bool> subCategoryPresent(static_cast<int>(ESPSubCategory::COUNT), false);
+        for (ESPSubCategory subCat : subOrder) {
+            int index = static_cast<int>(subCat);
+            if (index < 0 || index >= static_cast<int>(ESPSubCategory::COUNT)) {
+                return false; // Invalid sub-category
+            }
+            if (subCategoryPresent[index]) {
+                return false; // Duplicate sub-category
+            }
+            subCategoryPresent[index] = true;
+        }
+    }
+
+    return true;
+}
+
+void ESPRenderOrderManager::EnsureValidConfiguration() {
+    if (!ValidateConfiguration()) {
+        ResetToDefault();
+    }
+}
+
+std::string ESPRenderOrderManager::GetCategoryDisplayName(ESPMainCategory category) {
+    switch (category) {
+        case ESPMainCategory::Players: return "Players";
+        case ESPMainCategory::Enemies: return "Enemies";
+        case ESPMainCategory::Teleporter: return "Teleporter";
+        case ESPMainCategory::Chests: return "Chests";
+        case ESPMainCategory::Shops: return "Shops";
+        case ESPMainCategory::Drones: return "Drones";
+        case ESPMainCategory::Shrines: return "Shrines";
+        case ESPMainCategory::Specials: return "Specials";
+        case ESPMainCategory::Barrels: return "Barrels";
+        case ESPMainCategory::ItemPickups: return "Item Pickups";
+        case ESPMainCategory::Portals: return "Portals";
+        default: return "Unknown";
+    }
+}
+
+std::string ESPRenderOrderManager::GetSubCategoryDisplayName(ESPSubCategory subCategory) {
+    switch (subCategory) {
+        case ESPSubCategory::Visible: return "Visible";
+        case ESPSubCategory::NonVisible: return "Non-Visible";
+        case ESPSubCategory::Single: return "";
+        default: return "Unknown";
+    }
+}
+
+std::string ESPRenderOrderManager::SerializeToString() const {
+    std::stringstream ss;
+
+    // Serialize main order
+    ss << "main:";
+    for (size_t i = 0; i < m_mainCategoryOrder.size(); i++) {
+        if (i > 0) ss << ",";
+        ss << (int)m_mainCategoryOrder[i];
+    }
+    ss << ";";
+
+    // Serialize sub orders
+    for (const auto& pair : m_subCategoryOrders) {
+        ss << "sub" << (int)pair.first << ":";
+        for (size_t i = 0; i < pair.second.size(); i++) {
+            if (i > 0) ss << ",";
+            ss << (int)pair.second[i];
+        }
+        ss << ";";
+    }
+
+    return ss.str();
+}
+
+void ESPRenderOrderManager::DeserializeFromString(const std::string& data) {
+    if (data.empty()) {
+        ResetToDefault();
+        return;
+    }
+
+    try {
+        // Simple parsing - split by semicolon, then process each part
+        std::stringstream ss(data);
+        std::string segment;
+        bool hasValidMainOrder = false;
+
+        while (std::getline(ss, segment, ';')) {
+            if (segment.empty()) continue;
+
+            size_t colonPos = segment.find(':');
+            if (colonPos == std::string::npos) continue;
+
+            std::string key = segment.substr(0, colonPos);
+            std::string values = segment.substr(colonPos + 1);
+
+            if (key == "main") {
+                // Parse main category order
+                std::vector<ESPMainCategory> tempOrder;
+                std::stringstream valueStream(values);
+                std::string value;
+
+                while (std::getline(valueStream, value, ',')) {
+                    if (value.empty()) continue;
+
+                    try {
+                        int catInt = std::stoi(value);
+                        if (catInt >= 0 && catInt < (int)ESPMainCategory::COUNT) {
+                            tempOrder.push_back((ESPMainCategory)catInt);
+                        }
+                    } catch (const std::exception&) {
+                        // Skip invalid number formats
+                        continue;
+                    }
+                }
+
+                // Only accept the main order if it contains all categories
+                if (tempOrder.size() == (int)ESPMainCategory::COUNT) {
+                    m_mainCategoryOrder = tempOrder;
+                    hasValidMainOrder = true;
+                }
+            } else if (key.length() > 3 && key.substr(0, 3) == "sub") {
+                // Parse sub-category order
+                try {
+                    std::string mainCatStr = key.substr(3);
+                    int mainCatInt = std::stoi(mainCatStr);
+
+                    if (mainCatInt >= 0 && mainCatInt < (int)ESPMainCategory::COUNT) {
+                        ESPMainCategory mainCat = (ESPMainCategory)mainCatInt;
+                        std::vector<ESPSubCategory> subOrder;
+
+                        std::stringstream valueStream(values);
+                        std::string value;
+                        while (std::getline(valueStream, value, ',')) {
+                            if (value.empty()) continue;
+
+                            try {
+                                int subCatInt = std::stoi(value);
+                                if (subCatInt >= 0 && subCatInt < (int)ESPSubCategory::COUNT) {
+                                    subOrder.push_back((ESPSubCategory)subCatInt);
+                                }
+                            } catch (const std::exception&) {
+                                // Skip invalid number formats
+                                continue;
+                            }
+                        }
+
+                        // Only set sub-order if it's not empty
+                        if (!subOrder.empty()) {
+                            m_subCategoryOrders[mainCat] = subOrder;
+                        }
+                    }
+                } catch (const std::exception&) {
+                    // Skip invalid main category numbers
+                    continue;
+                }
+            }
+        }
+
+        // If we didn't get a valid main order, reset to default
+        if (!hasValidMainOrder) {
+            ResetToDefault();
+        }
+    } catch (const std::exception&) {
+        // If any critical error occurs, reset to default
+        ResetToDefault();
+    }
+}
 
 ESPModule::ESPModule() : ModuleBase() {
     m_costFormatsInitialized = false;
@@ -46,6 +351,16 @@ void ESPModule::Initialize() {
     barrelESPControl = new ChestESPControl("Barrels", "barrel_esp");
     itemPickupESPControl = new ChestESPControl("Item Pickups", "item_pickup_esp");
     portalESPControl = new ChestESPControl("Portals", "portal_esp");
+
+    // Initialize render order configuration control for persistence
+    m_renderOrderConfigControl = std::make_unique<RenderOrderConfigControl>(&m_renderOrderManager);
+    ConfigManager::RegisterControl(m_renderOrderConfigControl.get());
+
+    // Initialize category mappings
+    InitializeCategoryMappings();
+
+    // Ensure render order configuration is valid
+    m_renderOrderManager.EnsureValidConfiguration();
 }
 
 void ESPModule::Update() {
@@ -80,6 +395,39 @@ void ESPModule::Update() {
     }
 }
 
+void ESPModule::InitializeCategoryMappings() {
+    // Initialize InteractableCategory to ESPMainCategory mapping
+    m_categoryMappings[static_cast<int>(InteractableCategory::Chest)] =
+        {ESPMainCategory::Chests, chestESPControl};
+    m_categoryMappings[static_cast<int>(InteractableCategory::Shop)] =
+        {ESPMainCategory::Shops, shopESPControl};
+    m_categoryMappings[static_cast<int>(InteractableCategory::Drone)] =
+        {ESPMainCategory::Drones, droneESPControl};
+    m_categoryMappings[static_cast<int>(InteractableCategory::Shrine)] =
+        {ESPMainCategory::Shrines, shrineESPControl};
+    m_categoryMappings[static_cast<int>(InteractableCategory::Special)] =
+        {ESPMainCategory::Specials, specialESPControl};
+    m_categoryMappings[static_cast<int>(InteractableCategory::Barrel)] =
+        {ESPMainCategory::Barrels, barrelESPControl};
+    m_categoryMappings[static_cast<int>(InteractableCategory::ItemPickup)] =
+        {ESPMainCategory::ItemPickups, itemPickupESPControl};
+    m_categoryMappings[static_cast<int>(InteractableCategory::Portal)] =
+        {ESPMainCategory::Portals, portalESPControl};
+    m_categoryMappings[static_cast<int>(InteractableCategory::Unknown)] =
+        {ESPMainCategory::Specials, specialESPControl};
+
+    // Initialize ESPMainCategory to control mapping
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Chests)] = chestESPControl;
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Shops)] = shopESPControl;
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Drones)] = droneESPControl;
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Shrines)] = shrineESPControl;
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Specials)] = specialESPControl;
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Barrels)] = barrelESPControl;
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::ItemPickups)] = itemPickupESPControl;
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Portals)] = portalESPControl;
+    // Note: Players, Enemies, and Teleporter don't use ChestESPControl, so they're not included here
+}
+
 void ESPModule::DrawUI() {
     teleporterESPControl->Draw();
     playerESPControl->Draw();
@@ -95,22 +443,336 @@ void ESPModule::DrawUI() {
         itemPickupESPControl->Draw();
         portalESPControl->Draw();
     }
+
+    if (ImGui::CollapsingHeader("ESP Rendering Order")) {
+        DrawRenderOrderUI();
+    }
 }
 
+void ESPModule::DrawRenderOrderUI() {
+    ImGui::TextWrapped("Configure ESP rendering priority. Higher priority items appear on top of lower priority items.");
+    ImGui::Separator();
+
+    // Reset button
+    if (ImGui::Button("Reset to Default")) {
+        m_renderOrderManager.ResetToDefault();
+    }
+
+    ImGui::Separator();
+    ImGui::Text("Rendering Priority (Higher = On Top):");
+
+    // Get current main category order
+    std::vector<ESPMainCategory> mainOrder = m_renderOrderManager.GetMainOrder();
+
+    // Draw main categories in priority order (reverse of render order)
+    for (int i = (int)mainOrder.size() - 1; i >= 0; i--) {
+        ESPMainCategory category = mainOrder[i];
+        std::string categoryName = ESPRenderOrderManager::GetCategoryDisplayName(category);
+
+        ImGui::PushID(i);
+
+        // Priority indicator
+        ImGui::Text("%d.", (int)mainOrder.size() - i);
+        ImGui::SameLine();
+
+        // Category label
+        ImGui::Text("%s", categoryName.c_str());
+
+        // Position arrow buttons at a fixed X position for alignment
+        ImGui::SameLine();
+        float currentX = ImGui::GetCursorPosX();
+        float targetX = 250.0f; // Fixed position for buttons
+        if (currentX < targetX) {
+            ImGui::SetCursorPosX(targetX);
+        }
+
+        // Up/Down buttons (swap the logic since UI is in reverse order)
+        if (ImGui::ArrowButton("up", ImGuiDir_Up) && i < (int)mainOrder.size() - 1) {
+            m_renderOrderManager.MoveCategoryDown(category); // Down in array = Up in UI priority
+        }
+        ImGui::SameLine();
+        if (ImGui::ArrowButton("down", ImGuiDir_Down) && i > 0) {
+            m_renderOrderManager.MoveCategoryUp(category); // Up in array = Down in UI priority
+        }
+
+        // Sub-category controls for Players and Enemies
+        if (category == ESPMainCategory::Players || category == ESPMainCategory::Enemies) {
+            ImGui::Indent(20.0f);
+
+            std::vector<ESPSubCategory> subOrder = m_renderOrderManager.GetSubOrder(category);
+
+            for (int j = (int)subOrder.size() - 1; j >= 0; j--) {
+                ESPSubCategory subCat = subOrder[j];
+                std::string subName = ESPRenderOrderManager::GetSubCategoryDisplayName(subCat);
+
+                ImGui::PushID(100 + j); // Offset to avoid ID conflicts
+
+                ImGui::Text("  %d.%d", (int)mainOrder.size() - i, (int)subOrder.size() - j);
+                ImGui::SameLine();
+
+                // Sub-category label
+                ImGui::Text("%s", subName.c_str());
+
+                // Position arrow buttons so sub-category down arrow aligns with main category up arrow
+                ImGui::SameLine();
+                float currentSubX = ImGui::GetCursorPosX();
+                float mainButtonX = 250.0f; // Same as main category up arrow position
+
+                // Get actual arrow button size
+                float buttonSize = ImGui::GetFrameHeight(); // Arrow buttons are square, height = width
+                float itemSpacing = ImGui::GetStyle().ItemSpacing.x; // Get spacing between items
+                float actualButtonWidth = buttonSize + itemSpacing;
+
+                float targetSubX = mainButtonX + actualButtonWidth; // Sub up arrow = main down arrow position
+                if (currentSubX < targetSubX) {
+                    ImGui::SetCursorPosX(targetSubX);
+                }
+
+                // Sub-category up/down buttons (swap the logic since UI is in reverse order)
+                if (ImGui::ArrowButton("sub_up", ImGuiDir_Up) && j < (int)subOrder.size() - 1) {
+                    m_renderOrderManager.MoveSubCategoryDown(category, subCat); // Down in array = Up in UI priority
+                }
+                ImGui::SameLine();
+                if (ImGui::ArrowButton("sub_down", ImGuiDir_Down) && j > 0) {
+                    m_renderOrderManager.MoveSubCategoryUp(category, subCat); // Up in array = Down in UI priority
+                }
+
+                ImGui::PopID();
+            }
+
+            ImGui::Unindent(20.0f);
+        }
+
+        ImGui::PopID();
+        ImGui::Spacing();
+    }
+}
+
+
 void ESPModule::OnFrameRender() {
-    if (teleporterESPControl->IsEnabled()) {
-        RenderTeleporterESP();
+    OnFrameRenderHierarchical();
+}
+
+void ESPModule::OnFrameRenderHierarchical() {
+    // Collect all ESP items with their categories
+    std::vector<ESPHierarchicalRenderItem> allItems;
+    CollectAllESPItems(allItems);
+
+    if (allItems.empty()) return;
+
+    std::vector<ESPCategoryInfo> renderOrder = m_renderOrderManager.GetRenderOrder();
+
+    // Group items by category and sub-category, then sort by distance within each group
+    for (const auto& categoryInfo : renderOrder) {
+        // Collect items for this specific category/sub-category
+        std::vector<ESPHierarchicalRenderItem> categoryItems;
+        for (const auto& item : allItems) {
+            if (item.mainCategory == categoryInfo.mainCategory &&
+                item.subCategory == categoryInfo.subCategory) {
+                categoryItems.push_back(item);
+            }
+        }
+
+        if (categoryItems.empty()) continue;
+
+        // Sort by distance within this category (far to near for proper depth)
+        std::sort(categoryItems.begin(), categoryItems.end(),
+            [](const ESPHierarchicalRenderItem& a, const ESPHierarchicalRenderItem& b) {
+                return a.distance > b.distance; // Descending order (far to near)
+            });
+
+        // Render all items in this category
+        for (const auto& item : categoryItems) {
+            RenderHierarchicalItem(item);
+        }
+    }
+}
+
+void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items) {
+    if (!mainCamera || !G::localPlayer->GetPlayerPosition()) {
+        return;
     }
 
-    if (enemyESPControl->IsMasterEnabled()) {
-        RenderEnemyESP();
+    Vector3 localPlayerPos = G::localPlayer->GetPlayerPosition();
+
+    // Collect teleporter ESP
+    if (teleporterESPControl->IsEnabled() && teleporterPosition && teleporterPosition.Distance(localPlayerPos) <= teleporterESPControl->GetDistance()) {
+        ImVec2 screenPos;
+        if (RenderUtils::WorldToScreen(mainCamera, teleporterPosition, screenPos)) {
+            float distance = teleporterPosition.Distance(localPlayerPos);
+            bool isVisible = IsVisible(teleporterPosition);
+            bool onScreen = !(screenPos.x == 0.0f && screenPos.y == 0.0f);
+
+            items.emplace_back(ESPMainCategory::Teleporter, ESPSubCategory::Single,
+                             (void*)nullptr, distance, screenPos, isVisible, onScreen);
+        }
     }
 
+    // Collect player ESP
     if (playerESPControl->IsMasterEnabled()) {
-        RenderPlayerESP();
+        std::lock_guard<std::mutex> lock(entitiesMutex);
+        for (TrackedEntity* entity : trackedPlayers) {
+            if (!entity->body || !entity->body->transform || !entity->body->healthComponent_backing) continue;
+            if (entity->body == G::localPlayer->GetLocalPlayerBody()) continue;
+            if (entity->body->healthComponent_backing->health <= 0) continue;
+
+            Vector3 playerWorldPos;
+            Hooks::Transform_get_position_Injected(entity->body->transform, &playerWorldPos);
+            float distance = playerWorldPos.Distance(localPlayerPos);
+            bool isVisible = IsVisible(playerWorldPos);
+
+            EntityESPSubControl* control = isVisible ?
+                playerESPControl->GetVisibleControl() :
+                playerESPControl->GetNonVisibleControl();
+
+            if (!control->IsEnabled() || distance > control->GetMaxDistance()) continue;
+
+            ImVec2 screenPos;
+            bool onScreen = RenderUtils::WorldToScreen(mainCamera, playerWorldPos, screenPos);
+            if (!onScreen && screenPos.x == 0.0f && screenPos.y == 0.0f) continue;
+
+            ESPSubCategory subCat = isVisible ? ESPSubCategory::Visible : ESPSubCategory::NonVisible;
+            items.emplace_back(ESPMainCategory::Players, subCat,
+                             entity, distance, screenPos, isVisible, onScreen);
+        }
     }
 
-    RenderInteractablesESP();
+    // Collect enemy ESP
+    if (enemyESPControl->IsMasterEnabled()) {
+        std::lock_guard<std::mutex> lock(entitiesMutex);
+        for (TrackedEntity* entity : trackedEnemies) {
+            if (!entity->body || !entity->body->transform || !entity->body->healthComponent_backing) continue;
+            if (entity->body->healthComponent_backing->health <= 0) continue;
+
+            Vector3 enemyWorldPos;
+            Hooks::Transform_get_position_Injected(entity->body->transform, &enemyWorldPos);
+            float distance = enemyWorldPos.Distance(localPlayerPos);
+            bool isVisible = IsVisible(enemyWorldPos);
+
+            EntityESPSubControl* control = isVisible ?
+                enemyESPControl->GetVisibleControl() :
+                enemyESPControl->GetNonVisibleControl();
+
+            if (!control->IsEnabled() || distance > control->GetMaxDistance()) continue;
+
+            ImVec2 screenPos;
+            bool onScreen = RenderUtils::WorldToScreen(mainCamera, enemyWorldPos, screenPos);
+            if (!onScreen && screenPos.x == 0.0f && screenPos.y == 0.0f) continue;
+
+            ESPSubCategory subCat = isVisible ? ESPSubCategory::Visible : ESPSubCategory::NonVisible;
+            items.emplace_back(ESPMainCategory::Enemies, subCat,
+                             entity, distance, screenPos, isVisible, onScreen);
+        }
+    }
+
+    // Collect interactable ESP
+    {
+        std::lock_guard<std::mutex> lock(interactablesMutex);
+        for (auto interactable : trackedInteractables) {
+            if (!interactable || !interactable->gameObject) continue;
+
+            // Map interactable categories to main categories using lookup table
+            int categoryIndex = static_cast<int>(interactable->category);
+            if (categoryIndex < 0 || categoryIndex > static_cast<int>(InteractableCategory::Unknown)) {
+                categoryIndex = static_cast<int>(InteractableCategory::Unknown);
+            }
+
+            const CategoryMapping& mapping = m_categoryMappings[categoryIndex];
+            ESPMainCategory mainCategory = mapping.mainCategory;
+            ChestESPControl* categoryControl = mapping.control;
+
+            if (!categoryControl || !categoryControl->IsMasterEnabled()) continue;
+
+            float distance = interactable->position.Distance(localPlayerPos);
+            ChestESPSubControl* control = categoryControl->GetSubControl();
+            if (!control->IsEnabled() || distance > control->GetMaxDistance()) continue;
+
+            Vector3 screenPos3D;
+            Hooks::Camera_WorldToScreenPoint_Injected(mainCamera, &interactable->position,
+                                                    MonoOrStereoscopicEye::Mono, &screenPos3D);
+            if (screenPos3D.z <= 0) continue;
+
+            ImVec2 screenPos(screenPos3D.x, ImGui::GetIO().DisplaySize.y - screenPos3D.y);
+            bool isVisible = IsVisible(interactable->position);
+            bool onScreen = screenPos.x >= 0 && screenPos.x <= ImGui::GetIO().DisplaySize.x &&
+                           screenPos.y >= 0 && screenPos.y <= ImGui::GetIO().DisplaySize.y;
+
+            // Check availability
+            bool isAvailable = true;
+            if (interactable->category == InteractableCategory::Barrel && interactable->gameObject) {
+                if (interactable->purchaseInteraction) {
+                    PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
+                    isAvailable = pi->available;
+                } else {
+                    BarrelInteraction* barrel = (BarrelInteraction*)interactable->gameObject;
+                    isAvailable = !barrel->opened;
+                }
+            } else if (interactable->category == InteractableCategory::ItemPickup && interactable->gameObject) {
+                GenericPickupController* gpc = (GenericPickupController*)interactable->gameObject;
+                isAvailable = !gpc->consumed && !gpc->Recycled;
+            } else if (interactable->purchaseInteraction) {
+                PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
+                isAvailable = pi->available;
+            }
+
+            if (!isAvailable && !control->ShouldShowUnavailable()) continue;
+
+            items.emplace_back(mainCategory, ESPSubCategory::Single,
+                             interactable, distance, screenPos, isVisible, onScreen, isAvailable);
+        }
+    }
+}
+
+void ESPModule::RenderHierarchicalItem(const ESPHierarchicalRenderItem& item) {
+    // Render based on category type
+    if (item.mainCategory == ESPMainCategory::Teleporter) {
+        // Render teleporter
+        if (!teleporterPosition || !G::localPlayer->GetPlayerPosition()) return;
+
+        const char* baseName = teleporterDisplayName.empty() ? "Teleporter" : teleporterDisplayName.c_str();
+
+        char teleporterText[256];
+        snprintf(teleporterText, sizeof(teleporterText), "%s (%dm)", baseName, (int)item.distance);
+
+        RenderUtils::RenderText(item.screenPos, teleporterESPControl->GetColorU32(),
+                              teleporterESPControl->GetOutlineColorU32(),
+                              teleporterESPControl->IsOutlineEnabled(), true, "%s", teleporterText);
+
+    } else if (item.mainCategory == ESPMainCategory::Players || item.mainCategory == ESPMainCategory::Enemies) {
+        // Render entity
+        EntityESPControl* control = (item.mainCategory == ESPMainCategory::Players) ?
+            playerESPControl : enemyESPControl;
+
+        EntityESPSubControl* subControl = item.isVisible ?
+            control->GetVisibleControl() : control->GetNonVisibleControl();
+
+        RenderEntityESP(item.entity, item.screenPos, item.distance, subControl, item.isVisible, item.onScreen);
+
+    } else {
+        // Render interactable using lookup table
+        int categoryIndex = static_cast<int>(item.mainCategory);
+        ChestESPControl* categoryControl = nullptr;
+
+        if (categoryIndex >= 0 && categoryIndex < static_cast<int>(ESPMainCategory::COUNT) &&
+            (categoryIndex == static_cast<int>(ESPMainCategory::Chests) ||
+             categoryIndex == static_cast<int>(ESPMainCategory::Shops) ||
+             categoryIndex == static_cast<int>(ESPMainCategory::Drones) ||
+             categoryIndex == static_cast<int>(ESPMainCategory::Shrines) ||
+             categoryIndex == static_cast<int>(ESPMainCategory::Specials) ||
+             categoryIndex == static_cast<int>(ESPMainCategory::Barrels) ||
+             categoryIndex == static_cast<int>(ESPMainCategory::ItemPickups) ||
+             categoryIndex == static_cast<int>(ESPMainCategory::Portals))) {
+            categoryControl = m_mainCategoryControls[categoryIndex];
+        } else {
+            categoryControl = specialESPControl; // Default fallback
+        }
+
+        if (categoryControl) {
+            ChestESPSubControl* control = categoryControl->GetSubControl();
+            RenderInteractableESP(item.interactable, item.screenPos, item.distance,
+                                control, item.isVisible, item.onScreen, item.isAvailable);
+        }
+    }
 }
 
 void ESPModule::OnGameUpdate() {
@@ -123,30 +785,6 @@ void ESPModule::OnTeleporterAwake(void* teleporter) {
         Hooks::Transform_get_position_Injected(teleporter_ptr->teleporterPositionIndicator->targetTransform, &teleporterPosition);
         teleporterDisplayName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("TELEPORTER_NAME"));
     }
-}
-
-void ESPModule::RenderTeleporterESP() {
-    if (!mainCamera || !teleporterPosition || !G::localPlayer->GetPlayerPosition()) {
-        return;
-    }
-
-    ImVec2 screenPos;
-    if (!RenderUtils::WorldToScreen(mainCamera, teleporterPosition, screenPos)) {
-        return;
-    }
-
-    float distance = teleporterPosition.Distance(G::localPlayer->GetPlayerPosition());
-    if (distance > teleporterESPControl->GetDistance()) {
-        return;
-    }
-
-    // Use the localized teleporter name that was set during OnTeleporterAwake
-    std::string teleporterText = teleporterDisplayName.empty() ? "Teleporter" : teleporterDisplayName;
-    teleporterText += " (";
-    teleporterText += std::to_string((int)distance);
-    teleporterText += "m)";
-
-    RenderUtils::RenderText(screenPos, teleporterESPControl->GetColorU32(), teleporterESPControl->GetOutlineColorU32(), teleporterESPControl->IsOutlineEnabled(), true, "%s", teleporterText.c_str());
 }
 
 void ESPModule::OnCharacterBodySpawned(void* characterBody) {
@@ -212,141 +850,6 @@ void ESPModule::OnCharacterBodyDestroyed(void* characterBody) {
     );
 }
 
-void ESPModule::RenderPlayerESP() {
-    if (!mainCamera || !G::localPlayer->GetPlayerPosition()) {
-        return;
-    }
-
-    std::lock_guard<std::mutex> lock(entitiesMutex);
-    Vector3 localPlayerPos = G::localPlayer->GetPlayerPosition();
-
-    // Clean up invalid player pointers
-    trackedPlayers.erase(
-        std::remove_if(trackedPlayers.begin(), trackedPlayers.end(),
-            [](TrackedEntity* entity) {
-                return !entity->body || !entity->body->healthComponent_backing ||
-                       entity->body->healthComponent_backing->health <= 0;
-            }),
-        trackedPlayers.end()
-    );
-
-    // Collect and prepare render items with distance calculations
-    std::vector<ESPEntityRenderItem> renderItems;
-    renderItems.reserve(trackedPlayers.size());
-
-    for (TrackedEntity* entity : trackedPlayers) {
-        if (!entity->body || !entity->body->transform || !entity->body->healthComponent_backing) continue;
-
-        if (entity->body == G::localPlayer->GetLocalPlayerBody()) continue;
-
-        Vector3 playerWorldPos;
-        Hooks::Transform_get_position_Injected(entity->body->transform, &playerWorldPos);
-
-        float distance = playerWorldPos.Distance(G::localPlayer->GetPlayerPosition());
-
-        bool isVisible = IsVisible(playerWorldPos);
-
-        EntityESPSubControl* control = isVisible ?
-            playerESPControl->GetVisibleControl() :
-            playerESPControl->GetNonVisibleControl();
-
-        if (!control->IsEnabled() || distance > control->GetMaxDistance()) {
-            continue;
-        }
-
-        ImVec2 screenPos;
-        bool onScreen = RenderUtils::WorldToScreen(mainCamera, playerWorldPos, screenPos);
-
-        // Skip if entity is behind camera (off-screen and at default position)
-        if (!onScreen && screenPos.x == 0.0f && screenPos.y == 0.0f) {
-            continue;
-        }
-
-        renderItems.emplace_back(entity, distance, isVisible, onScreen, screenPos);
-    }
-
-    // Sort by distance (farthest to nearest) so closest appear on top
-    std::sort(renderItems.begin(), renderItems.end(),
-        [](const ESPEntityRenderItem& a, const ESPEntityRenderItem& b) {
-            return a.distance > b.distance; // Descending order (far to near)
-        });
-
-    // Render in sorted order
-    for (const auto& item : renderItems) {
-        EntityESPSubControl* control = item.isVisible ?
-            playerESPControl->GetVisibleControl() :
-            playerESPControl->GetNonVisibleControl();
-
-        RenderEntityESP(item.entity, item.screenPos, item.distance, control, item.isVisible, item.onScreen);
-    }
-}
-
-void ESPModule::RenderEnemyESP() {
-    if (!mainCamera || !G::localPlayer->GetPlayerPosition()) {
-        return;
-    }
-
-    std::lock_guard<std::mutex> lock(entitiesMutex);
-    Vector3 playerPos = G::localPlayer->GetPlayerPosition();
-
-    // Clean up invalid enemy pointers
-    trackedEnemies.erase(
-        std::remove_if(trackedEnemies.begin(), trackedEnemies.end(),
-            [](TrackedEntity* entity) {
-                return !entity->body || !entity->body->healthComponent_backing ||
-                       entity->body->healthComponent_backing->health <= 0;
-            }),
-        trackedEnemies.end()
-    );
-
-    // Collect and prepare render items with distance calculations
-    std::vector<ESPEntityRenderItem> renderItems;
-    renderItems.reserve(trackedEnemies.size());
-
-    for (TrackedEntity* entity : trackedEnemies) {
-        if (!entity->body || !entity->body->transform || !entity->body->healthComponent_backing) continue;
-
-        Vector3 enemyWorldPos;
-        Hooks::Transform_get_position_Injected(entity->body->transform, &enemyWorldPos);
-
-        float distance = enemyWorldPos.Distance(G::localPlayer->GetPlayerPosition());
-
-        bool isVisible = IsVisible(enemyWorldPos);
-
-        EntityESPSubControl* control = isVisible ?
-            enemyESPControl->GetVisibleControl() :
-            enemyESPControl->GetNonVisibleControl();
-
-        if (!control->IsEnabled() || distance > control->GetMaxDistance()) {
-            continue;
-        }
-
-        ImVec2 screenPos;
-        bool onScreen = RenderUtils::WorldToScreen(mainCamera, enemyWorldPos, screenPos);
-
-        // Skip if entity is behind camera (off-screen and at default position)
-        if (!onScreen && screenPos.x == 0.0f && screenPos.y == 0.0f) {
-            continue;
-        }
-
-        renderItems.emplace_back(entity, distance, isVisible, onScreen, screenPos);
-    }
-
-    // Sort by distance (farthest to nearest) so closest appear on top
-    std::sort(renderItems.begin(), renderItems.end(),
-        [](const ESPEntityRenderItem& a, const ESPEntityRenderItem& b) {
-            return a.distance > b.distance; // Descending order (far to near)
-        });
-
-    // Render in sorted order
-    for (const auto& item : renderItems) {
-        EntityESPSubControl* control = item.isVisible ?
-            enemyESPControl->GetVisibleControl() :
-            enemyESPControl->GetNonVisibleControl();
-
-        RenderEntityESP(item.entity, item.screenPos, item.distance, control, item.isVisible, item.onScreen);
-    }
-}
 
 void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible, bool onScreen) {
     if (!entity || !control) return;
@@ -481,13 +984,15 @@ void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float d
         bool showMaxHealth = control->ShouldShowMaxHealth();
 
         if (showHealth && showMaxHealth) {
-            std::string healthPart = "HP: " + std::to_string((int)entity->body->healthComponent_backing->health);
-            std::string maxHealthPart = "/" + std::to_string((int)entity->body->maxHealth_backing);
+            char healthPart[64];
+            char maxHealthPart[32];
+            snprintf(healthPart, sizeof(healthPart), "HP: %d", (int)entity->body->healthComponent_backing->health);
+            snprintf(maxHealthPart, sizeof(maxHealthPart), "/%d", (int)entity->body->maxHealth_backing);
 
             ImFont* font = FontManager::GetESPFont();
             float scale = FontManager::ESPFontSize / font->FontSize;
-            ImVec2 healthPartSize = ImGui::CalcTextSize(healthPart.c_str());
-            ImVec2 maxHealthPartSize = ImGui::CalcTextSize(maxHealthPart.c_str());
+            ImVec2 healthPartSize = ImGui::CalcTextSize(healthPart);
+            ImVec2 maxHealthPartSize = ImGui::CalcTextSize(maxHealthPart);
             healthPartSize.x *= scale;
             maxHealthPartSize.x *= scale;
             float totalWidth = healthPartSize.x + maxHealthPartSize.x;
@@ -495,31 +1000,34 @@ void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float d
             // Render health part (left side, adjusted for centering)
             ImVec2 healthPartPos = ImVec2(textPos.x - totalWidth / 2, textPos.y);
             RenderUtils::RenderText(healthPartPos, control->GetHealthColorU32(), IM_COL32(0, 0, 0, 255),
-                                  true, false, healthPart.c_str());
+                                  true, false, healthPart);
 
             // Render max health part (right side)
             ImVec2 maxHealthPartPos = ImVec2(healthPartPos.x + healthPartSize.x, textPos.y);
             RenderUtils::RenderText(maxHealthPartPos, control->GetMaxHealthColorU32(), IM_COL32(0, 0, 0, 255),
-                                  true, false, maxHealthPart.c_str());
+                                  true, false, maxHealthPart);
 
             textPos.y += lineHeight;
         } else if (showHealth) {
-            std::string healthText = "HP: " + std::to_string((int)entity->body->healthComponent_backing->health);
+            char healthText[64];
+            snprintf(healthText, sizeof(healthText), "HP: %d", (int)entity->body->healthComponent_backing->health);
             RenderUtils::RenderText(textPos, control->GetHealthColorU32(), IM_COL32(0, 0, 0, 255),
-                                  true, true, healthText.c_str());
+                                  true, true, healthText);
             textPos.y += lineHeight;
         } else if (showMaxHealth) {
-            std::string maxHealthText = "Max HP: " + std::to_string((int)entity->body->maxHealth_backing);
+            char maxHealthText[64];
+            snprintf(maxHealthText, sizeof(maxHealthText), "Max HP: %d", (int)entity->body->maxHealth_backing);
             RenderUtils::RenderText(textPos, control->GetMaxHealthColorU32(), IM_COL32(0, 0, 0, 255),
-                                  true, true, maxHealthText.c_str());
+                                  true, true, maxHealthText);
             textPos.y += lineHeight;
         }
     }
 
     if (control->ShouldShowDistance()) {
-        std::string distanceText = std::to_string((int)distance) + "m";
+        char distanceText[32];
+        snprintf(distanceText, sizeof(distanceText), "%dm", (int)distance);
         RenderUtils::RenderText(textPos, control->GetDistanceColorU32(), IM_COL32(0, 0, 0, 255),
-                              true, true, distanceText.c_str());
+                              true, true, distanceText);
         textPos.y += lineHeight;
     }
 
@@ -1010,129 +1518,6 @@ void ESPModule::OnStageStart(void* stage) {
     teleporterDisplayName = "";
 }
 
-void ESPModule::RenderInteractablesESP() {
-    if (!mainCamera) return;
-
-    std::lock_guard<std::mutex> lock(interactablesMutex);
-
-    // Collect and prepare render items with distance calculations
-    std::vector<ESPInteractableRenderItem> renderItems;
-    renderItems.reserve(trackedInteractables.size());
-
-    for (auto interactable : trackedInteractables) {
-        if (!interactable || !interactable->gameObject) continue;
-
-        // Determine which control to use based on category
-        ChestESPControl* categoryControl = nullptr;
-        switch(interactable->category) {
-            case InteractableCategory::Chest: categoryControl = chestESPControl; break;
-            case InteractableCategory::Shop: categoryControl = shopESPControl; break;
-            case InteractableCategory::Drone: categoryControl = droneESPControl; break;
-            case InteractableCategory::Shrine: categoryControl = shrineESPControl; break;
-            case InteractableCategory::Special: categoryControl = specialESPControl; break;
-            case InteractableCategory::Barrel: categoryControl = barrelESPControl; break;
-            case InteractableCategory::ItemPickup: categoryControl = itemPickupESPControl; break;
-            case InteractableCategory::Portal: categoryControl = portalESPControl; break;
-            case InteractableCategory::Unknown: categoryControl = specialESPControl; break; // Use special control for unknown
-        }
-
-        if (!categoryControl || !categoryControl->IsMasterEnabled()) continue;
-
-        float distance = interactable->position.Distance(G::localPlayer->GetPlayerPosition());
-
-        ChestESPSubControl* control = categoryControl->GetSubControl();
-
-        if (!control->IsEnabled()) continue;
-
-        // Check availability dynamically
-        bool isAvailable = true;
-        if (interactable->category == InteractableCategory::Barrel && interactable->gameObject) {
-            // Check if this barrel has a purchase interaction (equipment barrels)
-            if (interactable->purchaseInteraction) {
-                PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
-                isAvailable = pi->available;
-            } else {
-                // Regular barrel interaction
-                BarrelInteraction* barrel = (BarrelInteraction*)interactable->gameObject;
-                isAvailable = !barrel->opened;
-            }
-        } else if (interactable->category == InteractableCategory::Chest &&
-                   interactable->nameToken.find("TIMEDCHEST_") != std::string::npos &&
-                   interactable->gameObject) {
-            TimedChestController* tcc = (TimedChestController*)interactable->gameObject;
-            isAvailable = !tcc->purchased;
-            UpdateTimedChestDisplayName(interactable, interactable->gameObject);
-        } else if (interactable->category == InteractableCategory::Special &&
-                   interactable->nameToken.find("PRESSURE_PLATE_") != std::string::npos &&
-                   interactable->gameObject) {
-            UpdatePressurePlateDisplayName(interactable, interactable->gameObject);
-            isAvailable = true; // Pressure plates are always "available" to interact with
-        } else if (interactable->category == InteractableCategory::ItemPickup && interactable->gameObject) {
-            // Check if pickup index has changed and update name using cache only
-            GenericPickupController* gpc = (GenericPickupController*)interactable->gameObject;
-            if (gpc->pickupIndex != interactable->pickupIndex && gpc->pickupIndex > 0) {
-                interactable->pickupIndex = gpc->pickupIndex;
-                interactable->displayName = GetPickupName(gpc->pickupIndex);
-            }
-            isAvailable = !gpc->consumed && !gpc->Recycled;
-        } else if (interactable->purchaseInteraction) {
-            PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
-            isAvailable = pi->available;
-
-            // Update cost string if it has changed
-            if (pi->cost > 0) {
-                std::string newCostString = GetCostString(pi->costType, pi->cost);
-                if (newCostString != interactable->costString) {
-                    interactable->costString = newCostString;
-                }
-            }
-        }
-
-        if (!isAvailable && !control->ShouldShowUnavailable()) continue;
-        if (distance > control->GetMaxDistance()) continue;
-
-        Vector3 screenPos3D;
-        Hooks::Camera_WorldToScreenPoint_Injected(mainCamera, &interactable->position,
-                                                MonoOrStereoscopicEye::Mono, &screenPos3D);
-
-        if (screenPos3D.z <= 0) continue;
-
-        ImVec2 screenPos(screenPos3D.x, ImGui::GetIO().DisplaySize.y - screenPos3D.y);
-
-        // Check if interactable is visible
-        bool isVisible = IsVisible(interactable->position);
-        bool onScreen = screenPos.x >= 0 && screenPos.x <= ImGui::GetIO().DisplaySize.x &&
-                       screenPos.y >= 0 && screenPos.y <= ImGui::GetIO().DisplaySize.y;
-
-        renderItems.emplace_back(interactable, distance, isVisible, onScreen, isAvailable, screenPos);
-    }
-
-    // Sort by distance (farthest to nearest) so closest appear on top
-    std::sort(renderItems.begin(), renderItems.end(),
-        [](const ESPInteractableRenderItem& a, const ESPInteractableRenderItem& b) {
-            return a.distance > b.distance; // Descending order (far to near)
-        });
-
-    // Render in sorted order
-    for (const auto& item : renderItems) {
-        // Determine control again (needed for rendering)
-        ChestESPControl* categoryControl = nullptr;
-        switch(item.interactable->category) {
-            case InteractableCategory::Chest: categoryControl = chestESPControl; break;
-            case InteractableCategory::Shop: categoryControl = shopESPControl; break;
-            case InteractableCategory::Drone: categoryControl = droneESPControl; break;
-            case InteractableCategory::Shrine: categoryControl = shrineESPControl; break;
-            case InteractableCategory::Special: categoryControl = specialESPControl; break;
-            case InteractableCategory::Barrel: categoryControl = barrelESPControl; break;
-            case InteractableCategory::ItemPickup: categoryControl = itemPickupESPControl; break;
-            case InteractableCategory::Portal: categoryControl = portalESPControl; break;
-            case InteractableCategory::Unknown: categoryControl = specialESPControl; break;
-        }
-
-        ChestESPSubControl* control = categoryControl->GetSubControl();
-        RenderInteractableESP(item.interactable, item.screenPos, item.distance, control, item.isVisible, item.onScreen, item.isAvailable);
-    }
-}
 
 void ESPModule::UpdateTimedChestDisplayName(TrackedInteractable* interactable, void* timedChestController) {
     if (!timedChestController) return;
@@ -1222,14 +1607,20 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
 
     // Draw interactable name with optional distance
     if (control->ShouldShowName()) {
-        std::string nameText = interactable->displayName;
+        char nameText[512];
 
-        if (control->ShouldShowDistance()) {
-            nameText += " (" + std::to_string((int)distance) + "m)";
-        }
-
-        if (!isAvailable) {
-            nameText += " (Unavailable)";
+        if (control->ShouldShowDistance() && !isAvailable) {
+            snprintf(nameText, sizeof(nameText), "%s (%dm) (Unavailable)",
+                    interactable->displayName.c_str(), (int)distance);
+        } else if (control->ShouldShowDistance()) {
+            snprintf(nameText, sizeof(nameText), "%s (%dm)",
+                    interactable->displayName.c_str(), (int)distance);
+        } else if (!isAvailable) {
+            snprintf(nameText, sizeof(nameText), "%s (Unavailable)",
+                    interactable->displayName.c_str());
+        } else {
+            snprintf(nameText, sizeof(nameText), "%s",
+                    interactable->displayName.c_str());
         }
 
         ImVec2 textPos = RenderUtils::RenderText(ImVec2(screenPos.x, screenPos.y - yOffset),
@@ -1237,7 +1628,7 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
                                                  control->GetNameShadowColorU32(),
                                                  control->IsNameShadowEnabled(),
                                                  true,  // Center text
-                                                 "%s", nameText.c_str());
+                                                 "%s", nameText);
         yOffset += fontSize + 2;
 
         // Show item name for chests and shops if available

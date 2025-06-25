@@ -5,6 +5,7 @@
 #include "core/MonoTypes.h"
 #include <vector>
 #include <unordered_map>
+#include <map>
 #include <mutex>
 
 struct TrackedEntity {
@@ -61,10 +62,146 @@ struct ESPInteractableRenderItem {
         : interactable(inter), distance(d), isVisible(visible), onScreen(onScr), isAvailable(available), screenPos(pos) {}
 };
 
+// Hierarchical ESP ordering system
+enum class ESPMainCategory {
+    Players = 0,
+    Enemies,
+    Teleporter,
+    Chests,
+    Shops,
+    Drones,
+    Shrines,
+    Specials,
+    Barrels,
+    ItemPickups,
+    Portals,
+    COUNT
+};
+
+enum class ESPSubCategory {
+    Visible = 0,
+    NonVisible,
+    Single,  // For categories that don't have visible/non-visible distinction
+    COUNT
+};
+
+struct ESPCategoryInfo {
+    ESPMainCategory mainCategory;
+    ESPSubCategory subCategory;
+    std::string displayName;
+
+    ESPCategoryInfo(ESPMainCategory main, ESPSubCategory sub, const std::string& name)
+        : mainCategory(main), subCategory(sub), displayName(name) {}
+};
+
+// Unified render item for hierarchical rendering
+struct ESPHierarchicalRenderItem {
+    ESPMainCategory mainCategory;
+    ESPSubCategory subCategory;
+    float distance;
+
+    // Union to hold different ESP item types
+    union {
+        TrackedEntity* entity;
+        TrackedInteractable* interactable;
+        void* teleporterData;  // For teleporter ESP
+    };
+
+    ImVec2 screenPos;
+    bool isVisible;
+    bool onScreen;
+    bool isAvailable;  // For interactables
+
+    // Constructor for entities
+    ESPHierarchicalRenderItem(ESPMainCategory main, ESPSubCategory sub, TrackedEntity* ent, float dist, const ImVec2& pos, bool visible, bool onScr)
+        : mainCategory(main), subCategory(sub), distance(dist), entity(ent), screenPos(pos), isVisible(visible), onScreen(onScr), isAvailable(true) {}
+
+    // Constructor for interactables
+    ESPHierarchicalRenderItem(ESPMainCategory main, ESPSubCategory sub, TrackedInteractable* inter, float dist, const ImVec2& pos, bool visible, bool onScr, bool available)
+        : mainCategory(main), subCategory(sub), distance(dist), interactable(inter), screenPos(pos), isVisible(visible), onScreen(onScr), isAvailable(available) {}
+
+    // Constructor for teleporter
+    ESPHierarchicalRenderItem(ESPMainCategory main, ESPSubCategory sub, void* tele, float dist, const ImVec2& pos, bool visible, bool onScr)
+        : mainCategory(main), subCategory(sub), distance(dist), teleporterData(tele), screenPos(pos), isVisible(visible), onScreen(onScr), isAvailable(true) {}
+};
+
 class ChestESPControl;
+
+// Manager for ESP rendering order hierarchy
+class ESPRenderOrderManager {
+private:
+    std::vector<ESPMainCategory> m_mainCategoryOrder;
+    std::map<ESPMainCategory, std::vector<ESPSubCategory>> m_subCategoryOrders;
+
+public:
+    ESPRenderOrderManager();
+
+    // Get/Set main category order
+    const std::vector<ESPMainCategory>& GetMainOrder() const { return m_mainCategoryOrder; }
+    void SetMainOrder(const std::vector<ESPMainCategory>& order) { m_mainCategoryOrder = order; }
+
+    // Get/Set sub-category order for a main category
+    const std::vector<ESPSubCategory>& GetSubOrder(ESPMainCategory mainCat) const;
+    void SetSubOrder(ESPMainCategory mainCat, const std::vector<ESPSubCategory>& order);
+
+    // Get all categories in hierarchical render order (reverse of priority for rendering)
+    std::vector<ESPCategoryInfo> GetRenderOrder() const;
+
+    // Move categories up/down in priority
+    void MoveCategoryUp(ESPMainCategory category);
+    void MoveCategoryDown(ESPMainCategory category);
+    void MoveSubCategoryUp(ESPMainCategory mainCat, ESPSubCategory subCat);
+    void MoveSubCategoryDown(ESPMainCategory mainCat, ESPSubCategory subCat);
+
+    // Reset to default order
+    void ResetToDefault();
+
+    // Configuration validation
+    bool ValidateConfiguration() const;
+    void EnsureValidConfiguration();
+
+    // Get display name for categories
+    static std::string GetCategoryDisplayName(ESPMainCategory category);
+    static std::string GetSubCategoryDisplayName(ESPSubCategory subCategory);
+
+    // Config persistence
+    std::string SerializeToString() const;
+    void DeserializeFromString(const std::string& data);
+};
 
 class ESPModule : public ModuleBase {
 private:
+    // Configuration control for render order persistence
+    class RenderOrderConfigControl : public InputControl {
+    private:
+        ESPRenderOrderManager* m_manager;
+
+    public:
+        RenderOrderConfigControl(ESPRenderOrderManager* manager)
+            : InputControl("ESP Render Order", "esp_render_order", false), m_manager(manager) {
+            SetSaveEnabledState(false); // Don't save enabled state, only the order
+        }
+
+        void Draw() override {} // No UI needed, handled by ESPModule::DrawRenderOrderUI()
+        void Update() override {} // No updates needed
+
+        json Serialize() const override {
+            json data = InputControl::Serialize();
+            if (m_manager) {
+                data["renderOrder"] = m_manager->SerializeToString();
+            }
+            return data;
+        }
+
+        void Deserialize(const json& data) override {
+            InputControl::Deserialize(data);
+            if (m_manager && data.contains("renderOrder")) {
+                m_manager->DeserializeFromString(data["renderOrder"]);
+            }
+        }
+    };
+
+    std::unique_ptr<RenderOrderConfigControl> m_renderOrderConfigControl;
     ESPControl* teleporterESPControl;
     EntityESPControl* playerESPControl;
     EntityESPControl* enemyESPControl;
@@ -106,6 +243,19 @@ private:
     std::unordered_map<int32_t, std::string> m_pickupIdToNameCache;
     bool m_pickupCacheInitialized;
 
+    // ESP rendering order management
+    ESPRenderOrderManager m_renderOrderManager;
+
+    // Category mapping lookup table
+    struct CategoryMapping {
+        ESPMainCategory mainCategory;
+        ChestESPControl* control;
+    };
+    CategoryMapping m_categoryMappings[static_cast<int>(InteractableCategory::Unknown) + 1];
+
+    // Main category to control lookup table
+    ChestESPControl* m_mainCategoryControls[static_cast<int>(ESPMainCategory::COUNT)];
+
     void RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible, bool onScreen);
     void UpdateTimedChestDisplayName(TrackedInteractable* interactable, void* timedChestController);
     void UpdatePressurePlateDisplayName(TrackedInteractable* interactable, void* pressurePlateController);
@@ -114,6 +264,7 @@ private:
     bool IsVisible(const Vector3& position);
     InteractableCategory DetermineInteractableCategory(PurchaseInteraction* pi, MonoString* nameToken);
     void InitializeCostFormats();
+    void InitializeCategoryMappings();
     std::string GetPickupName(int32_t pickupIndex);
     std::string GetCostString(CostTypeIndex_Value costType, int cost);
 
@@ -146,8 +297,12 @@ public:
 
     void CachePickupName(int32_t pickupIndex, const std::string& name);
 
-    void RenderTeleporterESP();
-    void RenderPlayerESP();
-    void RenderEnemyESP();
-    void RenderInteractablesESP();
+    // Hierarchical rendering order management
+    ESPRenderOrderManager& GetRenderOrderManager() { return m_renderOrderManager; }
+    void DrawRenderOrderUI();
+
+    // New hierarchical rendering methods
+    void OnFrameRenderHierarchical();
+    void CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items);
+    void RenderHierarchicalItem(const ESPHierarchicalRenderItem& item);
 };
