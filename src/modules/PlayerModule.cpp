@@ -38,6 +38,7 @@ PlayerModule::~PlayerModule() {
     delete huntressEnemyOnlyTargetingControl;
     delete huntressTargetingModeOverrideControl;
     delete huntressTargetingModeControl;
+    delete huntressWallPenetrationControl;
     delete blockPhysicsEffectsControl;
     delete blockPullsControl;
     delete flightControl;
@@ -103,6 +104,7 @@ void PlayerModule::Update() {
     huntressEnemyOnlyTargetingControl->Update();
     huntressTargetingModeOverrideControl->Update();
     huntressTargetingModeControl->Update();
+    huntressWallPenetrationControl->Update();
     blockPhysicsEffectsControl->Update();
     blockPullsControl->Update();
     flightControl->Update();
