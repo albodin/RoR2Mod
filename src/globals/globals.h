@@ -6,6 +6,7 @@
 #include <functional>
 #include <shared_mutex>
 #include <map>
+#include <memory>
 
 #include "core/MonoRuntime.h"
 #include "game/GameStructs.h"
@@ -24,7 +25,7 @@ namespace G {
     extern bool running;
     extern bool initialized;
     extern bool hooksInitialized;
-    extern MonoRuntime* g_monoRuntime;
+    extern std::unique_ptr<MonoRuntime> g_monoRuntime;
     extern HMODULE hModule;
     extern HANDLE mainThread;
     extern Present oPresent;
@@ -34,7 +35,7 @@ namespace G {
     extern WNDPROC oWndProc;
     extern HWND windowHwnd;
     extern Logger logger;
-    extern GameFunctions* gameFunctions;
+    extern std::unique_ptr<GameFunctions> gameFunctions;
 
     extern int worldLayer;
     extern int playerBodyLayer;
@@ -55,12 +56,12 @@ namespace G {
     extern std::map<std::string, int> eliteBuffIndices; // name -> BuffIndex for elite buffs
     extern std::vector<std::string> eliteNames; // For UI dropdown
 
-    extern ToggleControl* showMenuControl;
-    extern ButtonControl* runningButtonControl;
+    extern std::unique_ptr<ToggleControl> showMenuControl;
+    extern std::unique_ptr<ButtonControl> runningButtonControl;
 
-    extern PlayerModule* localPlayer;
-    extern ESPModule* espModule;
-    extern WorldModule* worldModule;
-    extern EnemySpawningModule* enemySpawningModule;
+    extern std::unique_ptr<PlayerModule> localPlayer;
+    extern std::unique_ptr<ESPModule> espModule;
+    extern std::unique_ptr<WorldModule> worldModule;
+    extern std::unique_ptr<EnemySpawningModule> enemySpawningModule;
     extern void* runInstance;
 }

@@ -3,35 +3,21 @@
 #include "hooks/hooks.h"
 #include "imgui.h"
 
-WorldModule::WorldModule() : ModuleBase(),
-    instantTeleporterControl(nullptr),
-    instantHoldoutZoneControl(nullptr),
-    openExpiredTimedChestsControl(nullptr),
-    forceBluePortalControl(nullptr),
-    forceGoldenPortalControl(nullptr),
-    forceCelestialPortalControl(nullptr),
-    forceAllPortalsControl(nullptr) {
+WorldModule::WorldModule() : ModuleBase() {
     Initialize();
 }
 
 WorldModule::~WorldModule() {
-    delete instantTeleporterControl;
-    delete instantHoldoutZoneControl;
-    delete openExpiredTimedChestsControl;
-    delete forceBluePortalControl;
-    delete forceGoldenPortalControl;
-    delete forceCelestialPortalControl;
-    delete forceAllPortalsControl;
 }
 
 void WorldModule::Initialize() {
-    instantTeleporterControl = new ToggleControl("Instant Teleporter", "instantTeleporter", false);
-    instantHoldoutZoneControl = new ToggleControl("Instant Holdout Zone", "instantHoldoutZone", false);
-    openExpiredTimedChestsControl = new ToggleControl("Open Expired Timed Chests", "openExpiredTimedChests", false);
-    forceBluePortalControl = new ToggleControl("Force Blue Portal (Bazaar)", "forceBluePortal", false);
-    forceGoldenPortalControl = new ToggleControl("Force Golden Portal (Gilded Coast)", "forceGoldenPortal", false);
-    forceCelestialPortalControl = new ToggleControl("Force Celestial Portal (Moon)", "forceCelestialPortal", false);
-    forceAllPortalsControl = new ToggleControl("Force All Additional Portals", "forceAllPortals", false);
+    instantTeleporterControl = std::make_unique<ToggleControl>("Instant Teleporter", "instantTeleporter", false);
+    instantHoldoutZoneControl = std::make_unique<ToggleControl>("Instant Holdout Zone", "instantHoldoutZone", false);
+    openExpiredTimedChestsControl = std::make_unique<ToggleControl>("Open Expired Timed Chests", "openExpiredTimedChests", false);
+    forceBluePortalControl = std::make_unique<ToggleControl>("Force Blue Portal (Bazaar)", "forceBluePortal", false);
+    forceGoldenPortalControl = std::make_unique<ToggleControl>("Force Golden Portal (Gilded Coast)", "forceGoldenPortal", false);
+    forceCelestialPortalControl = std::make_unique<ToggleControl>("Force Celestial Portal (Moon)", "forceCelestialPortal", false);
+    forceAllPortalsControl = std::make_unique<ToggleControl>("Force All Additional Portals", "forceAllPortals", false);
 }
 
 void WorldModule::Update() {

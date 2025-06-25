@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <map>
 #include <mutex>
+#include <memory>
 
 struct TrackedEntity {
     CharacterBody* body;
@@ -202,26 +203,26 @@ private:
     };
 
     std::unique_ptr<RenderOrderConfigControl> m_renderOrderConfigControl;
-    ESPControl* teleporterESPControl;
-    EntityESPControl* playerESPControl;
-    EntityESPControl* enemyESPControl;
-    ChestESPControl* chestESPControl;
-    ChestESPControl* shopESPControl;
-    ChestESPControl* droneESPControl;
-    ChestESPControl* shrineESPControl;
-    ChestESPControl* specialESPControl;
-    ChestESPControl* barrelESPControl;
-    ChestESPControl* itemPickupESPControl;
-    ChestESPControl* portalESPControl;
+    std::unique_ptr<ESPControl> teleporterESPControl;
+    std::unique_ptr<EntityESPControl> playerESPControl;
+    std::unique_ptr<EntityESPControl> enemyESPControl;
+    std::unique_ptr<ChestESPControl> chestESPControl;
+    std::unique_ptr<ChestESPControl> shopESPControl;
+    std::unique_ptr<ChestESPControl> droneESPControl;
+    std::unique_ptr<ChestESPControl> shrineESPControl;
+    std::unique_ptr<ChestESPControl> specialESPControl;
+    std::unique_ptr<ChestESPControl> barrelESPControl;
+    std::unique_ptr<ChestESPControl> itemPickupESPControl;
+    std::unique_ptr<ChestESPControl> portalESPControl;
 
     Vector3 teleporterPosition;
     std::string teleporterDisplayName;
     Vector3 playerPosition;
     Camera* mainCamera;
 
-    std::vector<TrackedEntity*> trackedEnemies;
-    std::vector<TrackedEntity*> trackedPlayers;
-    std::vector<TrackedInteractable*> trackedInteractables;
+    std::vector<std::unique_ptr<TrackedEntity>> trackedEnemies;
+    std::vector<std::unique_ptr<TrackedEntity>> trackedPlayers;
+    std::vector<std::unique_ptr<TrackedInteractable>> trackedInteractables;
     std::mutex entitiesMutex;
     std::mutex interactablesMutex;
 

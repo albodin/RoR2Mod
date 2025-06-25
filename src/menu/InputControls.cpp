@@ -836,27 +836,18 @@ EntityESPSubControl::EntityESPSubControl(const std::string& label, const std::st
       boxColor(1.0f, 0.0f, 0.0f, 1.0f),
       tracelineColor(1.0f, 1.0f, 0.0f, 1.0f) {
 
-    enabled = new ToggleControl("Enabled", id + "_enabled", false, false);
-    showName = new ToggleControl("Show Name", id + "_showName", true, false);
-    showDistance = new ToggleControl("Show Distance", id + "_showDistance", true, false);
-    showHealth = new ToggleControl("Show Health", id + "_showHealth", false, false);
-    showMaxHealth = new ToggleControl("Show Max Health", id + "_showMaxHealth", false, false);
-    showHealthbar = new ToggleControl("Show Healthbar", id + "_showHealthbar", false, false);
-    showBox = new ToggleControl("Show Box", id + "_showBox", false, false);
-    showTraceline = new ToggleControl("Show Traceline", id + "_showTraceline", false, false);
-    maxDistance = new SliderControl("Max Distance", id + "_maxDistance", 100.0f, 0.0f, 1000.0f, false);
+    enabled = std::make_unique<ToggleControl>("Enabled", id + "_enabled", false, false);
+    showName = std::make_unique<ToggleControl>("Show Name", id + "_showName", true, false);
+    showDistance = std::make_unique<ToggleControl>("Show Distance", id + "_showDistance", true, false);
+    showHealth = std::make_unique<ToggleControl>("Show Health", id + "_showHealth", false, false);
+    showMaxHealth = std::make_unique<ToggleControl>("Show Max Health", id + "_showMaxHealth", false, false);
+    showHealthbar = std::make_unique<ToggleControl>("Show Healthbar", id + "_showHealthbar", false, false);
+    showBox = std::make_unique<ToggleControl>("Show Box", id + "_showBox", false, false);
+    showTraceline = std::make_unique<ToggleControl>("Show Traceline", id + "_showTraceline", false, false);
+    maxDistance = std::make_unique<SliderControl>("Max Distance", id + "_maxDistance", 100.0f, 0.0f, 1000.0f, false);
 }
 
 EntityESPSubControl::~EntityESPSubControl() {
-    delete enabled;
-    delete showName;
-    delete showDistance;
-    delete showHealth;
-    delete showMaxHealth;
-    delete showHealthbar;
-    delete showBox;
-    delete showTraceline;
-    delete maxDistance;
 }
 
 void EntityESPSubControl::Draw() {
@@ -990,17 +981,14 @@ void EntityESPSubControl::Deserialize(const json& data) {
 EntityESPControl::EntityESPControl(const std::string& label, const std::string& id)
     : InputControl(label, id, false) {
 
-    masterEnabled = new ToggleControl("Master Enabled", id + "_master", false, false);
-    visibleControl = new EntityESPSubControl("Visible " + label, id + "_visible");
-    nonVisibleControl = new EntityESPSubControl("Non-Visible " + label, id + "_nonvisible");
+    masterEnabled = std::make_unique<ToggleControl>("Master Enabled", id + "_master", false, false);
+    visibleControl = std::make_unique<EntityESPSubControl>("Visible " + label, id + "_visible");
+    nonVisibleControl = std::make_unique<EntityESPSubControl>("Non-Visible " + label, id + "_nonvisible");
 
     ConfigManager::RegisterControl(this);
 }
 
 EntityESPControl::~EntityESPControl() {
-    delete masterEnabled;
-    delete visibleControl;
-    delete nonVisibleControl;
     ConfigManager::UnregisterControl(this);
 }
 
@@ -1022,8 +1010,8 @@ void EntityESPControl::Update() {
     nonVisibleControl->Update();
 }
 
-EntityESPSubControl* EntityESPControl::GetVisibleControl() { return visibleControl; }
-EntityESPSubControl* EntityESPControl::GetNonVisibleControl() { return nonVisibleControl; }
+EntityESPSubControl* EntityESPControl::GetVisibleControl() { return visibleControl.get(); }
+EntityESPSubControl* EntityESPControl::GetNonVisibleControl() { return nonVisibleControl.get(); }
 bool EntityESPControl::IsMasterEnabled() const { return masterEnabled->IsEnabled(); }
 
 json EntityESPControl::Serialize() const {
@@ -1045,16 +1033,16 @@ void EntityESPControl::Deserialize(const json& data) {
 ChestESPSubControl::ChestESPSubControl(const std::string& label, const std::string& id)
     : InputControl(label, id, false) {
 
-    enabled = new ToggleControl("Enabled", id + "_enabled", true, false);
-    showName = new ToggleControl("Show Name", id + "_showName", true, false);
-    showDistance = new ToggleControl("Show Distance", id + "_showDistance", true, false);
-    showCost = new ToggleControl("Show Cost", id + "_showCost", true, false);
-    showUnavailable = new ToggleControl("Show Unavailable", id + "_showUnavailable", true, false);
-    showTraceline = new ToggleControl("Show Traceline", id + "_showTraceline", false, false);
-    enableNameShadow = new ToggleControl("O", id + "_enableNameShadow", true, false, false);
-    enableDistanceShadow = new ToggleControl("O", id + "_enableDistanceShadow", true, false, false);
-    enableCostShadow = new ToggleControl("O", id + "_enableCostShadow", true, false, false);
-    maxDistance = new SliderControl("Max Distance", id + "_maxDistance", 500.0f, 0.0f, 1000.0f, false);
+    enabled = std::make_unique<ToggleControl>("Enabled", id + "_enabled", true, false);
+    showName = std::make_unique<ToggleControl>("Show Name", id + "_showName", true, false);
+    showDistance = std::make_unique<ToggleControl>("Show Distance", id + "_showDistance", true, false);
+    showCost = std::make_unique<ToggleControl>("Show Cost", id + "_showCost", true, false);
+    showUnavailable = std::make_unique<ToggleControl>("Show Unavailable", id + "_showUnavailable", true, false);
+    showTraceline = std::make_unique<ToggleControl>("Show Traceline", id + "_showTraceline", false, false);
+    enableNameShadow = std::make_unique<ToggleControl>("O", id + "_enableNameShadow", true, false, false);
+    enableDistanceShadow = std::make_unique<ToggleControl>("O", id + "_enableDistanceShadow", true, false, false);
+    enableCostShadow = std::make_unique<ToggleControl>("O", id + "_enableCostShadow", true, false, false);
+    maxDistance = std::make_unique<SliderControl>("Max Distance", id + "_maxDistance", 500.0f, 0.0f, 1000.0f, false);
 
     nameColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);  // White
     distanceColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);  // White
@@ -1066,16 +1054,6 @@ ChestESPSubControl::ChestESPSubControl(const std::string& label, const std::stri
 }
 
 ChestESPSubControl::~ChestESPSubControl() {
-    delete enabled;
-    delete showName;
-    delete showDistance;
-    delete showCost;
-    delete showUnavailable;
-    delete showTraceline;
-    delete enableNameShadow;
-    delete enableDistanceShadow;
-    delete enableCostShadow;
-    delete maxDistance;
 }
 
 void ChestESPSubControl::Draw() {
@@ -1247,15 +1225,13 @@ void ChestESPSubControl::Deserialize(const json& data) {
 ChestESPControl::ChestESPControl(const std::string& label, const std::string& id)
     : InputControl(label, id, false) {
 
-    masterEnabled = new ToggleControl("Master Enabled", id + "_master", false, false);
-    subControl = new ChestESPSubControl(label + " Settings", id + "_settings");
+    masterEnabled = std::make_unique<ToggleControl>("Master Enabled", id + "_master", false, false);
+    subControl = std::make_unique<ChestESPSubControl>(label + " Settings", id + "_settings");
 
     ConfigManager::RegisterControl(this);
 }
 
 ChestESPControl::~ChestESPControl() {
-    delete masterEnabled;
-    delete subControl;
     ConfigManager::UnregisterControl(this);
 }
 
@@ -1277,7 +1253,7 @@ void ChestESPControl::Update() {
     subControl->Update();
 }
 
-ChestESPSubControl* ChestESPControl::GetSubControl() { return subControl; }
+ChestESPSubControl* ChestESPControl::GetSubControl() { return subControl.get(); }
 bool ChestESPControl::IsMasterEnabled() const { return masterEnabled->IsEnabled(); }
 
 json ChestESPControl::Serialize() const {

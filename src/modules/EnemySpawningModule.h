@@ -6,15 +6,16 @@
 #include <mutex>
 #include <queue>
 #include <shared_mutex>
+#include <memory>
 
 class EnemySpawningModule : public ModuleBase {
 private:
-    ComboControl* enemySelectControl;
-    ComboControl* teamSelectControl;
-    IntControl* spawnCountControl;
-    ToggleControl* difficultyMatchingControl;
-    ComboControl* eliteSelectControl;
-    ButtonControl* spawnButtonControl;
+    std::unique_ptr<ComboControl> enemySelectControl;
+    std::unique_ptr<ComboControl> teamSelectControl;
+    std::unique_ptr<IntControl> spawnCountControl;
+    std::unique_ptr<ToggleControl> difficultyMatchingControl;
+    std::unique_ptr<ComboControl> eliteSelectControl;
+    std::unique_ptr<ButtonControl> spawnButtonControl;
 
     std::mutex queuedSpawnsMutex;
     std::queue<std::tuple<int, int, int, bool, int, std::vector<std::pair<int, int>>>> queuedSpawns; // masterIndex, count, teamIndex, matchDifficulty, eliteIndex, items
@@ -26,7 +27,7 @@ private:
     // Item management (similar to PlayerModule)
     std::shared_mutex itemsMutex;
     std::vector<RoR2Item> items;
-    std::map<int, IntControl*> itemControls;
+    std::map<int, std::unique_ptr<IntControl>> itemControls;
 
 public:
     EnemySpawningModule();

@@ -8,28 +8,29 @@
 #include <shared_mutex>
 #include <queue>
 #include <mutex>
+#include <memory>
 
 class PlayerModule : public ModuleBase {
 private:
-    ToggleControl* godModeControl;
-    FloatControl* baseMoveSpeedControl;
-    FloatControl* baseDamageControl;
-    FloatControl* baseAttackSpeedControl;
-    FloatControl* baseCritControl;
-    IntControl* baseJumpCountControl;
-    ToggleButtonControl* teleportToCursorControl;
+    std::unique_ptr<ToggleControl> godModeControl;
+    std::unique_ptr<FloatControl> baseMoveSpeedControl;
+    std::unique_ptr<FloatControl> baseDamageControl;
+    std::unique_ptr<FloatControl> baseAttackSpeedControl;
+    std::unique_ptr<FloatControl> baseCritControl;
+    std::unique_ptr<IntControl> baseJumpCountControl;
+    std::unique_ptr<ToggleButtonControl> teleportToCursorControl;
 
-    FloatControl* huntressRangeControl;
-    FloatControl* huntressFOVControl;
-    ToggleControl* huntressWallPenetrationControl;
-    ToggleControl* huntressEnemyOnlyTargetingControl;
-    ToggleControl* huntressTargetingModeOverrideControl;
-    ComboControl* huntressTargetingModeControl;
+    std::unique_ptr<FloatControl> huntressRangeControl;
+    std::unique_ptr<FloatControl> huntressFOVControl;
+    std::unique_ptr<ToggleControl> huntressWallPenetrationControl;
+    std::unique_ptr<ToggleControl> huntressEnemyOnlyTargetingControl;
+    std::unique_ptr<ToggleControl> huntressTargetingModeOverrideControl;
+    std::unique_ptr<ComboControl> huntressTargetingModeControl;
 
-    ToggleControl* blockPhysicsEffectsControl;
-    ToggleControl* blockPullsControl;
+    std::unique_ptr<ToggleControl> blockPhysicsEffectsControl;
+    std::unique_ptr<ToggleControl> blockPullsControl;
 
-    ToggleControl* flightControl;
+    std::unique_ptr<ToggleControl> flightControl;
 
     std::mutex queuedGiveItemsMutex;
     std::queue<std::tuple<int, int>> queuedGiveItems;
@@ -37,7 +38,7 @@ private:
     std::vector<RoR2Item> items;
     std::vector<int> itemStacks;
 
-    std::map<int, IntControl*> itemControls;
+    std::map<int, std::unique_ptr<IntControl>> itemControls;
     LocalUser* localUser_cached;
 
     // Huntress tracker cache management
@@ -62,23 +63,23 @@ public:
     void InitializeItems();
     void InitializeAllItemControls();
 
-    ToggleControl* GetGodModeControl() { return godModeControl; }
-    FloatControl* GetBaseMoveSpeedControl() { return baseMoveSpeedControl; }
-    FloatControl* GetBaseDamageControl() { return baseDamageControl; }
-    FloatControl* GetBaseAttackSpeedControl() { return baseAttackSpeedControl; }
-    FloatControl* GetBaseCritControl() { return baseCritControl; }
-    IntControl* GetBaseJumpCountControl() { return baseJumpCountControl; }
-    FloatControl* GetHuntressRangeControl() { return huntressRangeControl; }
-    FloatControl* GetHuntressFOVControl() { return huntressFOVControl; }
-    ToggleControl* GetHuntressWallPenetrationControl() { return huntressWallPenetrationControl; }
-    ToggleControl* GetHuntressEnemyOnlyTargetingControl() { return huntressEnemyOnlyTargetingControl; }
-    ToggleControl* GetHuntressTargetingModeOverrideControl() { return huntressTargetingModeOverrideControl; }
-    ComboControl* GetHuntressTargetingModeControl() { return huntressTargetingModeControl; }
-    ToggleControl* GetBlockPhysicsEffectsControl() { return blockPhysicsEffectsControl; }
-    ToggleControl* GetBlockPullsControl() { return blockPullsControl; }
-    ToggleControl* GetFlightControl() { return flightControl; }
+    ToggleControl* GetGodModeControl() { return godModeControl.get(); }
+    FloatControl* GetBaseMoveSpeedControl() { return baseMoveSpeedControl.get(); }
+    FloatControl* GetBaseDamageControl() { return baseDamageControl.get(); }
+    FloatControl* GetBaseAttackSpeedControl() { return baseAttackSpeedControl.get(); }
+    FloatControl* GetBaseCritControl() { return baseCritControl.get(); }
+    IntControl* GetBaseJumpCountControl() { return baseJumpCountControl.get(); }
+    FloatControl* GetHuntressRangeControl() { return huntressRangeControl.get(); }
+    FloatControl* GetHuntressFOVControl() { return huntressFOVControl.get(); }
+    ToggleControl* GetHuntressWallPenetrationControl() { return huntressWallPenetrationControl.get(); }
+    ToggleControl* GetHuntressEnemyOnlyTargetingControl() { return huntressEnemyOnlyTargetingControl.get(); }
+    ToggleControl* GetHuntressTargetingModeOverrideControl() { return huntressTargetingModeOverrideControl.get(); }
+    ComboControl* GetHuntressTargetingModeControl() { return huntressTargetingModeControl.get(); }
+    ToggleControl* GetBlockPhysicsEffectsControl() { return blockPhysicsEffectsControl.get(); }
+    ToggleControl* GetBlockPullsControl() { return blockPullsControl.get(); }
+    ToggleControl* GetFlightControl() { return flightControl.get(); }
     HuntressTracker* GetCurrentLocalTracker();
-    std::map<int, IntControl*>& GetItemControls() { return itemControls; }
+    std::map<int, std::unique_ptr<IntControl>>& GetItemControls() { return itemControls; }
 
     void SetItemCount(int itemIndex, int count);
     int GetItemCount(int itemIndex);

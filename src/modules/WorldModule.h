@@ -2,16 +2,17 @@
 #include "ModuleBase.h"
 #include "menu/InputControls.h"
 #include "game/GameStructs.h"
+#include <memory>
 
 class WorldModule : public ModuleBase {
 private:
-    ToggleControl* instantTeleporterControl;
-    ToggleControl* instantHoldoutZoneControl;
-    ToggleControl* openExpiredTimedChestsControl;
-    ToggleControl* forceBluePortalControl;
-    ToggleControl* forceGoldenPortalControl;
-    ToggleControl* forceCelestialPortalControl;
-    ToggleControl* forceAllPortalsControl;
+    std::unique_ptr<ToggleControl> instantTeleporterControl;
+    std::unique_ptr<ToggleControl> instantHoldoutZoneControl;
+    std::unique_ptr<ToggleControl> openExpiredTimedChestsControl;
+    std::unique_ptr<ToggleControl> forceBluePortalControl;
+    std::unique_ptr<ToggleControl> forceGoldenPortalControl;
+    std::unique_ptr<ToggleControl> forceCelestialPortalControl;
+    std::unique_ptr<ToggleControl> forceAllPortalsControl;
 
 public:
     WorldModule();
@@ -21,8 +22,8 @@ public:
     void Update() override;
     void DrawUI() override;
 
-    ToggleControl* GetOpenExpiredTimedChestsControl() const { return openExpiredTimedChestsControl; }
-    ToggleControl* GetForceAllPortalsControl() const { return forceAllPortalsControl; }
+    ToggleControl* GetOpenExpiredTimedChestsControl() const { return openExpiredTimedChestsControl.get(); }
+    ToggleControl* GetForceAllPortalsControl() const { return forceAllPortalsControl.get(); }
 
     void OnTeleporterInteractionAwake(void* teleporter);
     void OnTeleporterInteractionFixedUpdate(void* teleporter);

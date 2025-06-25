@@ -9,13 +9,13 @@ EnemySpawningModule::EnemySpawningModule() : ModuleBase() {
     std::vector<std::string> teamNames = {"Neutral", "Player", "Monster", "Lunar", "Void"};
 
     // Create UI controls
-    enemySelectControl = new ComboControl("Enemy", "enemySpawn_selectedEnemy", {"Loading..."}, 0);
-    teamSelectControl = new ComboControl("Team", "enemySpawn_team", teamNames, 2); // Default to Monster
-    spawnCountControl = new IntControl("Spawn Count", "enemySpawn_count", 1, 1, 100, 1, false, false);
+    enemySelectControl = std::make_unique<ComboControl>("Enemy", "enemySpawn_selectedEnemy", std::vector<std::string>{"Loading..."}, 0);
+    teamSelectControl = std::make_unique<ComboControl>("Team", "enemySpawn_team", teamNames, 2); // Default to Monster
+    spawnCountControl = std::make_unique<IntControl>("Spawn Count", "enemySpawn_count", 1, 1, 100, 1, false, false);
     spawnCountControl->SetShowCheckbox(false);
-    difficultyMatchingControl = new ToggleControl("Match Difficulty", "enemySpawn_matchDifficulty", false, ImGuiKey_None);
-    eliteSelectControl = new ComboControl("Elite Type", "enemySpawn_eliteType", {"Loading..."}, 0);
-    spawnButtonControl = new ButtonControl("Spawn", "enemySpawn_button", "Spawn at Crosshair");
+    difficultyMatchingControl = std::make_unique<ToggleControl>("Match Difficulty", "enemySpawn_matchDifficulty", false, ImGuiKey_None);
+    eliteSelectControl = std::make_unique<ComboControl>("Elite Type", "enemySpawn_eliteType", std::vector<std::string>{"Loading..."}, 0);
+    spawnButtonControl = std::make_unique<ButtonControl>("Spawn", "enemySpawn_button", "Spawn at Crosshair");
 
     // Set up callbacks
 
@@ -38,16 +38,6 @@ EnemySpawningModule::EnemySpawningModule() : ModuleBase() {
 }
 
 EnemySpawningModule::~EnemySpawningModule() {
-    delete enemySelectControl;
-    delete teamSelectControl;
-    delete spawnCountControl;
-    delete difficultyMatchingControl;
-    delete eliteSelectControl;
-    delete spawnButtonControl;
-
-    for (auto& [index, control] : itemControls) {
-        delete control;
-    }
     itemControls.clear();
 }
 
@@ -61,7 +51,7 @@ void EnemySpawningModule::Update() {
     eliteSelectControl->Update();
     spawnButtonControl->Update();
 
-    for (auto& [index, control] : itemControls) {
+    for (const auto& [index, control] : itemControls) {
         control->Update();
     }
 }
@@ -160,11 +150,11 @@ void EnemySpawningModule::InitializeEnemies() {
 
 void EnemySpawningModule::InitializeItems() {
     std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
-    
+
     items = G::items;
     SortItemsByName();
     InitializeAllItemControls();
-    
+
     G::logger.LogInfo("Enemy spawning module initialized with %zu items", items.size());
 }
 
@@ -178,19 +168,16 @@ void EnemySpawningModule::SortItemsByName() {
 }
 
 void EnemySpawningModule::InitializeAllItemControls() {
-    for (auto& [index, control] : itemControls) {
-        delete control;
-    }
     itemControls.clear();
 
     std::shared_lock<std::shared_mutex> lock(itemsMutex);
     for (int i = 0; i < items.size(); i++) {
         const auto& item = items[i];
         int index = item.index;
-        
-        auto control = new IntControl(item.displayName, "enemySpawn_item_" + std::to_string(index), 0, 0, INT_MAX, 1, false, false);
+
+        auto control = std::make_unique<IntControl>(item.displayName, "enemySpawn_item_" + std::to_string(index), 0, 0, INT_MAX, 1, false, false);
         control->SetShowCheckbox(false);
-        itemControls[index] = control;
+        itemControls[index] = std::move(control);
     }
 }
 
@@ -230,7 +217,7 @@ void EnemySpawningModule::PrepareEnemyLists() {
 void EnemySpawningModule::SpawnEnemy(int masterIndex, int count, int eliteIndex) {
     std::unique_lock<std::mutex> lock(queuedSpawnsMutex);
     int teamIndex = teamSelectControl->GetSelectedIndex();
-    
+
     // Collect current item values
     std::vector<std::pair<int, int>> currentItems;
     for (const auto& [index, control] : itemControls) {
@@ -239,6 +226,6 @@ void EnemySpawningModule::SpawnEnemy(int masterIndex, int count, int eliteIndex)
             currentItems.push_back(std::make_pair(index, itemCount));
         }
     }
-    
+
     queuedSpawns.push(std::make_tuple(masterIndex, count, teamIndex, difficultyMatchingControl->IsEnabled(), eliteIndex, currentItems));
 }

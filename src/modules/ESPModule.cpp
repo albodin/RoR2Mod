@@ -320,37 +320,22 @@ ESPModule::ESPModule() : ModuleBase() {
 }
 
 ESPModule::~ESPModule() {
-    delete teleporterESPControl;
-    delete playerESPControl;
-    delete enemyESPControl;
-    delete chestESPControl;
-    delete shopESPControl;
-    delete droneESPControl;
-    delete shrineESPControl;
-    delete specialESPControl;
-    delete barrelESPControl;
-
-    std::lock_guard<std::mutex> lock(interactablesMutex);
-    for (auto interactable : trackedInteractables) {
-        delete interactable;
-    }
-    trackedInteractables.clear();
 }
 
 void ESPModule::Initialize() {
-    teleporterESPControl = new ESPControl("Teleporter ESP", "teleporter_esp", false,
+    teleporterESPControl = std::make_unique<ESPControl>("Teleporter ESP", "teleporter_esp", false,
                                     250.0f, 1000.0f, ImVec4(1.0f, 1.0f, 0.0f, 1.0f)); // Yellow
 
-    playerESPControl = new EntityESPControl("Players", "player_esp");
-    enemyESPControl = new EntityESPControl("Enemies", "enemy_esp");
-    chestESPControl = new ChestESPControl("Chests", "chest_esp");
-    shopESPControl = new ChestESPControl("Shops & Printers", "shop_esp");
-    droneESPControl = new ChestESPControl("Drones", "drone_esp");
-    shrineESPControl = new ChestESPControl("Shrines", "shrine_esp");
-    specialESPControl = new ChestESPControl("Special", "special_esp");
-    barrelESPControl = new ChestESPControl("Barrels", "barrel_esp");
-    itemPickupESPControl = new ChestESPControl("Item Pickups", "item_pickup_esp");
-    portalESPControl = new ChestESPControl("Portals", "portal_esp");
+    playerESPControl = std::make_unique<EntityESPControl>("Players", "player_esp");
+    enemyESPControl = std::make_unique<EntityESPControl>("Enemies", "enemy_esp");
+    chestESPControl = std::make_unique<ChestESPControl>("Chests", "chest_esp");
+    shopESPControl = std::make_unique<ChestESPControl>("Shops & Printers", "shop_esp");
+    droneESPControl = std::make_unique<ChestESPControl>("Drones", "drone_esp");
+    shrineESPControl = std::make_unique<ChestESPControl>("Shrines", "shrine_esp");
+    specialESPControl = std::make_unique<ChestESPControl>("Special", "special_esp");
+    barrelESPControl = std::make_unique<ChestESPControl>("Barrels", "barrel_esp");
+    itemPickupESPControl = std::make_unique<ChestESPControl>("Item Pickups", "item_pickup_esp");
+    portalESPControl = std::make_unique<ChestESPControl>("Portals", "portal_esp");
 
     // Initialize render order configuration control for persistence
     m_renderOrderConfigControl = std::make_unique<RenderOrderConfigControl>(&m_renderOrderManager);
@@ -379,12 +364,11 @@ void ESPModule::Update() {
         std::lock_guard<std::mutex> lock(interactablesMutex);
         trackedInteractables.erase(
             std::remove_if(trackedInteractables.begin(), trackedInteractables.end(),
-                [](TrackedInteractable* tracked) {
+                [](const std::unique_ptr<TrackedInteractable>& tracked) {
                     if (tracked->category == InteractableCategory::ItemPickup && tracked->gameObject) {
                         // Check if the pickup has been consumed or recycled
                         GenericPickupController* gpc = static_cast<GenericPickupController*>(tracked->gameObject);
                         if (gpc->Recycled || gpc->consumed) {
-                            delete tracked;
                             return true;
                         }
                     }
@@ -398,33 +382,33 @@ void ESPModule::Update() {
 void ESPModule::InitializeCategoryMappings() {
     // Initialize InteractableCategory to ESPMainCategory mapping
     m_categoryMappings[static_cast<int>(InteractableCategory::Chest)] =
-        {ESPMainCategory::Chests, chestESPControl};
+        {ESPMainCategory::Chests, chestESPControl.get()};
     m_categoryMappings[static_cast<int>(InteractableCategory::Shop)] =
-        {ESPMainCategory::Shops, shopESPControl};
+        {ESPMainCategory::Shops, shopESPControl.get()};
     m_categoryMappings[static_cast<int>(InteractableCategory::Drone)] =
-        {ESPMainCategory::Drones, droneESPControl};
+        {ESPMainCategory::Drones, droneESPControl.get()};
     m_categoryMappings[static_cast<int>(InteractableCategory::Shrine)] =
-        {ESPMainCategory::Shrines, shrineESPControl};
+        {ESPMainCategory::Shrines, shrineESPControl.get()};
     m_categoryMappings[static_cast<int>(InteractableCategory::Special)] =
-        {ESPMainCategory::Specials, specialESPControl};
+        {ESPMainCategory::Specials, specialESPControl.get()};
     m_categoryMappings[static_cast<int>(InteractableCategory::Barrel)] =
-        {ESPMainCategory::Barrels, barrelESPControl};
+        {ESPMainCategory::Barrels, barrelESPControl.get()};
     m_categoryMappings[static_cast<int>(InteractableCategory::ItemPickup)] =
-        {ESPMainCategory::ItemPickups, itemPickupESPControl};
+        {ESPMainCategory::ItemPickups, itemPickupESPControl.get()};
     m_categoryMappings[static_cast<int>(InteractableCategory::Portal)] =
-        {ESPMainCategory::Portals, portalESPControl};
+        {ESPMainCategory::Portals, portalESPControl.get()};
     m_categoryMappings[static_cast<int>(InteractableCategory::Unknown)] =
-        {ESPMainCategory::Specials, specialESPControl};
+        {ESPMainCategory::Specials, specialESPControl.get()};
 
     // Initialize ESPMainCategory to control mapping
-    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Chests)] = chestESPControl;
-    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Shops)] = shopESPControl;
-    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Drones)] = droneESPControl;
-    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Shrines)] = shrineESPControl;
-    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Specials)] = specialESPControl;
-    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Barrels)] = barrelESPControl;
-    m_mainCategoryControls[static_cast<int>(ESPMainCategory::ItemPickups)] = itemPickupESPControl;
-    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Portals)] = portalESPControl;
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Chests)] = chestESPControl.get();
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Shops)] = shopESPControl.get();
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Drones)] = droneESPControl.get();
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Shrines)] = shrineESPControl.get();
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Specials)] = specialESPControl.get();
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Barrels)] = barrelESPControl.get();
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::ItemPickups)] = itemPickupESPControl.get();
+    m_mainCategoryControls[static_cast<int>(ESPMainCategory::Portals)] = portalESPControl.get();
     // Note: Players, Enemies, and Teleporter don't use ChestESPControl, so they're not included here
 }
 
@@ -611,7 +595,7 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
     // Collect player ESP
     if (playerESPControl->IsMasterEnabled()) {
         std::lock_guard<std::mutex> lock(entitiesMutex);
-        for (TrackedEntity* entity : trackedPlayers) {
+        for (const auto& entity : trackedPlayers) {
             if (!entity->body || !entity->body->transform || !entity->body->healthComponent_backing) continue;
             if (entity->body == G::localPlayer->GetLocalPlayerBody()) continue;
             if (entity->body->healthComponent_backing->health <= 0) continue;
@@ -633,14 +617,14 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
 
             ESPSubCategory subCat = isVisible ? ESPSubCategory::Visible : ESPSubCategory::NonVisible;
             items.emplace_back(ESPMainCategory::Players, subCat,
-                             entity, distance, screenPos, isVisible, onScreen);
+                             entity.get(), distance, screenPos, isVisible, onScreen);
         }
     }
 
     // Collect enemy ESP
     if (enemyESPControl->IsMasterEnabled()) {
         std::lock_guard<std::mutex> lock(entitiesMutex);
-        for (TrackedEntity* entity : trackedEnemies) {
+        for (const auto& entity : trackedEnemies) {
             if (!entity->body || !entity->body->transform || !entity->body->healthComponent_backing) continue;
             if (entity->body->healthComponent_backing->health <= 0) continue;
 
@@ -661,14 +645,14 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
 
             ESPSubCategory subCat = isVisible ? ESPSubCategory::Visible : ESPSubCategory::NonVisible;
             items.emplace_back(ESPMainCategory::Enemies, subCat,
-                             entity, distance, screenPos, isVisible, onScreen);
+                             entity.get(), distance, screenPos, isVisible, onScreen);
         }
     }
 
     // Collect interactable ESP
     {
         std::lock_guard<std::mutex> lock(interactablesMutex);
-        for (auto interactable : trackedInteractables) {
+        for (const auto& interactable : trackedInteractables) {
             if (!interactable || !interactable->gameObject) continue;
 
             // Map interactable categories to main categories using lookup table
@@ -718,7 +702,7 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
             if (!isAvailable && !control->ShouldShowUnavailable()) continue;
 
             items.emplace_back(mainCategory, ESPSubCategory::Single,
-                             interactable, distance, screenPos, isVisible, onScreen, isAvailable);
+                             interactable.get(), distance, screenPos, isVisible, onScreen, isAvailable);
         }
     }
 }
@@ -741,7 +725,7 @@ void ESPModule::RenderHierarchicalItem(const ESPHierarchicalRenderItem& item) {
     } else if (item.mainCategory == ESPMainCategory::Players || item.mainCategory == ESPMainCategory::Enemies) {
         // Render entity
         EntityESPControl* control = (item.mainCategory == ESPMainCategory::Players) ?
-            playerESPControl : enemyESPControl;
+            playerESPControl.get() : enemyESPControl.get();
 
         EntityESPSubControl* subControl = item.isVisible ?
             control->GetVisibleControl() : control->GetNonVisibleControl();
@@ -764,7 +748,7 @@ void ESPModule::RenderHierarchicalItem(const ESPHierarchicalRenderItem& item) {
              categoryIndex == static_cast<int>(ESPMainCategory::Portals))) {
             categoryControl = m_mainCategoryControls[categoryIndex];
         } else {
-            categoryControl = specialESPControl; // Default fallback
+            categoryControl = specialESPControl.get(); // Default fallback
         }
 
         if (categoryControl) {
@@ -793,7 +777,7 @@ void ESPModule::OnCharacterBodySpawned(void* characterBody) {
 
     if (!body) return;
 
-    TrackedEntity* newEntity = new TrackedEntity();
+    auto newEntity = std::make_unique<TrackedEntity>();
     newEntity->displayName = G::gameFunctions->Language_GetString((MonoString*)body->baseNameToken);
     newEntity->body = body;
 
@@ -817,14 +801,13 @@ void ESPModule::OnCharacterBodySpawned(void* characterBody) {
         case TeamIndex_Value::Monster:
         case TeamIndex_Value::Lunar:
         case TeamIndex_Value::Void:
-            trackedEnemies.push_back(newEntity);
+            trackedEnemies.push_back(std::move(newEntity));
             break;
         case TeamIndex_Value::Player:
-            trackedPlayers.push_back(newEntity);
+            trackedPlayers.push_back(std::move(newEntity));
             break;
 
         default:
-            delete newEntity;
             break;
     }
 }
@@ -835,7 +818,7 @@ void ESPModule::OnCharacterBodyDestroyed(void* characterBody) {
 
     trackedEnemies.erase(
         std::remove_if(trackedEnemies.begin(), trackedEnemies.end(),
-                      [body](TrackedEntity* enemy) {
+                      [body](const std::unique_ptr<TrackedEntity>& enemy) {
                           return enemy->body == body;
                       }),
         trackedEnemies.end()
@@ -843,7 +826,7 @@ void ESPModule::OnCharacterBodyDestroyed(void* characterBody) {
 
     trackedPlayers.erase(
         std::remove_if(trackedPlayers.begin(), trackedPlayers.end(),
-                      [body](TrackedEntity* player) {
+                      [body](const std::unique_ptr<TrackedEntity>& player) {
                           return player->body == body;
                       }),
         trackedPlayers.end()
@@ -1213,7 +1196,7 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
     }
 
     // Create interactable tracking info
-    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    auto trackedInteractable = std::make_unique<TrackedInteractable>();
     trackedInteractable->gameObject = gameObject;
     trackedInteractable->purchaseInteraction = purchaseInteraction;
     trackedInteractable->position = position;
@@ -1235,7 +1218,7 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
 
     // Add to tracked interactables
     std::lock_guard<std::mutex> lock(interactablesMutex);
-    trackedInteractables.push_back(trackedInteractable);
+    trackedInteractables.push_back(std::move(trackedInteractable));
 
     const char* categoryName = "";
     switch(category) {
@@ -1257,12 +1240,8 @@ void ESPModule::OnPurchaseInteractionDestroyed(void* purchaseInteraction) {
     std::lock_guard<std::mutex> lock(interactablesMutex);
     trackedInteractables.erase(
         std::remove_if(trackedInteractables.begin(), trackedInteractables.end(),
-                      [purchaseInteraction](TrackedInteractable* tracked) {
-                          if (tracked->gameObject == purchaseInteraction) {
-                              delete tracked;
-                              return true;
-                          }
-                          return false;
+                      [purchaseInteraction](const std::unique_ptr<TrackedInteractable>& tracked) {
+                          return tracked->gameObject == purchaseInteraction;
                       }),
         trackedInteractables.end()
     );
@@ -1283,7 +1262,7 @@ void ESPModule::OnBarrelInteractionSpawned(void* barrelInteraction) {
 
     std::string displayName = G::gameFunctions->Language_GetString((MonoString*)barrel->displayNameToken);
     // Create interactable tracking info for barrels
-    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    auto trackedInteractable = std::make_unique<TrackedInteractable>();
     trackedInteractable->gameObject = barrelInteraction;
     trackedInteractable->purchaseInteraction = nullptr; // Barrels don't use PurchaseInteraction
     trackedInteractable->position = position;
@@ -1298,7 +1277,7 @@ void ESPModule::OnBarrelInteractionSpawned(void* barrelInteraction) {
 
     // Add to tracked interactables
     std::lock_guard<std::mutex> lock(interactablesMutex);
-    trackedInteractables.push_back(trackedInteractable);
+    trackedInteractables.push_back(std::move(trackedInteractable));
 }
 
 void ESPModule::OnGenericInteractionSpawned(void* genericInteraction) {
@@ -1349,7 +1328,7 @@ void ESPModule::OnGenericInteractionSpawned(void* genericInteraction) {
     }
 
     // Create tracking info
-    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    auto trackedInteractable = std::make_unique<TrackedInteractable>();
     trackedInteractable->gameObject = gameObject;
     trackedInteractable->purchaseInteraction = nullptr;
     trackedInteractable->position = position;
@@ -1360,7 +1339,7 @@ void ESPModule::OnGenericInteractionSpawned(void* genericInteraction) {
     trackedInteractable->costString = "";
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
-    trackedInteractables.push_back(trackedInteractable);
+    trackedInteractables.push_back(std::move(trackedInteractable));
 }
 
 void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) {
@@ -1387,7 +1366,7 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
     std::string displayName = GetPickupName(gpc->pickupIndex);
 
     // Create tracking info - categorize as item pickup
-    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    auto trackedInteractable = std::make_unique<TrackedInteractable>();
     trackedInteractable->gameObject = gameObject;
     trackedInteractable->purchaseInteraction = nullptr;
     trackedInteractable->position = position;
@@ -1399,7 +1378,7 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
     trackedInteractable->pickupIndex = gpc->pickupIndex;
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
-    trackedInteractables.push_back(trackedInteractable);
+    trackedInteractables.push_back(std::move(trackedInteractable));
 }
 
 void ESPModule::OnTimedChestControllerSpawned(void* timedChestController) {
@@ -1421,7 +1400,7 @@ void ESPModule::OnTimedChestControllerSpawned(void* timedChestController) {
     void* purchaseInteraction = nullptr;
 
     // Create tracking info
-    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    auto trackedInteractable = std::make_unique<TrackedInteractable>();
     trackedInteractable->gameObject = gameObject;
     trackedInteractable->purchaseInteraction = purchaseInteraction;
     trackedInteractable->position = position;
@@ -1433,7 +1412,7 @@ void ESPModule::OnTimedChestControllerSpawned(void* timedChestController) {
 
     {
         std::lock_guard<std::mutex> lock(interactablesMutex);
-        trackedInteractables.push_back(trackedInteractable);
+        trackedInteractables.push_back(std::move(trackedInteractable));
     }
 }
 
@@ -1443,12 +1422,8 @@ void ESPModule::OnTimedChestControllerDespawned(void* timedChestController) {
     std::lock_guard<std::mutex> lock(interactablesMutex);
     trackedInteractables.erase(
         std::remove_if(trackedInteractables.begin(), trackedInteractables.end(),
-                      [timedChestController](TrackedInteractable* tracked) {
-                          if (tracked->gameObject == timedChestController) {
-                              delete tracked;
-                              return true;
-                          }
-                          return false;
+                      [timedChestController](const std::unique_ptr<TrackedInteractable>& tracked) {
+                          return tracked->gameObject == timedChestController;
                       }),
         trackedInteractables.end()
     );
@@ -1475,7 +1450,7 @@ void ESPModule::OnScrapperControllerSpawned(void* scrapperController) {
     std::string displayName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("SCRAPPER_NAME"));
 
     // Create tracking info
-    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    auto trackedInteractable = std::make_unique<TrackedInteractable>();
     trackedInteractable->gameObject = gameObject;
     trackedInteractable->purchaseInteraction = nullptr;
     trackedInteractable->position = position;
@@ -1486,30 +1461,19 @@ void ESPModule::OnScrapperControllerSpawned(void* scrapperController) {
     trackedInteractable->costString = "";
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
-    trackedInteractables.push_back(trackedInteractable);
+    trackedInteractables.push_back(std::move(trackedInteractable));
 }
 
 void ESPModule::OnStageStart(void* stage) {
     // New stage detected - clear all tracked interactables and entities
     {
         std::lock_guard<std::mutex> lock(interactablesMutex);
-        size_t interactableCount = trackedInteractables.size();
-        for (auto interactable : trackedInteractables) {
-            delete interactable;
-        }
         trackedInteractables.clear();
     }
 
     {
         std::lock_guard<std::mutex> lock(entitiesMutex);
-        for (auto entity : trackedEnemies) {
-            delete entity;
-        }
         trackedEnemies.clear();
-
-        for (auto entity : trackedPlayers) {
-            delete entity;
-        }
         trackedPlayers.clear();
     }
 
@@ -1746,7 +1710,7 @@ void ESPModule::OnPressurePlateControllerSpawned(void* pressurePlateController) 
     }
 
     // Create tracking info - categorize as special interactable
-    TrackedInteractable* trackedInteractable = new TrackedInteractable();
+    auto trackedInteractable = std::make_unique<TrackedInteractable>();
     trackedInteractable->gameObject = pressurePlateController;
     trackedInteractable->purchaseInteraction = nullptr;
     trackedInteractable->position = position;
@@ -1759,7 +1723,7 @@ void ESPModule::OnPressurePlateControllerSpawned(void* pressurePlateController) 
     trackedInteractable->costString = "";
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
-    trackedInteractables.push_back(trackedInteractable);
+    trackedInteractables.push_back(std::move(trackedInteractable));
 }
 
 void ESPModule::InitializeCostFormats() {

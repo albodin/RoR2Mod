@@ -155,11 +155,11 @@ void Hooks::Init() {
         return;
     }
 
-    G::g_monoRuntime = new MonoRuntime();
+    G::g_monoRuntime = std::make_unique<MonoRuntime>();
     while (!G::g_monoRuntime->Initialize()) {
         Sleep(100);
     }
-    G::gameFunctions = new GameFunctions(G::g_monoRuntime);
+    G::gameFunctions = std::make_unique<GameFunctions>(G::g_monoRuntime.get());
     while (G::gameFunctions->RoR2Application_IsLoading() && !G::gameFunctions->RoR2Application_IsLoadFinished() &&
             G::gameFunctions->RoR2Application_GetLoadGameContentPercentage() < 10) {
         G::logger.LogInfo("Waiting for RoR2 to load...");
@@ -400,12 +400,12 @@ void Hooks::Unhook() {
                          MH_StatusToString(uninit_status) + " (code: " + MH_StatusToString(uninit_status) + ")");
     }
 
-    delete G::g_monoRuntime;
-    delete G::gameFunctions;
-    delete G::runningButtonControl;
+    G::g_monoRuntime = nullptr;
+    G::gameFunctions = nullptr;
+    G::runningButtonControl = nullptr;
 
-    delete G::localPlayer;
-    delete G::espModule;
+    G::localPlayer = nullptr;
+    G::espModule = nullptr;
 }
 
 

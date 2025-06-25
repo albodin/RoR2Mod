@@ -5,47 +5,12 @@
 #include "config/ConfigManager.h"
 
 PlayerModule::PlayerModule() : ModuleBase(),
-    godModeControl(nullptr),
-    baseMoveSpeedControl(nullptr),
-    baseDamageControl(nullptr),
-    baseAttackSpeedControl(nullptr),
-    baseCritControl(nullptr),
-    baseJumpCountControl(nullptr),
-    teleportToCursorControl(nullptr),
-    huntressRangeControl(nullptr),
-    huntressFOVControl(nullptr),
-    huntressEnemyOnlyTargetingControl(nullptr),
-    huntressTargetingModeOverrideControl(nullptr),
-    huntressTargetingModeControl(nullptr),
-    blockPhysicsEffectsControl(nullptr),
-    blockPullsControl(nullptr),
-    flightControl(nullptr),
     localUser_cached(nullptr),
     isProvidingFlight(false) {
     Initialize();
 }
 
 PlayerModule::~PlayerModule() {
-    delete godModeControl;
-    delete baseMoveSpeedControl;
-    delete baseDamageControl;
-    delete baseAttackSpeedControl;
-    delete baseCritControl;
-    delete baseJumpCountControl;
-    delete teleportToCursorControl;
-    delete huntressRangeControl;
-    delete huntressFOVControl;
-    delete huntressEnemyOnlyTargetingControl;
-    delete huntressTargetingModeOverrideControl;
-    delete huntressTargetingModeControl;
-    delete huntressWallPenetrationControl;
-    delete blockPhysicsEffectsControl;
-    delete blockPullsControl;
-    delete flightControl;
-
-    for (auto& [index, control] : itemControls) {
-        delete control;
-    }
     itemControls.clear();
 }
 
@@ -59,29 +24,29 @@ void PlayerModule::SortItemsByName() {
 }
 
 void PlayerModule::Initialize() {
-    godModeControl = new ToggleControl("Godmode", "godMode", false);
-    baseMoveSpeedControl = new FloatControl("Base Move Speed", "baseMoveSpeed", 10.0f);
-    baseDamageControl = new FloatControl("Base Damage", "baseDamage", 10.0f, 0.0f, FLT_MAX, 10.0f);
-    baseAttackSpeedControl = new FloatControl("Base Attack Speed", "baseAttackSpeed", 10.0f, 0.0f, FLT_MAX, 10.0f);
-    baseCritControl = new FloatControl("Base Crit", "baseCrit", 10.0f, 0.0f, FLT_MAX, 10.0f);
-    baseJumpCountControl = new IntControl("Base Jump Count", "baseJumpCount", 1, 0, INT_MAX, 10);
-    teleportToCursorControl = new ToggleButtonControl("Teleport to Cursor", "teleportToCursor", "Teleport", false);
+    godModeControl = std::make_unique<ToggleControl>("Godmode", "godMode", false);
+    baseMoveSpeedControl = std::make_unique<FloatControl>("Base Move Speed", "baseMoveSpeed", 10.0f);
+    baseDamageControl = std::make_unique<FloatControl>("Base Damage", "baseDamage", 10.0f, 0.0f, FLT_MAX, 10.0f);
+    baseAttackSpeedControl = std::make_unique<FloatControl>("Base Attack Speed", "baseAttackSpeed", 10.0f, 0.0f, FLT_MAX, 10.0f);
+    baseCritControl = std::make_unique<FloatControl>("Base Crit", "baseCrit", 10.0f, 0.0f, FLT_MAX, 10.0f);
+    baseJumpCountControl = std::make_unique<IntControl>("Base Jump Count", "baseJumpCount", 1, 0, INT_MAX, 10);
+    teleportToCursorControl = std::make_unique<ToggleButtonControl>("Teleport to Cursor", "teleportToCursor", "Teleport", false);
 
-    huntressRangeControl = new FloatControl("Huntress Range", "huntressRange", 20.0f, 0.0f, 1000.0f, 5.0f);
-    huntressFOVControl = new FloatControl("Huntress FOV", "huntressFOV", 20.0f, 0.0f, 180.0f, 5.0f);
-    huntressWallPenetrationControl = new ToggleControl("Huntress Wall Penetration", "huntressWallPenetration", false);
-    huntressEnemyOnlyTargetingControl = new ToggleControl("Huntress Ignore Breakables", "huntressEnemyOnlyTargeting", false);
+    huntressRangeControl = std::make_unique<FloatControl>("Huntress Range", "huntressRange", 20.0f, 0.0f, 1000.0f, 5.0f);
+    huntressFOVControl = std::make_unique<FloatControl>("Huntress FOV", "huntressFOV", 20.0f, 0.0f, 180.0f, 5.0f);
+    huntressWallPenetrationControl = std::make_unique<ToggleControl>("Huntress Wall Penetration", "huntressWallPenetration", false);
+    huntressEnemyOnlyTargetingControl = std::make_unique<ToggleControl>("Huntress Ignore Breakables", "huntressEnemyOnlyTargeting", false);
 
-    huntressTargetingModeOverrideControl = new ToggleControl("Override Huntress Targeting Mode", "huntressTargetingModeOverride", false);
-    huntressTargetingModeControl = new ComboControl("Targeting Mode", "huntressTargetingMode",
-        {"None", "Distance", "Angle", "Distance + Angle"},
-        {0, 1, 2, 3}, 3);
+    huntressTargetingModeOverrideControl = std::make_unique<ToggleControl>("Override Huntress Targeting Mode", "huntressTargetingModeOverride", false);
+    huntressTargetingModeControl = std::make_unique<ComboControl>("Targeting Mode", "huntressTargetingMode",
+        std::vector<std::string>{"None", "Distance", "Angle", "Distance + Angle"},
+        std::vector<int>{0, 1, 2, 3}, 3);
 
     // Initialize physics blocking controls
-    blockPhysicsEffectsControl = new ToggleControl("Block Enemy Forces", "blockPhysicsEffects", false);
-    blockPullsControl = new ToggleControl("Block Displacements", "blockPulls", true);
+    blockPhysicsEffectsControl = std::make_unique<ToggleControl>("Block Enemy Forces", "blockPhysicsEffects", false);
+    blockPullsControl = std::make_unique<ToggleControl>("Block Displacements", "blockPulls", true);
 
-    flightControl = new ToggleControl("Flight", "flight", false);
+    flightControl = std::make_unique<ToggleControl>("Flight", "flight", false);
 
     teleportToCursorControl->SetOnAction([this]() {
         if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->_cameraRigController) {
@@ -109,7 +74,7 @@ void PlayerModule::Update() {
     blockPullsControl->Update();
     flightControl->Update();
 
-    for (auto& [index, control] : itemControls) {
+    for (const auto& [index, control] : itemControls) {
         control->Update();
     }
 }
@@ -267,7 +232,7 @@ void PlayerModule::OnInventoryChanged(void* inventory) {
     for (int i = 0; i < itemStacks.size(); i++) {
         itemStacks[i] = arrayData[i];
         if (itemControls.count(i) > 0) {
-            auto control = itemControls[i];
+            const auto& control = itemControls[i];
 
             // Update the UI control value
             if (control->GetValue() != arrayData[i]) {
@@ -310,8 +275,8 @@ void PlayerModule::InitializeAllItemControls() {
         int index = item.index;
         int currentCount = (index < itemStacks.size()) ? itemStacks[index] : 0;
 
-        auto control = new IntControl(item.displayName, "item_" + std::to_string(index),
-                                     currentCount, 0, INT_MAX, 1, false, false);
+        auto control = std::make_unique<IntControl>(item.displayName, "item_" + std::to_string(index),
+                                                   currentCount, 0, INT_MAX, 1, false, false);
 
         control->SetOnChange([this, index](int newValue) {
             if (index < itemStacks.size()) {
@@ -321,7 +286,7 @@ void PlayerModule::InitializeAllItemControls() {
             queuedGiveItems.push(std::make_tuple(index, newValue));
         });
 
-        itemControls[index] = control;
+        itemControls[index] = std::move(control);
     }
 
     G::logger.LogInfo("Initialized %zu item controls", itemControls.size());

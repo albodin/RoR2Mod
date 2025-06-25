@@ -249,15 +249,15 @@ private:
     std::string label;
     std::string id;
 
-    ToggleControl* enabled;
-    ToggleControl* showName;
-    ToggleControl* showDistance;
-    ToggleControl* showHealth;
-    ToggleControl* showMaxHealth;
-    ToggleControl* showHealthbar;
-    ToggleControl* showBox;
-    ToggleControl* showTraceline;
-    SliderControl* maxDistance;
+    std::unique_ptr<ToggleControl> enabled;
+    std::unique_ptr<ToggleControl> showName;
+    std::unique_ptr<ToggleControl> showDistance;
+    std::unique_ptr<ToggleControl> showHealth;
+    std::unique_ptr<ToggleControl> showMaxHealth;
+    std::unique_ptr<ToggleControl> showHealthbar;
+    std::unique_ptr<ToggleControl> showBox;
+    std::unique_ptr<ToggleControl> showTraceline;
+    std::unique_ptr<SliderControl> maxDistance;
     ImVec4 nameColor;
     ImVec4 distanceColor;
     ImVec4 healthColor;
@@ -301,9 +301,9 @@ public:
 
 class EntityESPControl : public InputControl {
 private:
-    ToggleControl* masterEnabled;
-    EntityESPSubControl* visibleControl;
-    EntityESPSubControl* nonVisibleControl;
+    std::unique_ptr<ToggleControl> masterEnabled;
+    std::unique_ptr<EntityESPSubControl> visibleControl;
+    std::unique_ptr<EntityESPSubControl> nonVisibleControl;
 
 public:
     EntityESPControl(const std::string& label, const std::string& id);
@@ -322,16 +322,16 @@ public:
 
 class ChestESPSubControl : public InputControl {
 private:
-    ToggleControl* enabled;
-    ToggleControl* showName;
-    ToggleControl* showDistance;
-    ToggleControl* showCost;
-    ToggleControl* showUnavailable;
-    ToggleControl* showTraceline;
-    ToggleControl* enableNameShadow;
-    ToggleControl* enableDistanceShadow;
-    ToggleControl* enableCostShadow;
-    SliderControl* maxDistance;
+    std::unique_ptr<ToggleControl> enabled;
+    std::unique_ptr<ToggleControl> showName;
+    std::unique_ptr<ToggleControl> showDistance;
+    std::unique_ptr<ToggleControl> showCost;
+    std::unique_ptr<ToggleControl> showUnavailable;
+    std::unique_ptr<ToggleControl> showTraceline;
+    std::unique_ptr<ToggleControl> enableNameShadow;
+    std::unique_ptr<ToggleControl> enableDistanceShadow;
+    std::unique_ptr<ToggleControl> enableCostShadow;
+    std::unique_ptr<SliderControl> maxDistance;
     ImVec4 nameColor;
     ImVec4 distanceColor;
     ImVec4 costColor;
@@ -379,8 +379,8 @@ public:
 
 class ChestESPControl : public InputControl {
 private:
-    ToggleControl* masterEnabled;
-    ChestESPSubControl* subControl;
+    std::unique_ptr<ToggleControl> masterEnabled;
+    std::unique_ptr<ChestESPSubControl> subControl;
 
 public:
     ChestESPControl(const std::string& label, const std::string& id);
