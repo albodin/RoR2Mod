@@ -199,6 +199,8 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, GenericPickupController, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TimedChestController, OnEnable, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TimedChestController, OnDisable, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, TeamManager, OnEnable, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, TeamManager, OnDisable, 0, "System.Void", {});
     HOOK(RoR2, RoR2, GenericInteraction, OnEnable, 0, "System.Void", {});
     HOOK(RoR2, RoR2, PickupPickerController, Awake, 0, "System.Void", {});
     HOOK(RoR2, RoR2, ScrapperController, Start, 0, "System.Void", {});
@@ -750,6 +752,24 @@ void Hooks::hkRoR2TimedChestControllerOnDisable(void* instance) {
     if (!G::hooksInitialized) return;
 
     G::espModule->OnTimedChestControllerDespawned(instance);
+}
+
+void Hooks::hkRoR2TeamManagerOnEnable(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2TeamManagerOnEnable"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::gameFunctions->CacheTeamManagerInstance(reinterpret_cast<TeamManager*>(instance));
+}
+
+void Hooks::hkRoR2TeamManagerOnDisable(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2TeamManagerOnDisable"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) return;
+
+    G::gameFunctions->ClearTeamManagerInstance();
 }
 
 void Hooks::hkRoR2GenericInteractionOnEnable(void* instance) {

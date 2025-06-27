@@ -381,10 +381,10 @@ void IntControl::Deserialize(const json& data) {
 
 // FloatControl implementation
 FloatControl::FloatControl(const std::string& label, const std::string& id, float value,
-                         float minValue, float maxValue, float step, bool enabled, bool disableValueOnToggle)
-    : InputControl(label, id), value(value), minValue(minValue), maxValue(maxValue), step(step),
+                         float minValue, float maxValue, float step, bool enabled, bool disableValueOnToggle, bool showCheckbox)
+    : InputControl(label, id), value(value), frozenValue(value), minValue(minValue), maxValue(maxValue), step(step),
       incHotkey(ImGuiKey_None), decHotkey(ImGuiKey_None), isCapturingIncHotkey(false), isCapturingDecHotkey(false),
-      disableValueOnToggle(disableValueOnToggle), onChange(nullptr), onToggle(nullptr)
+      disableValueOnToggle(disableValueOnToggle), showCheckbox(showCheckbox), onChange(nullptr), onToggle(nullptr)
 {
     ConfigManager::RegisterControl(this);
 }
@@ -396,20 +396,28 @@ FloatControl::~FloatControl() {
 void FloatControl::Draw() {
     ImGui::PushID(id.c_str());
 
-    // Toggle checkbox
-    if (ImGui::Checkbox("##toggle", &enabled)) {
-        if (onToggle) {
-            onToggle(enabled);
+    // Toggle checkbox (only if showCheckbox is true)
+    if (showCheckbox) {
+        if (ImGui::Checkbox("##toggle", &enabled)) {
+            if (enabled) {
+                // When enabling protection, freeze the current value
+                frozenValue = value;
+            }
+            if (onToggle) {
+                onToggle(enabled);
+            }
         }
+        ImGui::SameLine();
     }
-    ImGui::SameLine();
 
     float curPosX = ImGui::GetCursorPosX();
     ImGui::SetCursorPosX(curPosX);
     ImGui::Text("%s", label.c_str());
 
     ImGui::SameLine();
-    ImGui::SetCursorPosX(curPosX + s_labelWidth);
+    if (showCheckbox) {
+        ImGui::SetCursorPosX(curPosX + s_labelWidth);
+    }
     if (disableValueOnToggle && !enabled) {
         ImGui::BeginDisabled();
     }
@@ -490,8 +498,18 @@ void FloatControl::Decrement() {
 }
 
 json FloatControl::Serialize() const {
+    // Only save resource controls if they're enabled
+    if (id.find("player_") == 0 && !enabled) {
+        return json();
+    }
+
     json data = InputControl::Serialize();
-    data["value"] = value;
+    // For enabled resource controls, save the frozen value instead of current value
+    if (id.find("player_") == 0 && enabled) {
+        data["value"] = frozenValue;
+    } else {
+        data["value"] = value;
+    }
     data["incHotkey"] = static_cast<int>(incHotkey);
     data["decHotkey"] = static_cast<int>(decHotkey);
     data["step"] = step;
@@ -500,7 +518,13 @@ json FloatControl::Serialize() const {
 
 void FloatControl::Deserialize(const json& data) {
     InputControl::Deserialize(data);
-    if (data.contains("value")) SetValue(data["value"]);
+    if (data.contains("value")) {
+        SetValue(data["value"]);
+        // For resource controls, also set frozen value when loading
+        if (id.find("player_") == 0) {
+            frozenValue = data["value"];
+        }
+    }
     if (data.contains("incHotkey")) incHotkey = static_cast<ImGuiKey>(data["incHotkey"]);
     if (data.contains("decHotkey")) decHotkey = static_cast<ImGuiKey>(data["decHotkey"]);
     if (data.contains("step")) step = data["step"];

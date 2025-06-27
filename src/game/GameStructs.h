@@ -146,6 +146,8 @@ typedef int32_t Int32;
 typedef unsigned char Byte;
 typedef int32_t PickupIndex_Value;
 typedef uint8_t TeamMask_Value;
+typedef uint32_t UInt32;
+typedef uint64_t UInt64;
 
 
 struct MonoObject_Internal {
@@ -3000,6 +3002,15 @@ struct CharacterSpawnCard {
     Loadout* runtimeLoadout; // Offset: 104
     bool noElites; // Offset: 112
     bool forbiddenAsBoss; // Offset: 113
+};
+
+// Generated from RoR2.TeamManager
+struct TeamManager {
+    char padding0[48]; // Padding
+    UInt64* teamExperience; // Offset: 48
+    UInt32* teamLevels; // Offset: 56
+    UInt64* teamCurrentLevelExperience; // Offset: 64
+    UInt64* teamNextLevelExperience; // Offset: 72
 };
 
 #pragma pack(pop)

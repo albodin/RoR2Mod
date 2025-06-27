@@ -109,6 +109,7 @@ public:
 class FloatControl : public InputControl {
 private:
     float value;
+    float frozenValue; // Value to maintain when protection is enabled
     float minValue;
     float maxValue;
     float step;
@@ -117,13 +118,14 @@ private:
     bool isCapturingIncHotkey;
     bool isCapturingDecHotkey;
     bool disableValueOnToggle;
+    bool showCheckbox;
     std::function<void(float)> onChange;
     std::function<void(bool)> onToggle;
 
 public:
     FloatControl(const std::string& label, const std::string& id, float value,
                 float minValue = 0.0f, float maxValue = FLT_MAX, float step = 1.0f,
-                bool enabled = false, bool disableValueOnToggle = true);
+                bool enabled = false, bool disableValueOnToggle = true, bool showCheckbox = false);
     virtual ~FloatControl();
 
     void Draw() override;
@@ -131,11 +133,14 @@ public:
     void Increment();
     void Decrement();
     float GetValue() const { return value; }
+    float GetFrozenValue() const { return frozenValue; }
     void SetValue(float newValue);
+    void UpdateFrozenValue() { frozenValue = value; }
     void SetOnChange(std::function<void(float)> callback) { onChange = callback; }
     void SetOnToggle(std::function<void(bool)> callback) { onToggle = callback; }
     void SetDisableValueOnToggle(bool disable) { disableValueOnToggle = disable; }
     bool GetDisableValueOnToggle() const { return disableValueOnToggle; }
+    void SetShowCheckbox(bool show) { showCheckbox = show; }
 
     json Serialize() const override;
     void Deserialize(const json& data) override;

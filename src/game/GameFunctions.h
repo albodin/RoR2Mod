@@ -37,6 +37,8 @@ private:
     MonoClass* m_buffCatalogClass;
     MonoClass* m_buffDefClass;
 
+    TeamManager* m_cachedTeamManager;
+
 public:
     GameFunctions(MonoRuntime* runtime);
     ~GameFunctions() = default;
@@ -59,4 +61,10 @@ public:
     void TeleportHelper_TeleportBody(void* m_characterBody, Vector3 position);
     float GetRunStopwatch();
     bool SpawnEnemyAtPosition(int masterIndex, Vector3 position, int teamIndex = 2, bool matchDifficulty = false, int eliteIndex = 0, const std::vector<std::pair<int, int>>& items = {});
+
+    TeamManager* GetTeamManagerInstance();
+    void CacheTeamManagerInstance(TeamManager* instance);
+    void ClearTeamManagerInstance();
+    uint32_t GetTeamLevel(TeamIndex_Value teamIndex);
+    void SetTeamLevel(TeamIndex_Value teamIndex, uint32_t level);
 };

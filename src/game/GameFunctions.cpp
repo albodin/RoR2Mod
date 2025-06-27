@@ -24,6 +24,8 @@ GameFunctions::GameFunctions(MonoRuntime* runtime) {
     m_teamManagerClass = runtime->GetClass("Assembly-CSharp", "RoR2", "TeamManager");
     m_buffCatalogClass = runtime->GetClass("Assembly-CSharp", "RoR2", "BuffCatalog");
     m_buffDefClass = runtime->GetClass("Assembly-CSharp", "RoR2", "BuffDef");
+
+    m_cachedTeamManager = nullptr;
 }
 
 void GameFunctions::Cursor_SetLockState(int lockState) {
@@ -826,7 +828,7 @@ bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int 
                         // Give UseAmbientLevel item if difficulty matching is enabled
                         if (matchDifficulty) {
                             static int useAmbientLevelIndex = -1;
-                            
+
                             // Find UseAmbientLevel item index if not already cached
                             if (useAmbientLevelIndex == -1) {
                                 std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
@@ -836,14 +838,14 @@ bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int 
                                     G::logger.LogInfo("Found UseAmbientLevel item at index %d", useAmbientLevelIndex);
                                 }
                             }
-                            
+
                             if (useAmbientLevelIndex >= 0) {
                                 Inventory_GiveItem(inventory, useAmbientLevelIndex, 1);
                             } else {
                                 G::logger.LogError("Could not find UseAmbientLevel item in items list");
                             }
                         }
-                        
+
                         // Give custom items
                         for (const auto& [itemIndex, count] : items) {
                             if (count > 0) {
@@ -875,3 +877,53 @@ bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int 
     return true;
 }
 
+TeamManager* GameFunctions::GetTeamManagerInstance() {
+    return m_cachedTeamManager;
+}
+
+void GameFunctions::CacheTeamManagerInstance(TeamManager* instance) {
+    m_cachedTeamManager = instance;
+}
+
+void GameFunctions::ClearTeamManagerInstance() {
+    m_cachedTeamManager = nullptr;
+}
+
+uint32_t GameFunctions::GetTeamLevel(TeamIndex_Value teamIndex) {
+    TeamManager* teamManager = GetTeamManagerInstance();
+    if (!teamManager || !teamManager->teamLevels) {
+        return 0;
+    }
+
+    int index = static_cast<int>(teamIndex);
+    if (index < 0 || index >= static_cast<int>(TeamIndex_Value::Count)) {
+        return 0;
+    }
+
+    return teamManager->teamLevels[index];
+}
+
+void GameFunctions::SetTeamLevel(TeamIndex_Value teamIndex, uint32_t level) {
+    std::function<void()> task = [this, teamIndex, level]() {
+        TeamManager* teamManager = GetTeamManagerInstance();
+        if (!teamManager) {
+            G::logger.LogWarning("SetTeamLevel: TeamManager instance not available");
+            return;
+        }
+
+        MonoMethod* method = m_runtime->GetMethod(m_teamManagerClass, "SetTeamLevel", 2);
+        if (!method) {
+            G::logger.LogError("SetTeamLevel: Failed to find SetTeamLevel method");
+            return;
+        }
+
+        TeamIndex_Value localTeamIndex = teamIndex;
+        uint32_t localLevel = level;
+        void* params[2] = { &localTeamIndex, &localLevel };
+        m_runtime->InvokeMethod(method, teamManager, params);
+
+        G::logger.LogInfo("SetTeamLevel: Called C# method for team %d level %u", (int)teamIndex, level);
+    };
+    std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
+    G::queuedActions.push(task);
+}

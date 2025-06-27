@@ -48,6 +48,60 @@ void PlayerModule::Initialize() {
 
     flightControl = std::make_unique<ToggleControl>("Flight", "flight", false);
 
+    // Initialize resource controls
+    moneyControl = std::make_unique<IntControl>("Money", "player_money", 0, 0, INT_MAX, 100, false, false);
+    voidCoinsControl = std::make_unique<IntControl>("Void Coins", "player_void_coins", 0, 0, INT_MAX, 1, false, false);
+    levelControl = std::make_unique<FloatControl>("Level", "player_level", 1.0f, 1.0f, FLT_MAX, 1.0f, false, false, true);
+
+    healthControl = std::make_unique<FloatControl>("Max Health", "player_health", 100.0f, 1.0f, FLT_MAX, 10.0f, false, false, true);
+    armorControl = std::make_unique<FloatControl>("Armor", "player_armor", 0.0f, 0.0f, FLT_MAX, 5.0f, false, false, true);
+
+    // Set up change callbacks to track user input
+    moneyControl->SetOnChange([this](int newValue) {
+        if (localUser_cached && localUser_cached->cachedMaster_backing) {
+            localUser_cached->cachedMaster_backing->_money = newValue;
+        }
+    });
+
+    voidCoinsControl->SetOnChange([this](int newValue) {
+        if (localUser_cached && localUser_cached->cachedMaster_backing) {
+            localUser_cached->cachedMaster_backing->_voidCoins = newValue;
+        }
+    });
+
+    levelControl->SetOnChange([this](float newValue) {
+        static float lastUserValue = 1.0f;
+        if (lastUserValue == newValue) {
+            return;
+        }
+
+        lastUserValue = newValue;
+
+        TeamManager* teamManager = G::gameFunctions->GetTeamManagerInstance();
+        if (teamManager) {
+            uint32_t level = static_cast<uint32_t>(newValue);
+            G::logger.LogInfo("Setting team level to %u", level);
+
+            G::gameFunctions->SetTeamLevel(TeamIndex_Value::Player, level);
+        } else {
+            G::logger.LogWarning("TeamManager instance not available in level control callback");
+        }
+    });
+
+
+
+    healthControl->SetOnChange([this](float newValue) {
+        if (localUser_cached && localUser_cached->cachedBody_backing) {
+            localUser_cached->cachedBody_backing->maxHealth_backing = newValue;
+        }
+    });
+
+    armorControl->SetOnChange([this](float newValue) {
+        if (localUser_cached && localUser_cached->cachedBody_backing) {
+            localUser_cached->cachedBody_backing->baseArmor = newValue;
+        }
+    });
+
     teleportToCursorControl->SetOnAction([this]() {
         if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->_cameraRigController) {
             G::gameFunctions->TeleportHelper_TeleportBody(localUser_cached->cachedBody_backing,
@@ -74,6 +128,14 @@ void PlayerModule::Update() {
     blockPullsControl->Update();
     flightControl->Update();
 
+    // Update resource controls
+    moneyControl->Update();
+    voidCoinsControl->Update();
+    levelControl->Update();
+
+    healthControl->Update();
+    armorControl->Update();
+
     for (const auto& [index, control] : itemControls) {
         control->Update();
     }
@@ -85,9 +147,17 @@ void PlayerModule::DrawUI() {
     baseDamageControl->Draw();
     baseAttackSpeedControl->Draw();
     baseCritControl->Draw();
+    levelControl->Draw();
+    healthControl->Draw();
+    armorControl->Draw();
     baseJumpCountControl->Draw();
     teleportToCursorControl->Draw();
     flightControl->Draw();
+
+    if (ImGui::CollapsingHeader("Resources")) {
+        moneyControl->Draw();
+        voidCoinsControl->Draw();
+    }
 
     if (ImGui::CollapsingHeader("Huntress Settings")) {
         huntressRangeControl->Draw();
@@ -151,6 +221,54 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
     }
     if (baseJumpCountControl->IsEnabled()) {
         localUser_ptr->cachedBody_backing->baseJumpCount = baseJumpCountControl->GetValue();
+    }
+
+    // Money
+    {
+        uint32_t currentMoney = localUser_ptr->cachedMaster_backing->_money;
+        if (moneyControl->IsEnabled() && currentMoney < moneyControl->GetFrozenValue()) {
+            localUser_ptr->cachedMaster_backing->_money = moneyControl->GetFrozenValue();
+        }
+        moneyControl->SetValue(localUser_ptr->cachedMaster_backing->_money);
+    }
+
+    // Void Coins
+    {
+        uint32_t currentCoins = localUser_ptr->cachedMaster_backing->_voidCoins;
+        if (voidCoinsControl->IsEnabled() && currentCoins < voidCoinsControl->GetFrozenValue()) {
+            localUser_ptr->cachedMaster_backing->_voidCoins = voidCoinsControl->GetFrozenValue();
+        }
+        voidCoinsControl->SetValue(localUser_ptr->cachedMaster_backing->_voidCoins);
+    }
+
+    // Health
+    {
+        float currentHealth = localUser_ptr->cachedBody_backing->maxHealth_backing;
+        if (healthControl->IsEnabled() && currentHealth < healthControl->GetFrozenValue()) {
+            localUser_ptr->cachedBody_backing->maxHealth_backing = healthControl->GetFrozenValue();
+        }
+        healthControl->SetValue(localUser_ptr->cachedBody_backing->maxHealth_backing);
+    }
+
+    // Level
+    {
+        float currentLevel = localUser_ptr->cachedBody_backing->level_backing;
+        if (levelControl->IsEnabled() && currentLevel < levelControl->GetFrozenValue()) {
+            G::gameFunctions->SetTeamLevel(TeamIndex_Value::Player, static_cast<uint32_t>(levelControl->GetFrozenValue()));
+            currentLevel = levelControl->GetFrozenValue();
+        }
+        levelControl->SetValue(currentLevel);
+    }
+
+
+
+    // Armor
+    {
+        float currentArmor = localUser_ptr->cachedBody_backing->baseArmor;
+        if (armorControl->IsEnabled() && currentArmor < armorControl->GetFrozenValue()) {
+            localUser_ptr->cachedBody_backing->baseArmor = armorControl->GetFrozenValue();
+        }
+        armorControl->SetValue(localUser_ptr->cachedBody_backing->baseArmor);
     }
 
     // Flight Implementation

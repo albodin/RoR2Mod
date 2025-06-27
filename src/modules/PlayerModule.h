@@ -32,6 +32,13 @@ private:
 
     std::unique_ptr<ToggleControl> flightControl;
 
+    std::unique_ptr<IntControl> moneyControl;
+    std::unique_ptr<IntControl> voidCoinsControl;
+    std::unique_ptr<FloatControl> levelControl;
+
+    std::unique_ptr<FloatControl> healthControl;
+    std::unique_ptr<FloatControl> armorControl;
+
     std::mutex queuedGiveItemsMutex;
     std::queue<std::tuple<int, int>> queuedGiveItems;
     std::shared_mutex itemsMutex;
@@ -78,6 +85,12 @@ public:
     ToggleControl* GetBlockPhysicsEffectsControl() { return blockPhysicsEffectsControl.get(); }
     ToggleControl* GetBlockPullsControl() { return blockPullsControl.get(); }
     ToggleControl* GetFlightControl() { return flightControl.get(); }
+    IntControl* GetMoneyControl() { return moneyControl.get(); }
+    IntControl* GetVoidCoinsControl() { return voidCoinsControl.get(); }
+    FloatControl* GetLevelControl() { return levelControl.get(); }
+
+    FloatControl* GetHealthControl() { return healthControl.get(); }
+    FloatControl* GetArmorControl() { return armorControl.get(); }
     HuntressTracker* GetCurrentLocalTracker();
     std::map<int, std::unique_ptr<IntControl>>& GetItemControls() { return itemControls; }
 
