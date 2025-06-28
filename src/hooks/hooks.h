@@ -58,6 +58,7 @@ namespace Hooks {
     void hkRoR2PortalSpawnerStart(void*);
     void hkRoR2TeamManagerOnEnable(void*);
     void hkRoR2TeamManagerOnDisable(void*);
+    int hkRoR2CharacterMasterGetDeployableSameSlotLimit(void*, int);
 
     long __stdcall hkPresent11(IDXGISwapChain*, UINT, UINT);
 }

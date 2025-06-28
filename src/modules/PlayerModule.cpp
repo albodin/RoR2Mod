@@ -49,6 +49,8 @@ void PlayerModule::Initialize() {
 
     flightControl = std::make_unique<ToggleControl>("Flight", "flight", false);
 
+    deployableCapControl = std::make_unique<IntControl>("Deployable Cap", "deployable_cap", 2, 1, INT_MAX, 1, false, false);
+
     // Initialize resource controls
     moneyControl = std::make_unique<IntControl>("Money", "player_money", 0, 0, INT_MAX, 100, false, false);
     voidCoinsControl = std::make_unique<IntControl>("Void Coins", "player_void_coins", 0, 0, INT_MAX, 1, false, false);
@@ -206,6 +208,7 @@ void PlayerModule::DrawUI() {
     baseJumpCountControl->Draw();
     teleportToCursorControl->Draw();
     flightControl->Draw();
+    deployableCapControl->Draw();
 
     if (ImGui::CollapsingHeader("Resources")) {
         moneyControl->Draw();

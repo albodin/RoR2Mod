@@ -32,6 +32,8 @@ private:
 
     std::unique_ptr<ToggleControl> flightControl;
 
+    std::unique_ptr<IntControl> deployableCapControl;
+
     std::unique_ptr<IntControl> moneyControl;
     std::unique_ptr<IntControl> voidCoinsControl;
     std::unique_ptr<IntControl> lunarCoinsControl;
@@ -55,6 +57,8 @@ private:
 
     Vector3 playerPosition;
     bool isProvidingFlight;
+
+    bool isMoneyConversionActive;
 
     void SortItemsByName();
 
@@ -86,6 +90,7 @@ public:
     ToggleControl* GetBlockPhysicsEffectsControl() { return blockPhysicsEffectsControl.get(); }
     ToggleControl* GetBlockPullsControl() { return blockPullsControl.get(); }
     ToggleControl* GetFlightControl() { return flightControl.get(); }
+    IntControl* GetDeployableCapControl() { return deployableCapControl.get(); }
     IntControl* GetMoneyControl() { return moneyControl.get(); }
     IntControl* GetVoidCoinsControl() { return voidCoinsControl.get(); }
     IntControl* GetLunarCoinsControl() { return lunarCoinsControl.get(); }
@@ -98,6 +103,8 @@ public:
 
     void SetItemCount(int itemIndex, int count);
     int GetItemCount(int itemIndex);
+    void ConvertPlayerMoneyToExperienceUpdate();
+    void OnStageAdvance(void* stage);
 
     void DrawItemInputs(ItemTier_Value tier);
 

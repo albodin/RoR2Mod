@@ -213,6 +213,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, HoldoutZoneController, Update, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TimedChestController, GetInteractability, 1, "RoR2.Interactability", {"RoR2.Interactor"});
     HOOK(RoR2, RoR2, PortalSpawner, Start, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, CharacterMaster, GetDeployableSameSlotLimit, 1, "System.Int32", {"RoR2.DeployableSlot"});
 
 
     for (auto& target: hookTargets) {
@@ -816,7 +817,7 @@ void Hooks::hkRoR2RunAdvanceStage(void* instance, void* nextScene) {
 
     if (G::hooksInitialized) {
         G::espModule->OnStageAdvance(instance);
-        G::localPlayer->OnStageAdvance();
+        G::localPlayer->OnStageAdvance(instance);
     }
 
     originalFunc(instance, nextScene);
@@ -899,6 +900,25 @@ int Hooks::hkRoR2TimedChestControllerGetInteractability(void* instance, void* ac
     }
 
     return result;
+}
+
+int Hooks::hkRoR2CharacterMasterGetDeployableSameSlotLimit(void* instance, int deployableSlot) {
+    static auto originalFunc = reinterpret_cast<int(*)(void*, int)>(hooks["RoR2CharacterMasterGetDeployableSameSlotLimit"]);
+
+    if (!G::hooksInitialized) {
+        return originalFunc(instance, deployableSlot);
+    }
+
+    LocalUser* localUser = G::localPlayer ? G::localPlayer->GetLocalUser() : nullptr;
+    if (localUser && localUser->cachedMaster_backing == instance) {
+        // Don't override the "None" slot type
+        if (deployableSlot != (int)DeployableSlot_Value::None) {
+            int customCap = G::localPlayer->GetDeployableCapControl()->GetValue();
+            return customCap;
+        }
+    }
+
+    return originalFunc(instance, deployableSlot);
 }
 
 LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {

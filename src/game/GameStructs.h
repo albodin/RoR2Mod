@@ -382,6 +382,32 @@ enum class GameModeIndex_Value: int32_t {
     Invalid = -1
 };
 
+enum class DeployableSlot_Value: int32_t {
+    EngiMine = 0,
+    EngiTurret = 1,
+    BeetleGuardAlly = 2,
+    EngiBubbleShield = 3,
+    LoaderPylon = 4,
+    EngiSpiderMine = 5,
+    RoboBallMini = 6,
+    ParentPodAlly = 7,
+    ParentAlly = 8,
+    PowerWard = 9,
+    CrippleWard = 10,
+    DeathProjectile = 11,
+    RoboBallRedBuddy = 12,
+    RoboBallGreenBuddy = 13,
+    GummyClone = 14,
+    RailgunnerBomb = 15,
+    LunarSunBomb = 16,
+    VendingMachine = 17,
+    VoidMegaCrabItem = 18,
+    DroneWeaponsDrone = 19,
+    MinorConstructOnKill = 20,
+    CaptainSupplyDrop = 21,
+    None = 22
+};
+
 /* No Header Structs */
 
 struct Quaternion {
