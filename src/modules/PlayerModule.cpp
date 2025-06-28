@@ -25,11 +25,11 @@ void PlayerModule::SortItemsByName() {
 
 void PlayerModule::Initialize() {
     godModeControl = std::make_unique<ToggleControl>("Godmode", "godMode", false);
-    baseMoveSpeedControl = std::make_unique<FloatControl>("Base Move Speed", "baseMoveSpeed", 10.0f);
-    baseDamageControl = std::make_unique<FloatControl>("Base Damage", "baseDamage", 10.0f, 0.0f, FLT_MAX, 10.0f);
-    baseAttackSpeedControl = std::make_unique<FloatControl>("Base Attack Speed", "baseAttackSpeed", 10.0f, 0.0f, FLT_MAX, 10.0f);
-    baseCritControl = std::make_unique<FloatControl>("Base Crit", "baseCrit", 10.0f, 0.0f, FLT_MAX, 10.0f);
-    baseJumpCountControl = std::make_unique<IntControl>("Base Jump Count", "baseJumpCount", 1, 0, INT_MAX, 10);
+    baseMoveSpeedControl = std::make_unique<FloatControl>("Base Move Speed", "baseMoveSpeed", 7.0f, 0.0f, FLT_MAX, 1.0f, false, false, true);
+    baseDamageControl = std::make_unique<FloatControl>("Base Damage", "baseDamage", 12.0f, 0.0f, FLT_MAX, 1.0f, false, false, true);
+    baseAttackSpeedControl = std::make_unique<FloatControl>("Base Attack Speed", "baseAttackSpeed", 1.0f, 0.0f, FLT_MAX, 0.1f, false, false, true);
+    baseCritControl = std::make_unique<FloatControl>("Base Crit", "baseCrit", 1.0f, 0.0f, FLT_MAX, 1.0f, false, false, true);
+    baseJumpCountControl = std::make_unique<IntControl>("Base Jump Count", "baseJumpCount", 1, 0, INT_MAX, 1, false, false);
     teleportToCursorControl = std::make_unique<ToggleButtonControl>("Teleport to Cursor", "teleportToCursor", "Teleport", false);
 
     huntressRangeControl = std::make_unique<FloatControl>("Huntress Range", "huntressRange", 20.0f, 0.0f, 1000.0f, 5.0f);
@@ -120,6 +120,36 @@ void PlayerModule::Initialize() {
     armorControl->SetOnChange([this](float newValue) {
         if (localUser_cached && localUser_cached->cachedBody_backing) {
             localUser_cached->cachedBody_backing->baseArmor = newValue;
+        }
+    });
+
+    baseMoveSpeedControl->SetOnChange([this](float newValue) {
+        if (localUser_cached && localUser_cached->cachedBody_backing) {
+            localUser_cached->cachedBody_backing->baseMoveSpeed = newValue;
+        }
+    });
+
+    baseDamageControl->SetOnChange([this](float newValue) {
+        if (localUser_cached && localUser_cached->cachedBody_backing) {
+            localUser_cached->cachedBody_backing->baseDamage = newValue;
+        }
+    });
+
+    baseAttackSpeedControl->SetOnChange([this](float newValue) {
+        if (localUser_cached && localUser_cached->cachedBody_backing) {
+            localUser_cached->cachedBody_backing->baseAttackSpeed = newValue;
+        }
+    });
+
+    baseCritControl->SetOnChange([this](float newValue) {
+        if (localUser_cached && localUser_cached->cachedBody_backing) {
+            localUser_cached->cachedBody_backing->baseCrit = newValue;
+        }
+    });
+
+    baseJumpCountControl->SetOnChange([this](int newValue) {
+        if (localUser_cached && localUser_cached->cachedBody_backing) {
+            localUser_cached->cachedBody_backing->baseJumpCount = newValue;
         }
     });
 
@@ -230,20 +260,49 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
     localUser_ptr->cachedMaster_backing->godMode = godModeControl->IsEnabled();
     localUser_ptr->cachedBody_backing->healthComponent_backing->godMode_backing = godModeControl->IsEnabled();
 
-    if (baseMoveSpeedControl->IsEnabled()) {
-        localUser_ptr->cachedBody_backing->baseMoveSpeed = baseMoveSpeedControl->GetValue();
+    // Base Move Speed
+    {
+        float currentMoveSpeed = localUser_ptr->cachedBody_backing->baseMoveSpeed;
+        if (baseMoveSpeedControl->IsEnabled() && currentMoveSpeed < baseMoveSpeedControl->GetFrozenValue()) {
+            localUser_ptr->cachedBody_backing->baseMoveSpeed = baseMoveSpeedControl->GetFrozenValue();
+        }
+        baseMoveSpeedControl->SetValue(localUser_ptr->cachedBody_backing->baseMoveSpeed);
     }
-    if (baseDamageControl->IsEnabled()) {
-        localUser_ptr->cachedBody_backing->baseDamage = baseDamageControl->GetValue();
+
+    // Base Damage
+    {
+        float currentDamage = localUser_ptr->cachedBody_backing->baseDamage;
+        if (baseDamageControl->IsEnabled() && currentDamage < baseDamageControl->GetFrozenValue()) {
+            localUser_ptr->cachedBody_backing->baseDamage = baseDamageControl->GetFrozenValue();
+        }
+        baseDamageControl->SetValue(localUser_ptr->cachedBody_backing->baseDamage);
     }
-    if (baseAttackSpeedControl->IsEnabled()) {
-        localUser_ptr->cachedBody_backing->baseAttackSpeed = baseAttackSpeedControl->GetValue();
+
+    // Base Attack Speed
+    {
+        float currentAttackSpeed = localUser_ptr->cachedBody_backing->baseAttackSpeed;
+        if (baseAttackSpeedControl->IsEnabled() && currentAttackSpeed < baseAttackSpeedControl->GetFrozenValue()) {
+            localUser_ptr->cachedBody_backing->baseAttackSpeed = baseAttackSpeedControl->GetFrozenValue();
+        }
+        baseAttackSpeedControl->SetValue(localUser_ptr->cachedBody_backing->baseAttackSpeed);
     }
-    if (baseCritControl->IsEnabled()) {
-        localUser_ptr->cachedBody_backing->baseCrit = baseCritControl->GetValue();
+
+    // Base Crit
+    {
+        float currentCrit = localUser_ptr->cachedBody_backing->baseCrit;
+        if (baseCritControl->IsEnabled() && currentCrit < baseCritControl->GetFrozenValue()) {
+            localUser_ptr->cachedBody_backing->baseCrit = baseCritControl->GetFrozenValue();
+        }
+        baseCritControl->SetValue(localUser_ptr->cachedBody_backing->baseCrit);
     }
-    if (baseJumpCountControl->IsEnabled()) {
-        localUser_ptr->cachedBody_backing->baseJumpCount = baseJumpCountControl->GetValue();
+
+    // Base Jump Count
+    {
+        int currentJumpCount = localUser_ptr->cachedBody_backing->baseJumpCount;
+        if (baseJumpCountControl->IsEnabled() && currentJumpCount < baseJumpCountControl->GetFrozenValue()) {
+            localUser_ptr->cachedBody_backing->baseJumpCount = baseJumpCountControl->GetFrozenValue();
+        }
+        baseJumpCountControl->SetValue(localUser_ptr->cachedBody_backing->baseJumpCount);
     }
 
     // Money
