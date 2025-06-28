@@ -51,6 +51,7 @@ void PlayerModule::Initialize() {
     // Initialize resource controls
     moneyControl = std::make_unique<IntControl>("Money", "player_money", 0, 0, INT_MAX, 100, false, false);
     voidCoinsControl = std::make_unique<IntControl>("Void Coins", "player_void_coins", 0, 0, INT_MAX, 1, false, false);
+    lunarCoinsControl = std::make_unique<IntControl>("Lunar Coins", "player_lunar_coins", 0, 0, INT_MAX, 1, false, false);
     levelControl = std::make_unique<FloatControl>("Level", "player_level", 1.0f, 1.0f, FLT_MAX, 1.0f, false, false, true);
 
     healthControl = std::make_unique<FloatControl>("Max Health", "player_health", 100.0f, 1.0f, FLT_MAX, 10.0f, false, false, true);
@@ -66,6 +67,26 @@ void PlayerModule::Initialize() {
     voidCoinsControl->SetOnChange([this](int newValue) {
         if (localUser_cached && localUser_cached->cachedMaster_backing) {
             localUser_cached->cachedMaster_backing->_voidCoins = newValue;
+        }
+    });
+
+    lunarCoinsControl->SetOnChange([this](int newValue) {
+        static int lastUserValue = 0;
+        if (lastUserValue == newValue) {
+            return;
+        }
+
+        lastUserValue = newValue;
+
+        if (localUser_cached && localUser_cached->currentNetworkUser_backing) {
+            uint32_t currentCoins = localUser_cached->currentNetworkUser_backing->netLunarCoins;
+            if (newValue > currentCoins) {
+                uint32_t coinsToAdd = newValue - currentCoins;
+                G::gameFunctions->AwardLunarCoins(localUser_cached->currentNetworkUser_backing, coinsToAdd);
+            } else if (newValue < currentCoins) {
+                uint32_t coinsToRemove = currentCoins - newValue;
+                G::gameFunctions->DeductLunarCoins(localUser_cached->currentNetworkUser_backing, coinsToRemove);
+            }
         }
     });
 
@@ -131,6 +152,7 @@ void PlayerModule::Update() {
     // Update resource controls
     moneyControl->Update();
     voidCoinsControl->Update();
+    lunarCoinsControl->Update();
     levelControl->Update();
 
     healthControl->Update();
@@ -157,6 +179,7 @@ void PlayerModule::DrawUI() {
     if (ImGui::CollapsingHeader("Resources")) {
         moneyControl->Draw();
         voidCoinsControl->Draw();
+        lunarCoinsControl->Draw();
     }
 
     if (ImGui::CollapsingHeader("Huntress Settings")) {
@@ -239,6 +262,19 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
             localUser_ptr->cachedMaster_backing->_voidCoins = voidCoinsControl->GetFrozenValue();
         }
         voidCoinsControl->SetValue(localUser_ptr->cachedMaster_backing->_voidCoins);
+    }
+
+    // Lunar Coins
+    {
+        if (localUser_ptr->currentNetworkUser_backing) {
+            uint32_t currentLunarCoins = localUser_ptr->currentNetworkUser_backing->netLunarCoins;
+            if (lunarCoinsControl->IsEnabled() && currentLunarCoins < lunarCoinsControl->GetFrozenValue()) {
+                uint32_t targetCoins = lunarCoinsControl->GetFrozenValue();
+                uint32_t coinsToAdd = targetCoins - currentLunarCoins;
+                G::gameFunctions->AwardLunarCoins(localUser_ptr->currentNetworkUser_backing, coinsToAdd);
+            }
+            lunarCoinsControl->SetValue(currentLunarCoins);
+        }
     }
 
     // Health

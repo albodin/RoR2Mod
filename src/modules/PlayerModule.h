@@ -34,6 +34,7 @@ private:
 
     std::unique_ptr<IntControl> moneyControl;
     std::unique_ptr<IntControl> voidCoinsControl;
+    std::unique_ptr<IntControl> lunarCoinsControl;
     std::unique_ptr<FloatControl> levelControl;
 
     std::unique_ptr<FloatControl> healthControl;
@@ -87,6 +88,7 @@ public:
     ToggleControl* GetFlightControl() { return flightControl.get(); }
     IntControl* GetMoneyControl() { return moneyControl.get(); }
     IntControl* GetVoidCoinsControl() { return voidCoinsControl.get(); }
+    IntControl* GetLunarCoinsControl() { return lunarCoinsControl.get(); }
     FloatControl* GetLevelControl() { return levelControl.get(); }
 
     FloatControl* GetHealthControl() { return healthControl.get(); }

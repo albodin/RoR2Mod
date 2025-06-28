@@ -36,6 +36,7 @@ private:
     MonoClass* m_teamManagerClass;
     MonoClass* m_buffCatalogClass;
     MonoClass* m_buffDefClass;
+    MonoClass* m_networkUserClass;
 
     TeamManager* m_cachedTeamManager;
 
@@ -67,4 +68,7 @@ public:
     void ClearTeamManagerInstance();
     uint32_t GetTeamLevel(TeamIndex_Value teamIndex);
     void SetTeamLevel(TeamIndex_Value teamIndex, uint32_t level);
+
+    void AwardLunarCoins(NetworkUser* networkUser, uint32_t coinsToAdd);
+    void DeductLunarCoins(NetworkUser* networkUser, uint32_t coinsToRemove);
 };

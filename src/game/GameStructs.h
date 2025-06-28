@@ -609,7 +609,6 @@ struct EliteIndex_Value {
 };
 
 struct Color32_Value {
-    int32_t rgba;
     uint8_t r;
     uint8_t g;
     uint8_t b;

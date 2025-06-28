@@ -24,6 +24,7 @@ GameFunctions::GameFunctions(MonoRuntime* runtime) {
     m_teamManagerClass = runtime->GetClass("Assembly-CSharp", "RoR2", "TeamManager");
     m_buffCatalogClass = runtime->GetClass("Assembly-CSharp", "RoR2", "BuffCatalog");
     m_buffDefClass = runtime->GetClass("Assembly-CSharp", "RoR2", "BuffDef");
+    m_networkUserClass = runtime->GetClass("Assembly-CSharp", "RoR2", "NetworkUser");
 
     m_cachedTeamManager = nullptr;
 }
@@ -922,7 +923,53 @@ void GameFunctions::SetTeamLevel(TeamIndex_Value teamIndex, uint32_t level) {
         void* params[2] = { &localTeamIndex, &localLevel };
         m_runtime->InvokeMethod(method, teamManager, params);
 
-        G::logger.LogInfo("SetTeamLevel: Called C# method for team %d level %u", (int)teamIndex, level);
+        G::logger.LogInfo("SetTeamLevel: Called method for team %d level %u", (int)teamIndex, level);
+    };
+    std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
+    G::queuedActions.push(task);
+}
+
+void GameFunctions::AwardLunarCoins(NetworkUser* networkUser, uint32_t coinsToAdd) {
+    std::function<void()> task = [this, networkUser, coinsToAdd]() {
+        if (!networkUser || !m_networkUserClass) {
+            G::logger.LogWarning("AwardLunarCoins: NetworkUser or class not available");
+            return;
+        }
+
+        MonoMethod* method = m_runtime->GetMethod(m_networkUserClass, "RpcAwardLunarCoins", 1);
+        if (!method) {
+            G::logger.LogError("AwardLunarCoins: Failed to find RpcAwardLunarCoins method");
+            return;
+        }
+
+        uint32_t localCoinsToAdd = coinsToAdd;
+        void* params[1] = { &localCoinsToAdd };
+        m_runtime->InvokeMethod(method, networkUser, params);
+
+        G::logger.LogInfo("AwardLunarCoins: Called RpcAwardLunarCoins with %u coins", coinsToAdd);
+    };
+    std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
+    G::queuedActions.push(task);
+}
+
+void GameFunctions::DeductLunarCoins(NetworkUser* networkUser, uint32_t coinsToRemove) {
+    std::function<void()> task = [this, networkUser, coinsToRemove]() {
+        if (!networkUser || !m_networkUserClass) {
+            G::logger.LogWarning("DeductLunarCoins: NetworkUser or class not available");
+            return;
+        }
+
+        MonoMethod* method = m_runtime->GetMethod(m_networkUserClass, "RpcDeductLunarCoins", 1);
+        if (!method) {
+            G::logger.LogError("DeductLunarCoins: Failed to find RpcDeductLunarCoins method");
+            return;
+        }
+
+        uint32_t localCoinsToRemove = coinsToRemove;
+        void* params[1] = { &localCoinsToRemove };
+        m_runtime->InvokeMethod(method, networkUser, params);
+
+        G::logger.LogInfo("DeductLunarCoins: Called RpcDeductLunarCoins with %u coins", coinsToRemove);
     };
     std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
     G::queuedActions.push(task);
