@@ -1464,7 +1464,7 @@ void ESPModule::OnScrapperControllerSpawned(void* scrapperController) {
     trackedInteractables.push_back(std::move(trackedInteractable));
 }
 
-void ESPModule::OnStageStart(void* stage) {
+void ESPModule::OnStageAdvance(void* stage) {
     // New stage detected - clear all tracked interactables and entities
     {
         std::lock_guard<std::mutex> lock(interactablesMutex);

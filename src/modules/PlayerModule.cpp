@@ -6,7 +6,8 @@
 
 PlayerModule::PlayerModule() : ModuleBase(),
     localUser_cached(nullptr),
-    isProvidingFlight(false) {
+    isProvidingFlight(false),
+    isMoneyConversionActive(false) {
     Initialize();
 }
 
@@ -565,5 +566,28 @@ void PlayerModule::OnCharacterBodyDestroyed(void* characterBody) {
     // Reset flight state when local player's body is destroyed
     if (localUser_cached && body == localUser_cached->cachedBody_backing) {
         isProvidingFlight = false;
+    }
+}
+
+void PlayerModule::ConvertPlayerMoneyToExperienceUpdate() {
+    if (localUser_cached && localUser_cached->cachedMaster_backing) {
+        uint32_t currentMoney = localUser_cached->cachedMaster_backing->_money;
+
+        // If this is the first run of the conversion, disable money freeze
+        if (!isMoneyConversionActive && moneyControl->IsEnabled()) {
+            isMoneyConversionActive = true;
+            moneyControl->SetEnabled(false);
+        }
+    }
+}
+
+void PlayerModule::OnStageAdvance(void* stage) {
+    // Re-enable money freeze when player advances to the next stage
+    if (isMoneyConversionActive) {
+        moneyControl->SetEnabled(true);
+        if (localUser_cached && localUser_cached->cachedMaster_backing) {
+            localUser_cached->cachedMaster_backing->_money = moneyControl->GetFrozenValue();
+        }
+        isMoneyConversionActive = false;
     }
 }

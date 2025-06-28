@@ -291,7 +291,7 @@ public:
     void OnGenericInteractionSpawned(void* genericInteraction);
     void OnPickupPickerControllerSpawned(void* pickupPickerController);
     void OnScrapperControllerSpawned(void* scrapperController);
-    void OnStageStart(void* stage);
+    void OnStageAdvance(void* stage);
     void OnChestBehaviorSpawned(void* chestBehavior);
     void OnShopTerminalBehaviorSpawned(void* shopTerminalBehavior);
     void OnPressurePlateControllerSpawned(void* pressurePlateController);

@@ -187,6 +187,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, SteamworksServerManager, TagsStringUpdated, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TeleporterInteraction, Awake, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TeleporterInteraction, FixedUpdate, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, ConvertPlayerMoneyToExperience, FixedUpdate, 0, "System.Void", {});
     HOOK(RoR2, RoR2, CharacterBody, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, CharacterBody, OnDestroy, 0, "System.Void", {});
     HOOK(RoR2, RoR2, CharacterMotor, AddDisplacement, 1, "System.Void", {"UnityEngine.Vector3"});
@@ -567,6 +568,17 @@ void Hooks::hkRoR2TeleporterInteractionFixedUpdate(void* instance) {
     G::worldModule->OnTeleporterInteractionFixedUpdate(instance);
 }
 
+void Hooks::hkRoR2ConvertPlayerMoneyToExperienceFixedUpdate(void* instance) {
+    static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2ConvertPlayerMoneyToExperienceFixedUpdate"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized) {
+        return;
+    }
+
+    G::localPlayer->ConvertPlayerMoneyToExperienceUpdate();
+}
+
 void Hooks::hkRoR2CharacterBodyStart(void* instance) {
     static auto originalFunc = reinterpret_cast<void(*)(void*)>(hooks["RoR2CharacterBodyStart"]);
     originalFunc(instance);
@@ -802,9 +814,9 @@ void Hooks::hkRoR2ScrapperControllerStart(void* instance) {
 void Hooks::hkRoR2RunAdvanceStage(void* instance, void* nextScene) {
     static auto originalFunc = reinterpret_cast<void(*)(void*, void*)>(hooks["RoR2RunAdvanceStage"]);
 
-    // Clear ESP data before advancing to the next stage
     if (G::hooksInitialized) {
-        G::espModule->OnStageStart(instance);
+        G::espModule->OnStageAdvance(instance);
+        G::localPlayer->OnStageAdvance();
     }
 
     originalFunc(instance, nextScene);
