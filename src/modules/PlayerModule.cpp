@@ -43,7 +43,6 @@ void PlayerModule::Initialize() {
         std::vector<std::string>{"None", "Distance", "Angle", "Distance + Angle"},
         std::vector<int>{0, 1, 2, 3}, 3);
 
-    // Initialize physics blocking controls
     blockPhysicsEffectsControl = std::make_unique<ToggleControl>("Block Enemy Forces", "blockPhysicsEffects", false);
     blockPullsControl = std::make_unique<ToggleControl>("Block Displacements", "blockPulls", true);
 
@@ -51,7 +50,11 @@ void PlayerModule::Initialize() {
 
     deployableCapControl = std::make_unique<IntControl>("Deployable Cap", "deployable_cap", 2, 1, INT_MAX, 1, false, false);
 
-    // Initialize resource controls
+    primarySkillCooldownControl = std::make_unique<FloatControl>("Primary Skill Cooldown", "primary_skill_cooldown", 0.0f, 0.0f, 60.0f, 0.1f, false, false, true);
+    secondarySkillCooldownControl = std::make_unique<FloatControl>("Secondary Skill Cooldown", "secondary_skill_cooldown", 0.0f, 0.0f, 60.0f, 0.1f, false, false, true);
+    utilitySkillCooldownControl = std::make_unique<FloatControl>("Utility Skill Cooldown", "utility_skill_cooldown", 0.0f, 0.0f, 60.0f, 0.1f, false, false, true);
+    specialSkillCooldownControl = std::make_unique<FloatControl>("Special Skill Cooldown", "special_skill_cooldown", 0.0f, 0.0f, 60.0f, 0.1f, false, false, true);
+
     moneyControl = std::make_unique<IntControl>("Money", "player_money", 0, 0, INT_MAX, 100, false, false);
     voidCoinsControl = std::make_unique<IntControl>("Void Coins", "player_void_coins", 0, 0, INT_MAX, 1, false, false);
     lunarCoinsControl = std::make_unique<IntControl>("Lunar Coins", "player_lunar_coins", 0, 0, INT_MAX, 1, false, false);
@@ -182,7 +185,11 @@ void PlayerModule::Update() {
     blockPullsControl->Update();
     flightControl->Update();
 
-    // Update resource controls
+    primarySkillCooldownControl->Update();
+    secondarySkillCooldownControl->Update();
+    utilitySkillCooldownControl->Update();
+    specialSkillCooldownControl->Update();
+
     moneyControl->Update();
     voidCoinsControl->Update();
     lunarCoinsControl->Update();
@@ -209,6 +216,13 @@ void PlayerModule::DrawUI() {
     teleportToCursorControl->Draw();
     flightControl->Draw();
     deployableCapControl->Draw();
+
+    if (ImGui::CollapsingHeader("Skill Cooldowns")) {
+        primarySkillCooldownControl->Draw();
+        secondarySkillCooldownControl->Draw();
+        utilitySkillCooldownControl->Draw();
+        specialSkillCooldownControl->Draw();
+    }
 
     if (ImGui::CollapsingHeader("Resources")) {
         moneyControl->Draw();
@@ -413,6 +427,25 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
 
         if (huntressFOVControl->IsEnabled()) {
             currentTracker->maxTrackingAngle = huntressFOVControl->GetValue();
+        }
+    }
+
+    SkillLocator* skillLocator = localUser_ptr->cachedBody_backing->skillLocator_backing;
+    if (skillLocator) {
+        if (primarySkillCooldownControl->IsEnabled() && skillLocator->primary) {
+            skillLocator->primary->finalRechargeInterval = primarySkillCooldownControl->GetValue();
+        }
+
+        if (secondarySkillCooldownControl->IsEnabled() && skillLocator->secondary) {
+            skillLocator->secondary->finalRechargeInterval = secondarySkillCooldownControl->GetValue();
+        }
+
+        if (utilitySkillCooldownControl->IsEnabled() && skillLocator->utility) {
+            skillLocator->utility->finalRechargeInterval = utilitySkillCooldownControl->GetValue();
+        }
+
+        if (specialSkillCooldownControl->IsEnabled() && skillLocator->special) {
+            skillLocator->special->finalRechargeInterval = specialSkillCooldownControl->GetValue();
         }
     }
 

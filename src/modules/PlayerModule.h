@@ -33,6 +33,10 @@ private:
     std::unique_ptr<ToggleControl> flightControl;
 
     std::unique_ptr<IntControl> deployableCapControl;
+    std::unique_ptr<FloatControl> primarySkillCooldownControl;
+    std::unique_ptr<FloatControl> secondarySkillCooldownControl;
+    std::unique_ptr<FloatControl> utilitySkillCooldownControl;
+    std::unique_ptr<FloatControl> specialSkillCooldownControl;
 
     std::unique_ptr<IntControl> moneyControl;
     std::unique_ptr<IntControl> voidCoinsControl;
@@ -91,6 +95,10 @@ public:
     ToggleControl* GetBlockPullsControl() { return blockPullsControl.get(); }
     ToggleControl* GetFlightControl() { return flightControl.get(); }
     IntControl* GetDeployableCapControl() { return deployableCapControl.get(); }
+    FloatControl* GetPrimarySkillCooldownControl() { return primarySkillCooldownControl.get(); }
+    FloatControl* GetSecondarySkillCooldownControl() { return secondarySkillCooldownControl.get(); }
+    FloatControl* GetUtilitySkillCooldownControl() { return utilitySkillCooldownControl.get(); }
+    FloatControl* GetSpecialSkillCooldownControl() { return specialSkillCooldownControl.get(); }
     IntControl* GetMoneyControl() { return moneyControl.get(); }
     IntControl* GetVoidCoinsControl() { return voidCoinsControl.get(); }
     IntControl* GetLunarCoinsControl() { return lunarCoinsControl.get(); }
