@@ -910,7 +910,7 @@ int Hooks::hkRoR2CharacterMasterGetDeployableSameSlotLimit(void* instance, int d
     }
 
     LocalUser* localUser = G::localPlayer ? G::localPlayer->GetLocalUser() : nullptr;
-    if (localUser && localUser->cachedMaster_backing == instance) {
+    if (localUser && G::localPlayer->GetDeployableCapControl()->IsEnabled() && localUser->cachedMaster_backing == instance) {
         // Don't override the "None" slot type
         if (deployableSlot != (int)DeployableSlot_Value::None) {
             int customCap = G::localPlayer->GetDeployableCapControl()->GetValue();
