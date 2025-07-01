@@ -901,7 +901,8 @@ uint32_t GameFunctions::GetTeamLevel(TeamIndex_Value teamIndex) {
         return 0;
     }
 
-    return teamManager->teamLevels[index];
+    uint32_t* data = mono_array_addr<uint32_t>((MonoArray_Internal*)teamManager->teamLevels);
+    return data[index];
 }
 
 void GameFunctions::SetTeamLevel(TeamIndex_Value teamIndex, uint32_t level) {
