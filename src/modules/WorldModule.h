@@ -14,6 +14,9 @@ private:
     std::unique_ptr<ToggleControl> forceCelestialPortalControl;
     std::unique_ptr<ToggleControl> forceAllPortalsControl;
 
+    std::unique_ptr<IntControl> stageClearCountControl;
+    std::unique_ptr<FloatControl> fixedTimeControl;
+
 public:
     WorldModule();
     ~WorldModule() override;
@@ -25,6 +28,7 @@ public:
     ToggleControl* GetOpenExpiredTimedChestsControl() const { return openExpiredTimedChestsControl.get(); }
     ToggleControl* GetForceAllPortalsControl() const { return forceAllPortalsControl.get(); }
 
+    void OnLocalUserUpdate(void* localUser);
     void OnTeleporterInteractionAwake(void* teleporter);
     void OnTeleporterInteractionFixedUpdate(void* teleporter);
     void OnHoldoutZoneControllerUpdate(void* holdoutZoneController);

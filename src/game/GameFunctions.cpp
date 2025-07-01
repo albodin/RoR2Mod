@@ -930,6 +930,42 @@ void GameFunctions::SetTeamLevel(TeamIndex_Value teamIndex, uint32_t level) {
     G::queuedActions.push(task);
 }
 
+int GameFunctions::GetStageClearCount() {
+    if (!G::runInstance) {
+        return 0;
+    }
+
+    Run* run = (Run*)G::runInstance;
+    return run->stageClearCount;
+}
+
+void GameFunctions::SetStageClearCount(int count) {
+    if (!G::runInstance) {
+        return;
+    }
+
+    Run* run = (Run*)G::runInstance;
+    run->stageClearCount = count;
+}
+
+float GameFunctions::GetFixedTime() {
+    if (!G::runInstance) {
+        return 0.0f;
+    }
+
+    Run* run = (Run*)G::runInstance;
+    return run->fixedTime;
+}
+
+void GameFunctions::SetFixedTime(float time) {
+    if (!G::runInstance) {
+        return;
+    }
+
+    Run* run = (Run*)G::runInstance;
+    run->fixedTime = time;
+}
+
 void GameFunctions::AwardLunarCoins(NetworkUser* networkUser, uint32_t coinsToAdd) {
     std::function<void()> task = [this, networkUser, coinsToAdd]() {
         if (!networkUser || !m_networkUserClass) {

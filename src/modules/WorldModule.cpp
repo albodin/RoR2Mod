@@ -18,6 +18,30 @@ void WorldModule::Initialize() {
     forceGoldenPortalControl = std::make_unique<ToggleControl>("Force Golden Portal (Gilded Coast)", "forceGoldenPortal", false);
     forceCelestialPortalControl = std::make_unique<ToggleControl>("Force Celestial Portal (Moon)", "forceCelestialPortal", false);
     forceAllPortalsControl = std::make_unique<ToggleControl>("Force All Additional Portals", "forceAllPortals", false);
+
+    stageClearCountControl = std::make_unique<IntControl>("Stages Cleared", "stage_clear_count", 0, 0, INT_MAX, 1, false, false);
+    stageClearCountControl->SetShowCheckbox(true);
+    fixedTimeControl = std::make_unique<FloatControl>("Fixed Time", "fixed_time", 1.0f, 0.0f, FLT_MAX, 1.0f, false, false, true);
+
+    stageClearCountControl->SetOnChange([](int newValue) {
+        G::gameFunctions->SetStageClearCount(newValue);
+    });
+
+    stageClearCountControl->SetOnToggle([this](bool enabled) {
+        if (enabled) {
+            stageClearCountControl->UpdateFrozenValue();
+        }
+    });
+
+    fixedTimeControl->SetOnChange([](float newValue) {
+        G::gameFunctions->SetFixedTime(newValue);
+    });
+
+    fixedTimeControl->SetOnToggle([this](bool enabled) {
+        if (enabled) {
+            fixedTimeControl->UpdateFrozenValue();
+        }
+    });
 }
 
 void WorldModule::Update() {
@@ -28,6 +52,9 @@ void WorldModule::Update() {
     forceGoldenPortalControl->Update();
     forceCelestialPortalControl->Update();
     forceAllPortalsControl->Update();
+
+    stageClearCountControl->Update();
+    fixedTimeControl->Update();
 }
 
 void WorldModule::DrawUI() {
@@ -41,6 +68,27 @@ void WorldModule::DrawUI() {
     forceGoldenPortalControl->Draw();
     forceCelestialPortalControl->Draw();
     forceAllPortalsControl->Draw();
+
+    ImGui::Separator();
+    ImGui::Text("Stage Control");
+    stageClearCountControl->Draw();
+    fixedTimeControl->Draw();
+}
+
+void WorldModule::OnLocalUserUpdate(void* localUser) {
+    if (G::runInstance) {
+        if (stageClearCountControl->IsEnabled()) {
+            G::gameFunctions->SetStageClearCount(stageClearCountControl->GetFrozenValue());
+        } else {
+            stageClearCountControl->SetValue(G::gameFunctions->GetStageClearCount());
+        }
+
+        if (fixedTimeControl->IsEnabled()) {
+            G::gameFunctions->SetFixedTime(fixedTimeControl->GetFrozenValue());
+        } else {
+            fixedTimeControl->SetValue(G::gameFunctions->GetFixedTime());
+        }
+    }
 }
 
 void WorldModule::OnTeleporterInteractionAwake(void* teleporter) {

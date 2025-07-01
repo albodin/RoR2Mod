@@ -69,6 +69,11 @@ public:
     uint32_t GetTeamLevel(TeamIndex_Value teamIndex);
     void SetTeamLevel(TeamIndex_Value teamIndex, uint32_t level);
 
+    int GetStageClearCount();
+    void SetStageClearCount(int count);
+    float GetFixedTime();
+    void SetFixedTime(float time);
+
     void AwardLunarCoins(NetworkUser* networkUser, uint32_t coinsToAdd);
     void DeductLunarCoins(NetworkUser* networkUser, uint32_t coinsToRemove);
 };

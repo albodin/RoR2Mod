@@ -479,6 +479,7 @@ void Hooks::hkRoR2LocalUserRebuildControlChain(void* instance) {
     G::localPlayer->OnLocalUserUpdate(instance);
     G::enemySpawningModule->OnLocalUserUpdate(instance);
     G::enemyModule->OnLocalUserUpdate(instance);
+    G::worldModule->OnLocalUserUpdate(instance);
 }
 
 void Hooks::hkRoR2InventoryHandleInventoryChanged(void* instance) {

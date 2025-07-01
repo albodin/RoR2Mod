@@ -1,10 +1,10 @@
 #pragma once
 
 #define VERSION_MAJOR 1
-#define VERSION_MINOR 13
+#define VERSION_MINOR 14
 #define VERSION_PATCH 0
 
-#define VERSION_STRING "1.13.0"
+#define VERSION_STRING "1.14.0"
 
 // Auto-generated version info
 // This file is automatically updated by version_bump.py
