@@ -18,6 +18,7 @@
 #include "modules/ESPModule.h"
 #include "modules/WorldModule.h"
 #include "modules/EnemySpawningModule.h"
+#include "modules/EnemyModule.h"
 
 typedef long(__stdcall* Present)(IDXGISwapChain*, UINT, UINT);
 
@@ -63,5 +64,6 @@ namespace G {
     extern std::unique_ptr<ESPModule> espModule;
     extern std::unique_ptr<WorldModule> worldModule;
     extern std::unique_ptr<EnemySpawningModule> enemySpawningModule;
+    extern std::unique_ptr<EnemyModule> enemyModule;
     extern void* runInstance;
 }

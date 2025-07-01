@@ -40,5 +40,6 @@ namespace G {
     std::unique_ptr<ESPModule> espModule = std::make_unique<ESPModule>();
     std::unique_ptr<WorldModule> worldModule = std::make_unique<WorldModule>();
     std::unique_ptr<EnemySpawningModule> enemySpawningModule = std::make_unique<EnemySpawningModule>();
+    std::unique_ptr<EnemyModule> enemyModule = std::make_unique<EnemyModule>();
     void* runInstance = nullptr;
 }

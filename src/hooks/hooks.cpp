@@ -478,6 +478,7 @@ void Hooks::hkRoR2LocalUserRebuildControlChain(void* instance) {
 
     G::localPlayer->OnLocalUserUpdate(instance);
     G::enemySpawningModule->OnLocalUserUpdate(instance);
+    G::enemyModule->OnLocalUserUpdate(instance);
 }
 
 void Hooks::hkRoR2InventoryHandleInventoryChanged(void* instance) {
@@ -975,6 +976,7 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
     G::localPlayer->Update();
     G::espModule->Update();
     G::enemySpawningModule->Update();
+    G::enemyModule->Update();
 
     ImGuiIO& io = ImGui::GetIO();
     io.MouseDrawCursor = G::showMenuControl->IsEnabled();

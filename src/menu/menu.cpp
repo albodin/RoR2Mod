@@ -24,6 +24,7 @@ void DrawAimbotTab() {
 
 void DrawEnemiesTab() {
     G::enemySpawningModule->DrawUI();
+    G::enemyModule->DrawUI();
 }
 
 void DumpGameToDirectory(std::string directoryName) {
