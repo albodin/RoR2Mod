@@ -19,28 +19,24 @@ void WorldModule::Initialize() {
     forceCelestialPortalControl = std::make_unique<ToggleControl>("Force Celestial Portal (Moon)", "forceCelestialPortal", false);
     forceAllPortalsControl = std::make_unique<ToggleControl>("Force All Additional Portals", "forceAllPortals", false);
 
-    stageClearCountControl = std::make_unique<IntControl>("Stages Cleared", "stage_clear_count", 0, 0, INT_MAX, 1, false, false);
-    stageClearCountControl->SetShowCheckbox(true);
+    stageClearCountControl = std::make_unique<IntControl>("Stages Cleared", "stage_clear_count", 0, 0, INT_MAX, 1, false, false, true);
+    stageClearCountControl->SetGameValueFunctions(
+        []() { return G::gameFunctions->GetStageClearCount(); },
+        [](int value) { G::gameFunctions->SetStageClearCount(value); }
+    );
+
     fixedTimeControl = std::make_unique<FloatControl>("Fixed Time", "fixed_time", 1.0f, 0.0f, FLT_MAX, 1.0f, false, false, true);
+    fixedTimeControl->SetGameValueFunctions(
+        []() { return G::gameFunctions->GetFixedTime(); },
+        [](float value) { G::gameFunctions->SetFixedTime(value); }
+    );
 
     stageClearCountControl->SetOnChange([](int newValue) {
         G::gameFunctions->SetStageClearCount(newValue);
     });
 
-    stageClearCountControl->SetOnToggle([this](bool enabled) {
-        if (enabled) {
-            stageClearCountControl->UpdateFrozenValue();
-        }
-    });
-
     fixedTimeControl->SetOnChange([](float newValue) {
         G::gameFunctions->SetFixedTime(newValue);
-    });
-
-    fixedTimeControl->SetOnToggle([this](bool enabled) {
-        if (enabled) {
-            fixedTimeControl->UpdateFrozenValue();
-        }
     });
 }
 
@@ -77,17 +73,8 @@ void WorldModule::DrawUI() {
 
 void WorldModule::OnLocalUserUpdate(void* localUser) {
     if (G::runInstance) {
-        if (stageClearCountControl->IsEnabled()) {
-            G::gameFunctions->SetStageClearCount(stageClearCountControl->GetFrozenValue());
-        } else {
-            stageClearCountControl->SetValue(G::gameFunctions->GetStageClearCount());
-        }
-
-        if (fixedTimeControl->IsEnabled()) {
-            G::gameFunctions->SetFixedTime(fixedTimeControl->GetFrozenValue());
-        } else {
-            fixedTimeControl->SetValue(G::gameFunctions->GetFixedTime());
-        }
+        stageClearCountControl->UpdateFreezeLogic();
+        fixedTimeControl->UpdateFreezeLogic();
     }
 }
 

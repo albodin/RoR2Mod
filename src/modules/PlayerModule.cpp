@@ -26,15 +26,68 @@ void PlayerModule::SortItemsByName() {
 
 void PlayerModule::Initialize() {
     godModeControl = std::make_unique<ToggleControl>("Godmode", "godMode", false);
-    baseMoveSpeedControl = std::make_unique<FloatControl>("Base Move Speed", "baseMoveSpeed", 7.0f, 0.0f, FLT_MAX, 1.0f, false, false, true);
-    baseDamageControl = std::make_unique<FloatControl>("Base Damage", "baseDamage", 12.0f, 0.0f, FLT_MAX, 1.0f, false, false, true);
-    baseAttackSpeedControl = std::make_unique<FloatControl>("Base Attack Speed", "baseAttackSpeed", 1.0f, 0.0f, FLT_MAX, 0.1f, false, false, true);
-    baseCritControl = std::make_unique<FloatControl>("Base Crit", "baseCrit", 1.0f, 0.0f, FLT_MAX, 1.0f, false, false, true);
-    baseJumpCountControl = std::make_unique<IntControl>("Base Jump Count", "baseJumpCount", 1, 0, INT_MAX, 1, false, false);
-    teleportToCursorControl = std::make_unique<ToggleButtonControl>("Teleport to Cursor", "teleportToCursor", "Teleport", false);
 
-    huntressRangeControl = std::make_unique<FloatControl>("Huntress Range", "huntressRange", 20.0f, 0.0f, 1000.0f, 5.0f);
-    huntressFOVControl = std::make_unique<FloatControl>("Huntress FOV", "huntressFOV", 20.0f, 0.0f, 180.0f, 5.0f);
+    baseMoveSpeedControl = std::make_unique<FloatControl>("Base Move Speed", "baseMoveSpeed", 7.0f, 0.0f, FLT_MAX, 1.0f, false, false, true);
+    baseMoveSpeedControl->SetGameValueFunctions(
+        [this]() { return localUser_cached && localUser_cached->cachedBody_backing ? localUser_cached->cachedBody_backing->baseMoveSpeed : 0.0f; },
+        [this](float value) { if (localUser_cached && localUser_cached->cachedBody_backing) localUser_cached->cachedBody_backing->baseMoveSpeed = value; }
+    );
+
+    baseDamageControl = std::make_unique<FloatControl>("Base Damage", "baseDamage", 12.0f, 0.0f, FLT_MAX, 1.0f, false, false, true);
+    baseDamageControl->SetGameValueFunctions(
+        [this]() { return localUser_cached && localUser_cached->cachedBody_backing ? localUser_cached->cachedBody_backing->baseDamage : 0.0f; },
+        [this](float value) { if (localUser_cached && localUser_cached->cachedBody_backing) localUser_cached->cachedBody_backing->baseDamage = value; }
+    );
+
+    baseAttackSpeedControl = std::make_unique<FloatControl>("Base Attack Speed", "baseAttackSpeed", 1.0f, 0.0f, FLT_MAX, 0.1f, false, false, true);
+    baseAttackSpeedControl->SetGameValueFunctions(
+        [this]() { return localUser_cached && localUser_cached->cachedBody_backing ? localUser_cached->cachedBody_backing->baseAttackSpeed : 0.0f; },
+        [this](float value) { if (localUser_cached && localUser_cached->cachedBody_backing) localUser_cached->cachedBody_backing->baseAttackSpeed = value; }
+    );
+
+    baseCritControl = std::make_unique<FloatControl>("Base Crit", "baseCrit", 1.0f, 0.0f, FLT_MAX, 1.0f, false, false, true);
+    baseCritControl->SetGameValueFunctions(
+        [this]() { return localUser_cached && localUser_cached->cachedBody_backing ? localUser_cached->cachedBody_backing->baseCrit : 0.0f; },
+        [this](float value) { if (localUser_cached && localUser_cached->cachedBody_backing) localUser_cached->cachedBody_backing->baseCrit = value; }
+    );
+
+    baseJumpCountControl = std::make_unique<IntControl>("Base Jump Count", "baseJumpCount", 1, 0, INT_MAX, 1, false, false, true);
+    baseJumpCountControl->SetGameValueFunctions(
+        [this]() { return localUser_cached && localUser_cached->cachedBody_backing ? localUser_cached->cachedBody_backing->baseJumpCount : 0; },
+        [this](int value) { if (localUser_cached && localUser_cached->cachedBody_backing) localUser_cached->cachedBody_backing->baseJumpCount = value; }
+    );
+
+    teleportToCursorControl = std::make_unique<ToggleButtonControl>("Teleport to Cursor", "teleportToCursor", "Teleport", false);
+    teleportToCursorControl->SetOnAction([this]() {
+        if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->_cameraRigController) {
+            G::gameFunctions->TeleportHelper_TeleportBody(localUser_cached->cachedBody_backing,
+                                                          localUser_cached->_cameraRigController->crosshairWorldPosition_backing);
+        }
+    });
+
+    huntressRangeControl = std::make_unique<FloatControl>("Huntress Range", "huntressRange", 20.0f, 0.0f, 1000.0f, 5.0f, false, false, true);
+    huntressRangeControl->SetGameValueFunctions(
+        [this]() {
+            HuntressTracker* tracker = GetCurrentLocalTracker();
+            return tracker ? tracker->maxTrackingDistance : 0.0f;
+        },
+        [this](float value) {
+            HuntressTracker* tracker = GetCurrentLocalTracker();
+            if (tracker) tracker->maxTrackingDistance = value;
+        }
+    );
+
+    huntressFOVControl = std::make_unique<FloatControl>("Huntress FOV", "huntressFOV", 20.0f, 0.0f, 180.0f, 5.0f, false, false, true);
+    huntressFOVControl->SetGameValueFunctions(
+        [this]() {
+            HuntressTracker* tracker = GetCurrentLocalTracker();
+            return tracker ? tracker->maxTrackingAngle : 0.0f;
+        },
+        [this](float value) {
+            HuntressTracker* tracker = GetCurrentLocalTracker();
+            if (tracker) tracker->maxTrackingAngle = value;
+        }
+    );
     huntressWallPenetrationControl = std::make_unique<ToggleControl>("Huntress Wall Penetration", "huntressWallPenetration", false);
     huntressEnemyOnlyTargetingControl = std::make_unique<ToggleControl>("Huntress Ignore Breakables", "huntressEnemyOnlyTargeting", false);
 
@@ -48,54 +101,97 @@ void PlayerModule::Initialize() {
 
     flightControl = std::make_unique<ToggleControl>("Flight", "flight", false);
 
-    deployableCapControl = std::make_unique<IntControl>("Deployable Cap", "deployable_cap", 2, 1, INT_MAX, 1, false, false);
+    deployableCapControl = std::make_unique<IntControl>("Deployable Cap", "deployable_cap", 2, 1, INT_MAX, 1, false, false, true);
 
     primarySkillCooldownControl = std::make_unique<FloatControl>("Primary Skill Cooldown", "primary_skill_cooldown", 0.0f, 0.0f, 60.0f, 0.1f, false, false, true);
-    secondarySkillCooldownControl = std::make_unique<FloatControl>("Secondary Skill Cooldown", "secondary_skill_cooldown", 0.0f, 0.0f, 60.0f, 0.1f, false, false, true);
-    utilitySkillCooldownControl = std::make_unique<FloatControl>("Utility Skill Cooldown", "utility_skill_cooldown", 0.0f, 0.0f, 60.0f, 0.1f, false, false, true);
-    specialSkillCooldownControl = std::make_unique<FloatControl>("Special Skill Cooldown", "special_skill_cooldown", 0.0f, 0.0f, 60.0f, 0.1f, false, false, true);
-
-    moneyControl = std::make_unique<IntControl>("Money", "player_money", 0, 0, INT_MAX, 100, false, false);
-    voidCoinsControl = std::make_unique<IntControl>("Void Coins", "player_void_coins", 0, 0, INT_MAX, 1, false, false);
-    lunarCoinsControl = std::make_unique<IntControl>("Lunar Coins", "player_lunar_coins", 0, 0, INT_MAX, 1, false, false);
-    levelControl = std::make_unique<FloatControl>("Level", "player_level", 1.0f, 1.0f, FLT_MAX, 1.0f, false, false, true);
-
-    healthControl = std::make_unique<FloatControl>("Max Health", "player_health", 100.0f, 1.0f, FLT_MAX, 10.0f, false, false, true);
-    armorControl = std::make_unique<FloatControl>("Armor", "player_armor", 0.0f, 0.0f, FLT_MAX, 5.0f, false, false, true);
-
-    // Set up change callbacks to track user input
-    moneyControl->SetOnChange([this](int newValue) {
-        if (localUser_cached && localUser_cached->cachedMaster_backing) {
-            localUser_cached->cachedMaster_backing->_money = newValue;
-        }
-    });
-
-    voidCoinsControl->SetOnChange([this](int newValue) {
-        if (localUser_cached && localUser_cached->cachedMaster_backing) {
-            localUser_cached->cachedMaster_backing->_voidCoins = newValue;
-        }
-    });
-
-    lunarCoinsControl->SetOnChange([this](int newValue) {
-        static int lastUserValue = 0;
-        if (lastUserValue == newValue) {
-            return;
-        }
-
-        lastUserValue = newValue;
-
-        if (localUser_cached && localUser_cached->currentNetworkUser_backing) {
-            uint32_t currentCoins = localUser_cached->currentNetworkUser_backing->netLunarCoins;
-            if (newValue > currentCoins) {
-                uint32_t coinsToAdd = newValue - currentCoins;
-                G::gameFunctions->AwardLunarCoins(localUser_cached->currentNetworkUser_backing, coinsToAdd);
-            } else if (newValue < currentCoins) {
-                uint32_t coinsToRemove = currentCoins - newValue;
-                G::gameFunctions->DeductLunarCoins(localUser_cached->currentNetworkUser_backing, coinsToRemove);
+    primarySkillCooldownControl->SetGameValueFunctions(
+        [this]() {
+            if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->cachedBody_backing->skillLocator_backing && localUser_cached->cachedBody_backing->skillLocator_backing->primary) {
+                return localUser_cached->cachedBody_backing->skillLocator_backing->primary->finalRechargeInterval;
+            }
+            return 0.0f;
+        },
+        [this](float value) {
+            if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->cachedBody_backing->skillLocator_backing && localUser_cached->cachedBody_backing->skillLocator_backing->primary) {
+                localUser_cached->cachedBody_backing->skillLocator_backing->primary->finalRechargeInterval = value;
             }
         }
-    });
+    );
 
+    secondarySkillCooldownControl = std::make_unique<FloatControl>("Secondary Skill Cooldown", "secondary_skill_cooldown", 0.0f, 0.0f, 60.0f, 0.1f, false, false, true);
+    secondarySkillCooldownControl->SetGameValueFunctions(
+        [this]() {
+            if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->cachedBody_backing->skillLocator_backing && localUser_cached->cachedBody_backing->skillLocator_backing->secondary) {
+                return localUser_cached->cachedBody_backing->skillLocator_backing->secondary->finalRechargeInterval;
+            }
+            return 0.0f;
+        },
+        [this](float value) {
+            if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->cachedBody_backing->skillLocator_backing && localUser_cached->cachedBody_backing->skillLocator_backing->secondary) {
+                localUser_cached->cachedBody_backing->skillLocator_backing->secondary->finalRechargeInterval = value;
+            }
+        }
+    );
+
+    utilitySkillCooldownControl = std::make_unique<FloatControl>("Utility Skill Cooldown", "utility_skill_cooldown", 0.0f, 0.0f, 60.0f, 0.1f, false, false, true);
+    utilitySkillCooldownControl->SetGameValueFunctions(
+        [this]() {
+            if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->cachedBody_backing->skillLocator_backing && localUser_cached->cachedBody_backing->skillLocator_backing->utility) {
+                return localUser_cached->cachedBody_backing->skillLocator_backing->utility->finalRechargeInterval;
+            }
+            return 0.0f;
+        },
+        [this](float value) {
+            if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->cachedBody_backing->skillLocator_backing && localUser_cached->cachedBody_backing->skillLocator_backing->utility) {
+                localUser_cached->cachedBody_backing->skillLocator_backing->utility->finalRechargeInterval = value;
+            }
+        }
+    );
+
+    specialSkillCooldownControl = std::make_unique<FloatControl>("Special Skill Cooldown", "special_skill_cooldown", 0.0f, 0.0f, 60.0f, 0.1f, false, false, true);
+    specialSkillCooldownControl->SetGameValueFunctions(
+        [this]() {
+            if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->cachedBody_backing->skillLocator_backing && localUser_cached->cachedBody_backing->skillLocator_backing->special) {
+                return localUser_cached->cachedBody_backing->skillLocator_backing->special->finalRechargeInterval;
+            }
+            return 0.0f;
+        },
+        [this](float value) {
+            if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->cachedBody_backing->skillLocator_backing && localUser_cached->cachedBody_backing->skillLocator_backing->special) {
+                localUser_cached->cachedBody_backing->skillLocator_backing->special->finalRechargeInterval = value;
+            }
+        }
+    );
+
+    moneyControl = std::make_unique<IntControl>("Money", "player_money", 0, 0, INT_MAX, 100, false, false, true);
+    moneyControl->SetGameValueFunctions(
+        [this]() { return localUser_cached && localUser_cached->cachedMaster_backing ? static_cast<int>(localUser_cached->cachedMaster_backing->_money) : 0; },
+        [this](int value) { if (localUser_cached && localUser_cached->cachedMaster_backing) localUser_cached->cachedMaster_backing->_money = static_cast<uint32_t>(value); }
+    );
+
+    voidCoinsControl = std::make_unique<IntControl>("Void Coins", "player_void_coins", 0, 0, INT_MAX, 1, false, false, true);
+    voidCoinsControl->SetGameValueFunctions(
+        [this]() { return localUser_cached && localUser_cached->cachedMaster_backing ? static_cast<int>(localUser_cached->cachedMaster_backing->_voidCoins) : 0; },
+        [this](int value) { if (localUser_cached && localUser_cached->cachedMaster_backing) localUser_cached->cachedMaster_backing->_voidCoins = static_cast<uint32_t>(value); }
+    );
+
+    lunarCoinsControl = std::make_unique<IntControl>("Lunar Coins", "player_lunar_coins", 0, 0, INT_MAX, 1, false, false, true);
+    lunarCoinsControl->SetGameValueFunctions(
+        [this]() { return localUser_cached && localUser_cached->currentNetworkUser_backing ? static_cast<int>(localUser_cached->currentNetworkUser_backing->netLunarCoins) : 0; },
+        [this](int value) {
+            if (localUser_cached && localUser_cached->currentNetworkUser_backing) {
+                uint32_t currentCoins = localUser_cached->currentNetworkUser_backing->netLunarCoins;
+                if (value > currentCoins) {
+                    G::gameFunctions->AwardLunarCoins(localUser_cached->currentNetworkUser_backing, value - currentCoins);
+                } else if (value < currentCoins) {
+                    G::gameFunctions->DeductLunarCoins(localUser_cached->currentNetworkUser_backing, currentCoins - value);
+                }
+            }
+        }
+    );
+
+
+    levelControl = std::make_unique<FloatControl>("Level", "player_level", 1.0f, 1.0f, FLT_MAX, 1.0f, false, false, true);
     levelControl->SetOnChange([this](float newValue) {
         static float lastUserValue = 1.0f;
         if (lastUserValue == newValue) {
@@ -114,57 +210,22 @@ void PlayerModule::Initialize() {
             G::logger.LogWarning("TeamManager instance not available in level control callback");
         }
     });
+    levelControl->SetGameValueFunctions(
+        [this]() { return localUser_cached && localUser_cached->cachedBody_backing ? localUser_cached->cachedBody_backing->level_backing : 1.0f; },
+        [this](float value) { if (localUser_cached) G::gameFunctions->SetTeamLevel(TeamIndex_Value::Player, static_cast<uint32_t>(value)); }
+    );
 
+    healthControl = std::make_unique<FloatControl>("Max Health", "player_health", 100.0f, 1.0f, FLT_MAX, 10.0f, false, false, true);
+    healthControl->SetGameValueFunctions(
+        [this]() { return localUser_cached && localUser_cached->cachedBody_backing ? localUser_cached->cachedBody_backing->maxHealth_backing : 100.0f; },
+        [this](float value) { if (localUser_cached && localUser_cached->cachedBody_backing) localUser_cached->cachedBody_backing->maxHealth_backing = value; }
+    );
 
-
-    healthControl->SetOnChange([this](float newValue) {
-        if (localUser_cached && localUser_cached->cachedBody_backing) {
-            localUser_cached->cachedBody_backing->maxHealth_backing = newValue;
-        }
-    });
-
-    armorControl->SetOnChange([this](float newValue) {
-        if (localUser_cached && localUser_cached->cachedBody_backing) {
-            localUser_cached->cachedBody_backing->baseArmor = newValue;
-        }
-    });
-
-    baseMoveSpeedControl->SetOnChange([this](float newValue) {
-        if (localUser_cached && localUser_cached->cachedBody_backing) {
-            localUser_cached->cachedBody_backing->baseMoveSpeed = newValue;
-        }
-    });
-
-    baseDamageControl->SetOnChange([this](float newValue) {
-        if (localUser_cached && localUser_cached->cachedBody_backing) {
-            localUser_cached->cachedBody_backing->baseDamage = newValue;
-        }
-    });
-
-    baseAttackSpeedControl->SetOnChange([this](float newValue) {
-        if (localUser_cached && localUser_cached->cachedBody_backing) {
-            localUser_cached->cachedBody_backing->baseAttackSpeed = newValue;
-        }
-    });
-
-    baseCritControl->SetOnChange([this](float newValue) {
-        if (localUser_cached && localUser_cached->cachedBody_backing) {
-            localUser_cached->cachedBody_backing->baseCrit = newValue;
-        }
-    });
-
-    baseJumpCountControl->SetOnChange([this](int newValue) {
-        if (localUser_cached && localUser_cached->cachedBody_backing) {
-            localUser_cached->cachedBody_backing->baseJumpCount = newValue;
-        }
-    });
-
-    teleportToCursorControl->SetOnAction([this]() {
-        if (localUser_cached && localUser_cached->cachedBody_backing && localUser_cached->_cameraRigController) {
-            G::gameFunctions->TeleportHelper_TeleportBody(localUser_cached->cachedBody_backing,
-                                                          localUser_cached->_cameraRigController->crosshairWorldPosition_backing);
-        }
-    });
+    armorControl = std::make_unique<FloatControl>("Armor", "player_armor", 0.0f, 0.0f, FLT_MAX, 5.0f, false, false, true);
+    armorControl->SetGameValueFunctions(
+        [this]() { return localUser_cached && localUser_cached->cachedBody_backing ? localUser_cached->cachedBody_backing->baseArmor : 0.0f; },
+        [this](float value) { if (localUser_cached && localUser_cached->cachedBody_backing) localUser_cached->cachedBody_backing->baseArmor = value; }
+    );
 }
 
 void PlayerModule::Update() {
@@ -278,111 +339,19 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
     localUser_ptr->cachedMaster_backing->godMode = godModeControl->IsEnabled();
     localUser_ptr->cachedBody_backing->healthComponent_backing->godMode_backing = godModeControl->IsEnabled();
 
-    // Base Move Speed
-    {
-        float currentMoveSpeed = localUser_ptr->cachedBody_backing->baseMoveSpeed;
-        if (baseMoveSpeedControl->IsEnabled() && currentMoveSpeed < baseMoveSpeedControl->GetFrozenValue()) {
-            localUser_ptr->cachedBody_backing->baseMoveSpeed = baseMoveSpeedControl->GetFrozenValue();
-        }
-        baseMoveSpeedControl->SetValue(localUser_ptr->cachedBody_backing->baseMoveSpeed);
-    }
+    baseMoveSpeedControl->UpdateFreezeLogic();
+    baseDamageControl->UpdateFreezeLogic();
+    baseAttackSpeedControl->UpdateFreezeLogic();
+    baseCritControl->UpdateFreezeLogic();
+    baseJumpCountControl->UpdateFreezeLogic();
 
-    // Base Damage
-    {
-        float currentDamage = localUser_ptr->cachedBody_backing->baseDamage;
-        if (baseDamageControl->IsEnabled() && currentDamage < baseDamageControl->GetFrozenValue()) {
-            localUser_ptr->cachedBody_backing->baseDamage = baseDamageControl->GetFrozenValue();
-        }
-        baseDamageControl->SetValue(localUser_ptr->cachedBody_backing->baseDamage);
-    }
+    moneyControl->UpdateFreezeLogic();
+    voidCoinsControl->UpdateFreezeLogic();
+    lunarCoinsControl->UpdateFreezeLogic();
 
-    // Base Attack Speed
-    {
-        float currentAttackSpeed = localUser_ptr->cachedBody_backing->baseAttackSpeed;
-        if (baseAttackSpeedControl->IsEnabled() && currentAttackSpeed < baseAttackSpeedControl->GetFrozenValue()) {
-            localUser_ptr->cachedBody_backing->baseAttackSpeed = baseAttackSpeedControl->GetFrozenValue();
-        }
-        baseAttackSpeedControl->SetValue(localUser_ptr->cachedBody_backing->baseAttackSpeed);
-    }
-
-    // Base Crit
-    {
-        float currentCrit = localUser_ptr->cachedBody_backing->baseCrit;
-        if (baseCritControl->IsEnabled() && currentCrit < baseCritControl->GetFrozenValue()) {
-            localUser_ptr->cachedBody_backing->baseCrit = baseCritControl->GetFrozenValue();
-        }
-        baseCritControl->SetValue(localUser_ptr->cachedBody_backing->baseCrit);
-    }
-
-    // Base Jump Count
-    {
-        int currentJumpCount = localUser_ptr->cachedBody_backing->baseJumpCount;
-        if (baseJumpCountControl->IsEnabled() && currentJumpCount < baseJumpCountControl->GetFrozenValue()) {
-            localUser_ptr->cachedBody_backing->baseJumpCount = baseJumpCountControl->GetFrozenValue();
-        }
-        baseJumpCountControl->SetValue(localUser_ptr->cachedBody_backing->baseJumpCount);
-    }
-
-    // Money
-    {
-        uint32_t currentMoney = localUser_ptr->cachedMaster_backing->_money;
-        if (moneyControl->IsEnabled() && currentMoney < moneyControl->GetFrozenValue()) {
-            localUser_ptr->cachedMaster_backing->_money = moneyControl->GetFrozenValue();
-        }
-        moneyControl->SetValue(localUser_ptr->cachedMaster_backing->_money);
-    }
-
-    // Void Coins
-    {
-        uint32_t currentCoins = localUser_ptr->cachedMaster_backing->_voidCoins;
-        if (voidCoinsControl->IsEnabled() && currentCoins < voidCoinsControl->GetFrozenValue()) {
-            localUser_ptr->cachedMaster_backing->_voidCoins = voidCoinsControl->GetFrozenValue();
-        }
-        voidCoinsControl->SetValue(localUser_ptr->cachedMaster_backing->_voidCoins);
-    }
-
-    // Lunar Coins
-    {
-        if (localUser_ptr->currentNetworkUser_backing) {
-            uint32_t currentLunarCoins = localUser_ptr->currentNetworkUser_backing->netLunarCoins;
-            if (lunarCoinsControl->IsEnabled() && currentLunarCoins < lunarCoinsControl->GetFrozenValue()) {
-                uint32_t targetCoins = lunarCoinsControl->GetFrozenValue();
-                uint32_t coinsToAdd = targetCoins - currentLunarCoins;
-                G::gameFunctions->AwardLunarCoins(localUser_ptr->currentNetworkUser_backing, coinsToAdd);
-            }
-            lunarCoinsControl->SetValue(currentLunarCoins);
-        }
-    }
-
-    // Health
-    {
-        float currentHealth = localUser_ptr->cachedBody_backing->maxHealth_backing;
-        if (healthControl->IsEnabled() && currentHealth < healthControl->GetFrozenValue()) {
-            localUser_ptr->cachedBody_backing->maxHealth_backing = healthControl->GetFrozenValue();
-        }
-        healthControl->SetValue(localUser_ptr->cachedBody_backing->maxHealth_backing);
-    }
-
-    // Level
-    {
-        float currentLevel = localUser_ptr->cachedBody_backing->level_backing;
-        if (levelControl->IsEnabled() && currentLevel < levelControl->GetFrozenValue()) {
-            G::gameFunctions->SetTeamLevel(TeamIndex_Value::Player, static_cast<uint32_t>(levelControl->GetFrozenValue()));
-            currentLevel = levelControl->GetFrozenValue();
-        }
-        levelControl->SetValue(currentLevel);
-    }
-
-
-
-    // Armor
-    {
-        float currentArmor = localUser_ptr->cachedBody_backing->baseArmor;
-        if (armorControl->IsEnabled() && currentArmor < armorControl->GetFrozenValue()) {
-            localUser_ptr->cachedBody_backing->baseArmor = armorControl->GetFrozenValue();
-        }
-        armorControl->SetValue(localUser_ptr->cachedBody_backing->baseArmor);
-    }
+    healthControl->UpdateFreezeLogic();
+    levelControl->UpdateFreezeLogic();
+    armorControl->UpdateFreezeLogic();
 
     // Flight Implementation
     if (localUser_ptr->cachedBody_backing->characterMotor_backing) {
@@ -419,35 +388,13 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
         }
     }
 
-    HuntressTracker* currentTracker = GetCurrentLocalTracker();
-    if (currentTracker) {
-        if (huntressRangeControl->IsEnabled()) {
-            currentTracker->maxTrackingDistance = huntressRangeControl->GetValue();
-        }
+    huntressRangeControl->UpdateFreezeLogic();
+    huntressFOVControl->UpdateFreezeLogic();
 
-        if (huntressFOVControl->IsEnabled()) {
-            currentTracker->maxTrackingAngle = huntressFOVControl->GetValue();
-        }
-    }
-
-    SkillLocator* skillLocator = localUser_ptr->cachedBody_backing->skillLocator_backing;
-    if (skillLocator) {
-        if (primarySkillCooldownControl->IsEnabled() && skillLocator->primary) {
-            skillLocator->primary->finalRechargeInterval = primarySkillCooldownControl->GetValue();
-        }
-
-        if (secondarySkillCooldownControl->IsEnabled() && skillLocator->secondary) {
-            skillLocator->secondary->finalRechargeInterval = secondarySkillCooldownControl->GetValue();
-        }
-
-        if (utilitySkillCooldownControl->IsEnabled() && skillLocator->utility) {
-            skillLocator->utility->finalRechargeInterval = utilitySkillCooldownControl->GetValue();
-        }
-
-        if (specialSkillCooldownControl->IsEnabled() && skillLocator->special) {
-            skillLocator->special->finalRechargeInterval = specialSkillCooldownControl->GetValue();
-        }
-    }
+    primarySkillCooldownControl->UpdateFreezeLogic();
+    secondarySkillCooldownControl->UpdateFreezeLogic();
+    utilitySkillCooldownControl->UpdateFreezeLogic();
+    specialSkillCooldownControl->UpdateFreezeLogic();
 
     if (!localUser_ptr->cachedBody_backing->inventory_backing) {
         return;
@@ -489,10 +436,22 @@ void PlayerModule::OnInventoryChanged(void* inventory) {
                 control->SetValue(arrayData[i]);
             }
 
-            // If item is protected and below frozen value, queue it to be given
-            if (control->IsEnabled() && arrayData[i] < control->GetFrozenValue()) {
-                std::unique_lock<std::mutex> queueLock(queuedGiveItemsMutex);
-                queuedGiveItems.push(std::make_tuple(i, control->GetFrozenValue()));
+            // Handle freeze logic based on freeze mode
+            if (control->IsEnabled()) {
+                IntControl* intControl = static_cast<IntControl*>(control.get());
+                if (intControl->GetFreezeMode() == FreezeMode::HardLock) {
+                    // HardLock: Force exact value
+                    if (arrayData[i] != control->GetFrozenValue()) {
+                        std::unique_lock<std::mutex> queueLock(queuedGiveItemsMutex);
+                        queuedGiveItems.push(std::make_tuple(i, control->GetFrozenValue()));
+                    }
+                } else {
+                    // MinimumValue: Only restore if below frozen value
+                    if (arrayData[i] < control->GetFrozenValue()) {
+                        std::unique_lock<std::mutex> queueLock(queuedGiveItemsMutex);
+                        queuedGiveItems.push(std::make_tuple(i, control->GetFrozenValue()));
+                    }
+                }
             }
         }
     }
@@ -526,7 +485,7 @@ void PlayerModule::InitializeAllItemControls() {
         int currentCount = (index < itemStacks.size()) ? itemStacks[index] : 0;
 
         auto control = std::make_unique<IntControl>(item.displayName, "item_" + std::to_string(index),
-                                                   currentCount, 0, INT_MAX, 1, false, false);
+                                                   currentCount, 0, INT_MAX, 1, false, false, true);
 
         control->SetOnChange([this, index](int newValue) {
             if (index < itemStacks.size()) {

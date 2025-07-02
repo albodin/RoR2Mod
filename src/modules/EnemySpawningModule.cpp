@@ -12,7 +12,6 @@ EnemySpawningModule::EnemySpawningModule() : ModuleBase() {
     enemySelectControl = std::make_unique<ComboControl>("Enemy", "enemySpawn_selectedEnemy", std::vector<std::string>{"Loading..."}, 0);
     teamSelectControl = std::make_unique<ComboControl>("Team", "enemySpawn_team", teamNames, 2); // Default to Monster
     spawnCountControl = std::make_unique<IntControl>("Spawn Count", "enemySpawn_count", 1, 1, 100, 1, false, false);
-    spawnCountControl->SetShowCheckbox(false);
     difficultyMatchingControl = std::make_unique<ToggleControl>("Match Difficulty", "enemySpawn_matchDifficulty", false, ImGuiKey_None);
     eliteSelectControl = std::make_unique<ComboControl>("Elite Type", "enemySpawn_eliteType", std::vector<std::string>{"Loading..."}, 0);
     spawnButtonControl = std::make_unique<ButtonControl>("Spawn", "enemySpawn_button", "Spawn at Crosshair");

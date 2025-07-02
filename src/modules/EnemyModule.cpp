@@ -4,31 +4,23 @@
 #include <climits>
 
 EnemyModule::EnemyModule() {
-    monsterLevelControl = std::make_unique<IntControl>("Monster Level", "enemy_monster_level", 1, 1, INT_MAX, 1, false, false);
-    lunarLevelControl = std::make_unique<IntControl>("Lunar Level", "enemy_lunar_level", 1, 1, INT_MAX, 1, false, false);
-    voidLevelControl = std::make_unique<IntControl>("Void Level", "enemy_void_level", 1, 1, INT_MAX, 1, false, false);
+    monsterLevelControl = std::make_unique<IntControl>("Monster Level", "enemy_monster_level", 1, 1, INT_MAX, 1, false, false, true);
+    monsterLevelControl->SetGameValueFunctions(
+        []() { return G::gameFunctions->GetTeamLevel(TeamIndex_Value::Monster); },
+        [](int value) { G::gameFunctions->SetTeamLevel(TeamIndex_Value::Monster, static_cast<uint32_t>(value)); }
+    );
 
-    monsterLevelControl->SetShowCheckbox(false);
-    lunarLevelControl->SetShowCheckbox(false);
-    voidLevelControl->SetShowCheckbox(false);
+    lunarLevelControl = std::make_unique<IntControl>("Lunar Level", "enemy_lunar_level", 1, 1, INT_MAX, 1, false, false, true);
+    lunarLevelControl->SetGameValueFunctions(
+        []() { return G::gameFunctions->GetTeamLevel(TeamIndex_Value::Lunar); },
+        [](int value) { G::gameFunctions->SetTeamLevel(TeamIndex_Value::Lunar, static_cast<uint32_t>(value)); }
+    );
 
-    monsterLevelControl->SetOnChange([this](int newValue) {
-        if (G::gameFunctions->GetTeamManagerInstance()) {
-            G::gameFunctions->SetTeamLevel(TeamIndex_Value::Monster, static_cast<uint32_t>(newValue));
-        }
-    });
-
-    lunarLevelControl->SetOnChange([this](int newValue) {
-        if (G::gameFunctions->GetTeamManagerInstance()) {
-            G::gameFunctions->SetTeamLevel(TeamIndex_Value::Lunar, static_cast<uint32_t>(newValue));
-        }
-    });
-
-    voidLevelControl->SetOnChange([this](int newValue) {
-        if (G::gameFunctions->GetTeamManagerInstance()) {
-            G::gameFunctions->SetTeamLevel(TeamIndex_Value::Void, static_cast<uint32_t>(newValue));
-        }
-    });
+    voidLevelControl = std::make_unique<IntControl>("Void Level", "enemy_void_level", 1, 1, INT_MAX, 1, false, false, true);
+    voidLevelControl->SetGameValueFunctions(
+        []() { return G::gameFunctions->GetTeamLevel(TeamIndex_Value::Void); },
+        [](int value) { G::gameFunctions->SetTeamLevel(TeamIndex_Value::Void, static_cast<uint32_t>(value)); }
+    );
 }
 
 EnemyModule::~EnemyModule() {
@@ -54,8 +46,8 @@ void EnemyModule::DrawUI() {
 
 void EnemyModule::OnLocalUserUpdate(void* localUser) {
     if (G::gameFunctions->GetTeamManagerInstance()) {
-        monsterLevelControl->SetValue(static_cast<int>(G::gameFunctions->GetTeamLevel(TeamIndex_Value::Monster)));
-        lunarLevelControl->SetValue(static_cast<int>(G::gameFunctions->GetTeamLevel(TeamIndex_Value::Lunar)));
-        voidLevelControl->SetValue(static_cast<int>(G::gameFunctions->GetTeamLevel(TeamIndex_Value::Void)));
+        monsterLevelControl->UpdateFreezeLogic();
+        lunarLevelControl->UpdateFreezeLogic();
+        voidLevelControl->UpdateFreezeLogic();
     }
 }

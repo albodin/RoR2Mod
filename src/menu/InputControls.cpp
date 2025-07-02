@@ -74,12 +74,39 @@ static void DrawSettingsPopup(const std::string& id, const std::string& label, b
         if (step < minStep) step = minStep;
 
         ImGui::Separator();
+        ImGui::Text("Freeze Mode:");
+        ImGui::SameLine();
+        ImGui::PushItemWidth(150);
+
+        // Cast to appropriate control type to access freeze mode methods
+        IntControl* intControl = dynamic_cast<IntControl*>(control);
+        FloatControl* floatControl = dynamic_cast<FloatControl*>(control);
+
+        if (intControl || floatControl) {
+            FreezeMode currentMode = intControl ? intControl->GetFreezeMode() : floatControl->GetFreezeMode();
+            int currentModeInt = static_cast<int>(currentMode);
+            const char* freezeModeOptions[] = { "Minimum Value", "Hard Lock" };
+
+            if (ImGui::Combo("##freezemode", &currentModeInt, freezeModeOptions, 2)) {
+                FreezeMode newMode = static_cast<FreezeMode>(currentModeInt);
+                if (intControl) {
+                    intControl->SetFreezeMode(newMode);
+                } else {
+                    floatControl->SetFreezeMode(newMode);
+                }
+            }
+        }
+
+        ImGui::PopItemWidth();
+
+        ImGui::Separator();
         if (ImGui::Button("Close"))
             ImGui::CloseCurrentPopup();
 
         ImGui::EndPopup();
     }
 }
+
 
 // InputHelper implementation
 bool InputHelper::IsKeyPressed(ImGuiKey key) {
@@ -226,10 +253,11 @@ void ToggleControl::Deserialize(const json& data) {
 
 // IntControl implementation
 IntControl::IntControl(const std::string& label, const std::string& id, int value,
-                      int minValue, int maxValue, int step, bool enabled, bool disableValueOnToggle)
+                      int minValue, int maxValue, int step, bool enabled, bool disableValueOnToggle, bool showCheckbox)
     : InputControl(label, id), value(value), frozenValue(value), minValue(minValue), maxValue(maxValue), step(step),
       incHotkey(ImGuiKey_None), decHotkey(ImGuiKey_None), isCapturingIncHotkey(false), isCapturingDecHotkey(false),
-      disableValueOnToggle(disableValueOnToggle), showCheckbox(true), onChange(nullptr), onToggle(nullptr)
+      disableValueOnToggle(disableValueOnToggle), showCheckbox(showCheckbox), freezeMode(FreezeMode::HardLock),
+      getValueFunc(nullptr), setValueFunc(nullptr), onChange(nullptr), onToggle(nullptr)
 {
     ConfigManager::RegisterControl(this);
 }
@@ -274,8 +302,12 @@ void IntControl::Draw() {
     int tempValue = value;
     if (ImGui::InputInt("##value", &value, step, step * 10)) {
         SetValue(value);
-        if (tempValue != value && onChange) {
-            onChange(value);
+        if (tempValue != value) {
+            if (onChange) {
+                onChange(value);
+            } else if (setValueFunc) {
+                setValueFunc(value);
+            }
         }
     }
     ImGui::PopItemWidth();
@@ -326,8 +358,12 @@ void IntControl::Update() {
             valueChanged = true;
         }
 
-        if (valueChanged && onChange && oldValue != value) {
-            onChange(value);
+        if (valueChanged && oldValue != value) {
+            if (onChange) {
+                onChange(value);
+            } else if (setValueFunc) {
+                setValueFunc(value);
+            }
         }
     }
 }
@@ -346,18 +382,12 @@ void IntControl::Decrement() {
 }
 
 json IntControl::Serialize() const {
-    // Only save item controls if they're enabled
-    if (id.find("item_") == 0 && !enabled) {
-        return json(); // Return empty json for disabled item controls
-    }
-
     json data = InputControl::Serialize();
-    // For enabled item controls, save the frozen value instead of current value
-    if (id.find("item_") == 0 && enabled) {
-        data["value"] = frozenValue;
-    } else {
-        data["value"] = value;
+    data["value"] = value;
+    if (showCheckbox && enabled) {
+        data["frozenValue"] = frozenValue;
     }
+    data["freezeMode"] = static_cast<int>(freezeMode);
     data["incHotkey"] = static_cast<int>(incHotkey);
     data["decHotkey"] = static_cast<int>(decHotkey);
     data["step"] = step;
@@ -368,14 +398,34 @@ void IntControl::Deserialize(const json& data) {
     InputControl::Deserialize(data);
     if (data.contains("value")) {
         SetValue(data["value"]);
-        // For item controls, also set frozen value when loading
-        if (id.find("item_") == 0) {
-            frozenValue = data["value"];
-        }
+    }
+    if (data.contains("frozenValue")) {
+        frozenValue = data["frozenValue"];
+    }
+    if (data.contains("freezeMode")) {
+        freezeMode = static_cast<FreezeMode>(data["freezeMode"]);
     }
     if (data.contains("incHotkey")) incHotkey = static_cast<ImGuiKey>(data["incHotkey"]);
     if (data.contains("decHotkey")) decHotkey = static_cast<ImGuiKey>(data["decHotkey"]);
     if (data.contains("step")) step = data["step"];
+}
+
+void IntControl::UpdateFreezeLogic() {
+    if (!getValueFunc || !setValueFunc) return;
+
+    int currentValue = getValueFunc();
+    if (enabled) {
+        if (freezeMode == FreezeMode::HardLock) {
+            setValueFunc(frozenValue);
+        } else { // MinimumValue
+            if (currentValue < frozenValue) {
+                setValueFunc(frozenValue);
+            }
+            SetValue(currentValue);
+        }
+    } else {
+        SetValue(currentValue);
+    }
 }
 
 
@@ -384,7 +434,8 @@ FloatControl::FloatControl(const std::string& label, const std::string& id, floa
                          float minValue, float maxValue, float step, bool enabled, bool disableValueOnToggle, bool showCheckbox)
     : InputControl(label, id), value(value), frozenValue(value), minValue(minValue), maxValue(maxValue), step(step),
       incHotkey(ImGuiKey_None), decHotkey(ImGuiKey_None), isCapturingIncHotkey(false), isCapturingDecHotkey(false),
-      disableValueOnToggle(disableValueOnToggle), showCheckbox(showCheckbox), onChange(nullptr), onToggle(nullptr)
+      disableValueOnToggle(disableValueOnToggle), showCheckbox(showCheckbox), freezeMode(FreezeMode::HardLock),
+      getValueFunc(nullptr), setValueFunc(nullptr), onChange(nullptr), onToggle(nullptr)
 {
     ConfigManager::RegisterControl(this);
 }
@@ -428,7 +479,11 @@ void FloatControl::Draw() {
     ImGui::PushItemWidth(inputWidth);
     if (ImGui::InputFloat("##value", &value, step, step * 10)) {
         SetValue(value);
-        if (onChange) onChange(value);
+        if (onChange) {
+            onChange(value);
+        } else if (setValueFunc) {
+            setValueFunc(value);
+        }
     }
     ImGui::PopItemWidth();
 
@@ -478,8 +533,12 @@ void FloatControl::Update() {
             valueChanged = true;
         }
 
-        if (valueChanged && onChange && oldValue != value) {
-            onChange(value);
+        if (valueChanged && oldValue != value) {
+            if (onChange) {
+                onChange(value);
+            } else if (setValueFunc) {
+                setValueFunc(value);
+            }
         }
     }
 }
@@ -498,18 +557,12 @@ void FloatControl::Decrement() {
 }
 
 json FloatControl::Serialize() const {
-    // Only save resource controls if they're enabled
-    if (id.find("player_") == 0 && !enabled) {
-        return json();
-    }
-
     json data = InputControl::Serialize();
-    // For enabled resource controls, save the frozen value instead of current value
-    if (id.find("player_") == 0 && enabled) {
-        data["value"] = frozenValue;
-    } else {
-        data["value"] = value;
+    data["value"] = value;
+    if (showCheckbox && enabled) {
+        data["frozenValue"] = frozenValue;
     }
+    data["freezeMode"] = static_cast<int>(freezeMode);
     data["incHotkey"] = static_cast<int>(incHotkey);
     data["decHotkey"] = static_cast<int>(decHotkey);
     data["step"] = step;
@@ -520,14 +573,34 @@ void FloatControl::Deserialize(const json& data) {
     InputControl::Deserialize(data);
     if (data.contains("value")) {
         SetValue(data["value"]);
-        // For resource controls, also set frozen value when loading
-        if (id.find("player_") == 0) {
-            frozenValue = data["value"];
-        }
+    }
+    if (data.contains("frozenValue")) {
+        frozenValue = data["frozenValue"];
+    }
+    if (data.contains("freezeMode")) {
+        freezeMode = static_cast<FreezeMode>(data["freezeMode"]);
     }
     if (data.contains("incHotkey")) incHotkey = static_cast<ImGuiKey>(data["incHotkey"]);
     if (data.contains("decHotkey")) decHotkey = static_cast<ImGuiKey>(data["decHotkey"]);
     if (data.contains("step")) step = data["step"];
+}
+
+void FloatControl::UpdateFreezeLogic() {
+    if (!getValueFunc || !setValueFunc) return;
+
+    float currentValue = getValueFunc();
+    if (enabled) {
+        if (freezeMode == FreezeMode::HardLock) {
+            setValueFunc(frozenValue);
+        } else { // MinimumValue
+            if (currentValue < frozenValue) {
+                setValueFunc(frozenValue);
+            }
+            SetValue(currentValue);
+        }
+    } else {
+        SetValue(currentValue);
+    }
 }
 
 

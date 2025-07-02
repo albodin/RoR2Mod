@@ -14,6 +14,12 @@ namespace InputHelper {
     bool DrawHotkeyButton(const char* id, ImGuiKey* key);
 }
 
+// Freezing modes for numeric controls
+enum class FreezeMode {
+    MinimumValue,  // Allow increases above frozen value
+    HardLock       // Force value to always equal frozen value
+};
+
 // Base interface for all input controls
 class InputControl {
 protected:
@@ -78,13 +84,16 @@ private:
     bool isCapturingDecHotkey;
     bool disableValueOnToggle;
     bool showCheckbox;
+    FreezeMode freezeMode;
+    std::function<int()> getValueFunc;
+    std::function<void(int)> setValueFunc;
     std::function<void(int)> onChange;
     std::function<void(bool)> onToggle;
 
 public:
     IntControl(const std::string& label, const std::string& id, int value,
               int minValue, int maxValue, int step = 1, bool enabled = false,
-              bool disableValueOnToggle = true);
+              bool disableValueOnToggle = true, bool showCheckbox = false);
     virtual ~IntControl();
 
     void Draw() override;
@@ -100,6 +109,10 @@ public:
     void SetDisableValueOnToggle(bool disable) { disableValueOnToggle = disable; }
     bool GetDisableValueOnToggle() const { return disableValueOnToggle; }
     void SetShowCheckbox(bool show) { showCheckbox = show; }
+    void SetFreezeMode(FreezeMode mode) { freezeMode = mode; }
+    FreezeMode GetFreezeMode() const { return freezeMode; }
+    void SetGameValueFunctions(std::function<int()> getter, std::function<void(int)> setter) { getValueFunc = getter; setValueFunc = setter; }
+    void UpdateFreezeLogic();
 
     json Serialize() const override;
     void Deserialize(const json& data) override;
@@ -119,6 +132,9 @@ private:
     bool isCapturingDecHotkey;
     bool disableValueOnToggle;
     bool showCheckbox;
+    FreezeMode freezeMode;
+    std::function<float()> getValueFunc;
+    std::function<void(float)> setValueFunc;
     std::function<void(float)> onChange;
     std::function<void(bool)> onToggle;
 
@@ -141,6 +157,10 @@ public:
     void SetDisableValueOnToggle(bool disable) { disableValueOnToggle = disable; }
     bool GetDisableValueOnToggle() const { return disableValueOnToggle; }
     void SetShowCheckbox(bool show) { showCheckbox = show; }
+    void SetFreezeMode(FreezeMode mode) { freezeMode = mode; }
+    FreezeMode GetFreezeMode() const { return freezeMode; }
+    void SetGameValueFunctions(std::function<float()> getter, std::function<void(float)> setter) { getValueFunc = getter; setValueFunc = setter; }
+    void UpdateFreezeLogic();
 
     json Serialize() const override;
     void Deserialize(const json& data) override;
