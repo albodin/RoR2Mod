@@ -2,11 +2,12 @@
 #include <tlhelp32.h>
 #include <iostream>
 #include <cstring>
+#include <filesystem>
 
 void PrintLastError(const char* prefix) {
     DWORD error = GetLastError();
     char errorMessage[256];
-    
+
     FormatMessageA(
         FORMAT_MESSAGE_FROM_SYSTEM,
         NULL,
@@ -16,7 +17,7 @@ void PrintLastError(const char* prefix) {
         sizeof(errorMessage),
         NULL
     );
-    
+
     std::cout << prefix << " Error: " << error << " - " << errorMessage << std::endl;
 }
 
@@ -44,33 +45,73 @@ DWORD GetProcessIdByName(const char* processName) {
 
 int main(int argc, char* argv[])
 {
+    std::string processName;
+    std::string dllPath;
+
+    bool isConsole = GetConsoleWindow() != NULL;
+
     if (argc < 3) {
-        std::cout << "Usage: injector.exe <process_name> <dll_path>" << std::endl;
-        return 1;
+        processName = "Risk of Rain 2.exe";
+
+        // Get the directory of the injector executable
+        char exePath[MAX_PATH];
+        GetModuleFileNameA(NULL, exePath, MAX_PATH);
+        std::filesystem::path injectorPath(exePath);
+        std::filesystem::path dllFullPath = injectorPath.parent_path() / "RoR2Mod.dll";
+        dllPath = dllFullPath.string();
+
+        if (!std::filesystem::exists(dllFullPath)) {
+            std::string error = "Default DLL not found: " + dllPath;
+            if (isConsole) {
+                std::cout << error << std::endl;
+            } else {
+                MessageBoxA(NULL, error.c_str(), "Injector Error", MB_OK | MB_ICONERROR);
+            }
+            return 1;
+        }
+
+        if (isConsole) {
+            std::cout << "Using defaults - Process: " << processName << ", DLL: " << dllPath << std::endl;
+        }
+    } else {
+        processName = argv[1];
+        dllPath = argv[2];
+    }
+    size_t dllPathLen = dllPath.length() + 1; // Include null terminator
+
+    if (isConsole) {
+        std::cout << "Target Process: " << processName << std::endl;
+        std::cout << "DLL Path: " << dllPath << " (Length: " << dllPathLen << " bytes)" << std::endl;
     }
 
-    const char* processName = argv[1];
-    const char* dllPath = argv[2];
-    size_t dllPathLen = strlen(dllPath) + 1; // Include null terminator
-
-    std::cout << "Target Process: " << processName << std::endl;
-    std::cout << "DLL Path: " << dllPath << " (Length: " << dllPathLen << " bytes)" << std::endl;
-
-    DWORD pid = GetProcessIdByName(processName);
+    DWORD pid = GetProcessIdByName(processName.c_str());
     if (pid == 0) {
-        std::cout << "Process not found." << std::endl;
+        std::string error = "Process not found: " + processName;
+        if (isConsole) {
+            std::cout << error << std::endl;
+        } else {
+            MessageBoxA(NULL, error.c_str(), "Injector Error", MB_OK | MB_ICONERROR);
+        }
         return 1;
     }
-    std::cout << "Process ID: " << pid << std::endl;
+    if (isConsole) {
+        std::cout << "Process ID: " << pid << std::endl;
+    }
 
-    HANDLE hProcess = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | 
-                                 PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ, 
+    HANDLE hProcess = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION |
+                                 PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ,
                                  FALSE, pid);
     if (!hProcess) {
-        PrintLastError("Failed to open process");
+        if (isConsole) {
+            PrintLastError("Failed to open process");
+        } else {
+            MessageBoxA(NULL, "Failed to open process. Make sure you run as administrator.", "Injector Error", MB_OK | MB_ICONERROR);
+        }
         return 1;
     }
-    std::cout << "Process handle: " << hProcess << std::endl;
+    if (isConsole) {
+        std::cout << "Process handle: " << hProcess << std::endl;
+    }
 
     // Allocate space for the DLL path in the target process.
     LPVOID allocMem = VirtualAllocEx(hProcess, NULL, dllPathLen,
@@ -80,8 +121,10 @@ int main(int argc, char* argv[])
         CloseHandle(hProcess);
         return 1;
     }
-    std::cout << "Allocated memory address: " << allocMem << std::endl;
-    
+    if (isConsole) {
+        std::cout << "Allocated memory address: " << allocMem << std::endl;
+    }
+
     DWORD oldProtect;
     if (!VirtualProtectEx(hProcess, allocMem, dllPathLen, PAGE_READWRITE, &oldProtect)) {
         PrintLastError("Failed to set memory protection");
@@ -89,11 +132,17 @@ int main(int argc, char* argv[])
 
     // Try multiple times to write the path
     SIZE_T bytesWritten = 0;
-    BOOL writeResult = WriteProcessMemory(hProcess, allocMem, dllPath, dllPathLen, &bytesWritten);
+    BOOL writeResult = WriteProcessMemory(hProcess, allocMem, dllPath.c_str(), dllPathLen, &bytesWritten);
     if (writeResult) {
-        std::cout << "Successfully wrote " << bytesWritten << " bytes." << std::endl;
+        if (isConsole) {
+            std::cout << "Successfully wrote " << bytesWritten << " bytes." << std::endl;
+        }
     } else {
-        std::cout << "All write attempts failed." << std::endl;
+        if (isConsole) {
+            std::cout << "All write attempts failed." << std::endl;
+        } else {
+            MessageBoxA(NULL, "Failed to write DLL path to target process memory.", "Injector Error", MB_OK | MB_ICONERROR);
+        }
         VirtualFreeEx(hProcess, allocMem, 0, MEM_RELEASE);
         CloseHandle(hProcess);
         return 1;
@@ -106,7 +155,7 @@ int main(int argc, char* argv[])
         CloseHandle(hProcess);
         return 1;
     }
-    
+
     LPVOID loadLibraryAddr = (LPVOID)GetProcAddress(hKernel32, "LoadLibraryA");
     if (!loadLibraryAddr) {
         PrintLastError("Failed to get address of LoadLibraryA");
@@ -114,7 +163,9 @@ int main(int argc, char* argv[])
         CloseHandle(hProcess);
         return 1;
     }
-    std::cout << "LoadLibraryA address: " << loadLibraryAddr << std::endl;
+    if (isConsole) {
+        std::cout << "LoadLibraryA address: " << loadLibraryAddr << std::endl;
+    }
 
     // Create a remote thread that calls LoadLibraryA with the DLL path.
     HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0,
@@ -126,23 +177,37 @@ int main(int argc, char* argv[])
         CloseHandle(hProcess);
         return 1;
     }
-    std::cout << "Remote thread created with handle: " << hThread << std::endl;
+    if (isConsole) {
+        std::cout << "Remote thread created with handle: " << hThread << std::endl;
+    }
 
     // Wait until the remote thread finishes with timeout
     DWORD waitResult = WaitForSingleObject(hThread, 5000); // 5 second timeout
-    
+
     if (waitResult == WAIT_OBJECT_0) {
         // Get thread exit code (which is the DLL handle or NULL)
         DWORD exitCode = 0;
         if (GetExitCodeThread(hThread, &exitCode)) {
             if (exitCode) {
-                std::cout << "DLL injected successfully. Handle: 0x" << std::hex << exitCode << std::dec << std::endl;
+                if (isConsole) {
+                    std::cout << "DLL injected successfully. Handle: 0x" << std::hex << exitCode << std::dec << std::endl;
+                } else {
+                    MessageBoxA(NULL, "DLL injected successfully!", "Injection Success", MB_OK | MB_ICONINFORMATION);
+                }
             } else {
-                std::cout << "LoadLibrary returned NULL - injection failed." << std::endl;
+                if (isConsole) {
+                    std::cout << "LoadLibrary returned NULL - injection failed." << std::endl;
+                } else {
+                    MessageBoxA(NULL, "Injection failed - LoadLibrary returned NULL.", "Injection Failed", MB_OK | MB_ICONERROR);
+                }
             }
         }
     } else if (waitResult == WAIT_TIMEOUT) {
-        std::cout << "Warning: Thread did not complete within timeout." << std::endl;
+        if (isConsole) {
+            std::cout << "Warning: Thread did not complete within timeout." << std::endl;
+        } else {
+            MessageBoxA(NULL, "Warning: Injection thread did not complete within timeout.", "Injection Warning", MB_OK | MB_ICONWARNING);
+        }
     }
 
     // Clean up

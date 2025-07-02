@@ -101,3 +101,7 @@ set_target_properties(RoR2ModDLL PROPERTIES
 add_executable(injector
     injector.cpp
 )
+
+set_target_properties(injector PROPERTIES
+    LINK_FLAGS "-Wl,--subsystem,windows"
+)
