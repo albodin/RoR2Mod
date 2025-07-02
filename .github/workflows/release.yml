@@ -112,11 +112,7 @@ jobs:
         prerelease: false
         files: |
           RoR2Mod-${{ steps.get_version.outputs.TAG }}.zip
-          build/RoR2Mod.dll
-          build/injector.exe
         body: |
-          # RoR2Mod ${{ steps.get_version.outputs.TAG }}
-
           **Version**: ${{ steps.get_version.outputs.VERSION }}
           **Commit**: ${{ steps.get_version.outputs.COMMIT_SHORT }}
           **Date**: ${{ steps.get_version.outputs.COMMIT_DATE }}
@@ -129,10 +125,5 @@ jobs:
 
           ${{ steps.changelog.outputs.CHANGELOG }}
 
-          ## Downloads
-          - 📦 **Full Package**: `RoR2Mod-${{ steps.get_version.outputs.TAG }}.zip` (recommended)
-          - 📄 **Individual Files**:
-            - `RoR2Mod.dll` - The mod library
-            - `injector.exe` - The injection tool
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
