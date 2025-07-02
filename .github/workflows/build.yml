@@ -1,0 +1,70 @@
+name: Build RoR2Mod
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install MinGW-w64
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mingw-w64 cmake
+
+    - name: Extract version and build info
+      id: get_version
+      run: |
+        # Get version from version.h
+        VERSION=$(grep "VERSION_STRING" src/version.h | cut -d'"' -f2)
+        # Get short commit hash
+        COMMIT_SHORT=$(git rev-parse --short HEAD)
+        # Get build number (use run number)
+        BUILD_NUM=${{ github.run_number }}
+        # Create full version string
+        FULL_VERSION="${VERSION}-${COMMIT_SHORT}-b${BUILD_NUM}"
+
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "COMMIT_SHORT=$COMMIT_SHORT" >> $GITHUB_OUTPUT
+        echo "BUILD_NUM=$BUILD_NUM" >> $GITHUB_OUTPUT
+        echo "FULL_VERSION=$FULL_VERSION" >> $GITHUB_OUTPUT
+
+        echo "Version: $VERSION"
+        echo "Commit: $COMMIT_SHORT"
+        echo "Build: $BUILD_NUM"
+        echo "Full Version: $FULL_VERSION"
+
+    - name: Update version.h with commit info
+      run: |
+        sed -i "s/VERSION_STRING \".*\"/VERSION_STRING \"${{ steps.get_version.outputs.VERSION }}-${{ steps.get_version.outputs.COMMIT_SHORT }}\"/" src/version.h
+        echo "Updated version.h:"
+        grep VERSION_STRING src/version.h
+
+    - name: Configure CMake
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_TOOLCHAIN_FILE=../mingw-toolchain.cmake ..
+
+    - name: Build
+      run: |
+        cd build
+        cmake --build . --config Debug
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: RoR2Mod-v${{ steps.get_version.outputs.FULL_VERSION }}
+        path: |
+          build/RoR2Mod.dll
+          build/injector.exe
+        retention-days: 90

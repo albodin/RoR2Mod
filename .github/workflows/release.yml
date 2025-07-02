@@ -1,0 +1,136 @@
+name: Tagged Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to create (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install MinGW-w64
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mingw-w64 cmake zip
+
+    - name: Extract version info
+      id: get_version
+      run: |
+        # Get version from version.h
+        VERSION=$(grep "VERSION_STRING" src/version.h | cut -d'"' -f2)
+        # Get tag name
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          TAG="${{ github.event.inputs.tag }}"
+        else
+          TAG="${GITHUB_REF#refs/tags/}"
+        fi
+        # Get commit info
+        COMMIT_SHORT=$(git rev-parse --short HEAD)
+        COMMIT_DATE=$(git show -s --format=%ci HEAD | cut -d' ' -f1)
+
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "TAG=$TAG" >> $GITHUB_OUTPUT
+        echo "COMMIT_SHORT=$COMMIT_SHORT" >> $GITHUB_OUTPUT
+        echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_OUTPUT
+
+        echo "Version from version.h: $VERSION"
+        echo "Tag: $TAG"
+        echo "Commit: $COMMIT_SHORT"
+        echo "Date: $COMMIT_DATE"
+
+    - name: Configure CMake (Release Build)
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_TOOLCHAIN_FILE=../mingw-toolchain.cmake -DCMAKE_BUILD_TYPE=Release ..
+
+    - name: Build
+      run: |
+        cd build
+        cmake --build . --config Release
+
+    - name: Create distribution package
+      run: |
+        mkdir -p dist
+        cp build/RoR2Mod.dll dist/
+        cp build/injector.exe dist/
+
+        # Create version info file
+        cat > dist/VERSION.txt << EOF
+        RoR2Mod Version Information
+        ==========================
+        Version: ${{ steps.get_version.outputs.VERSION }}
+        Tag: ${{ steps.get_version.outputs.TAG }}
+        Commit: ${{ steps.get_version.outputs.COMMIT_SHORT }}
+        Build Date: ${{ steps.get_version.outputs.COMMIT_DATE }}
+        EOF
+
+        # Add README if exists
+        if [ -f README.md ]; then cp README.md dist/; fi
+
+        # Create zip
+        cd dist
+        zip -r ../RoR2Mod-${{ steps.get_version.outputs.TAG }}.zip *
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get previous tag
+        PREV_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
+
+        if [ -n "$PREV_TAG" ]; then
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          echo "## Changes since $PREV_TAG" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        else
+          echo "CHANGELOG=Initial release" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.get_version.outputs.TAG }}
+        name: RoR2Mod ${{ steps.get_version.outputs.TAG }}
+        draft: false
+        prerelease: false
+        files: |
+          RoR2Mod-${{ steps.get_version.outputs.TAG }}.zip
+          build/RoR2Mod.dll
+          build/injector.exe
+        body: |
+          # RoR2Mod ${{ steps.get_version.outputs.TAG }}
+
+          **Version**: ${{ steps.get_version.outputs.VERSION }}
+          **Commit**: ${{ steps.get_version.outputs.COMMIT_SHORT }}
+          **Date**: ${{ steps.get_version.outputs.COMMIT_DATE }}
+
+          ## Installation
+          1. Download `RoR2Mod-${{ steps.get_version.outputs.TAG }}.zip`
+          2. Extract to a folder of your choice
+          3. Start Risk of Rain 2
+          4. Run `injector.exe` (as administrator if needed)
+
+          ${{ steps.changelog.outputs.CHANGELOG }}
+
+          ## Downloads
+          - 📦 **Full Package**: `RoR2Mod-${{ steps.get_version.outputs.TAG }}.zip` (recommended)
+          - 📄 **Individual Files**:
+            - `RoR2Mod.dll` - The mod library
+            - `injector.exe` - The injection tool
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
