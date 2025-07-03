@@ -416,7 +416,9 @@ void IntControl::UpdateFreezeLogic() {
     int currentValue = getValueFunc();
     if (enabled) {
         if (freezeMode == FreezeMode::HardLock) {
-            setValueFunc(frozenValue);
+            if (currentValue != frozenValue) {
+                setValueFunc(frozenValue);
+            }
         } else { // MinimumValue
             if (currentValue < frozenValue) {
                 setValueFunc(frozenValue);
@@ -591,7 +593,9 @@ void FloatControl::UpdateFreezeLogic() {
     float currentValue = getValueFunc();
     if (enabled) {
         if (freezeMode == FreezeMode::HardLock) {
-            setValueFunc(frozenValue);
+            if (currentValue != frozenValue) {
+                setValueFunc(frozenValue);
+            }
         } else { // MinimumValue
             if (currentValue < frozenValue) {
                 setValueFunc(frozenValue);
