@@ -302,6 +302,9 @@ void IntControl::Draw() {
     int tempValue = value;
     if (ImGui::InputInt("##value", &value, step, step * 10)) {
         SetValue(value);
+        if (enabled) {
+            frozenValue = value;
+        }
         if (tempValue != value) {
             if (onChange) {
                 onChange(value);
@@ -375,10 +378,16 @@ void IntControl::SetValue(int newValue) {
 
 void IntControl::Increment() {
     SetValue(value + step);
+    if (enabled) {
+        frozenValue = value;
+    }
 }
 
 void IntControl::Decrement() {
     SetValue(value - step);
+    if (enabled) {
+        frozenValue = value;
+    }
 }
 
 json IntControl::Serialize() const {
@@ -481,6 +490,9 @@ void FloatControl::Draw() {
     ImGui::PushItemWidth(inputWidth);
     if (ImGui::InputFloat("##value", &value, step, step * 10)) {
         SetValue(value);
+        if (enabled) {
+            frozenValue = value;
+        }
         if (onChange) {
             onChange(value);
         } else if (setValueFunc) {
@@ -552,10 +564,16 @@ void FloatControl::SetValue(float newValue) {
 
 void FloatControl::Increment() {
     SetValue(value + step);
+    if (enabled) {
+        frozenValue = value;
+    }
 }
 
 void FloatControl::Decrement() {
     SetValue(value - step);
+    if (enabled) {
+        frozenValue = value;
+    }
 }
 
 json FloatControl::Serialize() const {

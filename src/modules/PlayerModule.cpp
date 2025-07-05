@@ -69,7 +69,7 @@ void PlayerModule::Initialize() {
     huntressRangeControl->SetGameValueFunctions(
         [this]() {
             HuntressTracker* tracker = GetCurrentLocalTracker();
-            return tracker ? tracker->maxTrackingDistance : 0.0f;
+            return tracker ? tracker->maxTrackingDistance : 20.0f;
         },
         [this](float value) {
             HuntressTracker* tracker = GetCurrentLocalTracker();
@@ -81,7 +81,7 @@ void PlayerModule::Initialize() {
     huntressFOVControl->SetGameValueFunctions(
         [this]() {
             HuntressTracker* tracker = GetCurrentLocalTracker();
-            return tracker ? tracker->maxTrackingAngle : 0.0f;
+            return tracker ? tracker->maxTrackingAngle : 20.0f;
         },
         [this](float value) {
             HuntressTracker* tracker = GetCurrentLocalTracker();
