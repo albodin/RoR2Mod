@@ -1742,6 +1742,7 @@ void ESPModule::InitializeCostFormats() {
     m_encrustedKeyFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_TREASURECACHEVOIDITEM_FORMAT"));
     m_lunarCoinName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("PICKUP_LUNAR_COIN"));
     m_voidCoinName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("PICKUP_VOID_COIN"));
+    m_soulCostFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_SOULCOST_FORMAT"));
 
     m_costFormatsInitialized = true;
     G::logger.LogInfo("Cost formats initialized successfully");
@@ -1790,16 +1791,16 @@ std::string ESPModule::GetCostString(CostTypeIndex_Value costType, int cost) {
             format = m_itemFormat;
             break;
 
-        case CostTypeIndex_Value::LunarItemOrEquipment:
-            format = m_lunarFormat;
-            break;
-
         case CostTypeIndex_Value::Equipment:
             format = m_equipmentFormat;
             break;
 
         case CostTypeIndex_Value::VolatileBattery:
             format = m_volatileBatteryFormat;
+            break;
+
+        case CostTypeIndex_Value::LunarItemOrEquipment:
+            format = m_lunarFormat;
             break;
 
         case CostTypeIndex_Value::ArtifactShellKillerItem:
@@ -1816,6 +1817,10 @@ std::string ESPModule::GetCostString(CostTypeIndex_Value costType, int cost) {
 
         case CostTypeIndex_Value::VoidCoin:
             return std::to_string(cost) + " " + m_voidCoinName;
+
+        case CostTypeIndex_Value::SoulCost:
+            format = m_soulCostFormat;
+            break;
 
         default:
             G::logger.LogWarning("Unknown cost type: %d", (int)costType);

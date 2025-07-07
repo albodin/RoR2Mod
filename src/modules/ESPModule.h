@@ -238,6 +238,7 @@ private:
     std::string m_encrustedKeyFormat;
     std::string m_lunarCoinName;
     std::string m_voidCoinName;
+    std::string m_soulCostFormat;
     bool m_costFormatsInitialized;
 
     // Pickup name cache
