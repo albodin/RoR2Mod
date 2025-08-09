@@ -13,10 +13,22 @@ def parse_arguments():
     return parser.parse_args()
 
 def find_latest_crash_log():
-    base_path = os.path.expanduser("~/.steam/debian-installation/steamapps/compatdata/632360/pfx/drive_c/users/steamuser/AppData/Local/Temp/Hopoo Games, LLC/Risk of Rain 2/Crashes/")
-
-    if not os.path.exists(base_path):
-        print(f"Crash directory not found at: {base_path}")
+    possible_paths = [
+        os.path.expanduser("~/.steam/debian-installation/steamapps/compatdata/632360/pfx/drive_c/users/steamuser/AppData/Local/Temp/Hopoo Games, LLC/Risk of Rain 2/Crashes/"),
+        os.path.expanduser("~/.local/share/Steam/steamapps/compatdata/632360/pfx/drive_c/users/steamuser/AppData/Local/Temp/Hopoo Games, LLC/Risk of Rain 2/Crashes/")
+    ]
+    
+    base_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            base_path = path
+            print(f"Using crash directory: {base_path}")
+            break
+    
+    if base_path is None:
+        print("Crash directory not found at any of these locations:")
+        for path in possible_paths:
+            print(f"  {path}")
         return None
 
     crash_dirs = glob.glob(os.path.join(base_path, "Crash_*"))
