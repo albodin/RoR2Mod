@@ -9,16 +9,27 @@ project(RoR2Mod LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Always build with debug info
-set(CMAKE_BUILD_TYPE Debug)
+# Set default build type if not specified
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+endif()
 
-# Consolidate all debug and compiler flags
+# Common compiler flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -fpermissive")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -ggdb -gdwarf-4 -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--export-all-symbols")
 
-# Debug definitions
-add_definitions(-D_DEBUG -DDEBUG -D_CONSOLE)
+# Debug-specific flags
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -ggdb -gdwarf-4 -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
+
+# Release-specific flags (optimize for size and strip debug info)
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -s -DNDEBUG")
+
+# Build-type specific definitions
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_definitions(-D_DEBUG -DDEBUG -D_CONSOLE)
+else()
+    add_definitions(-DNDEBUG)
+endif()
 
 # Add imgui
 set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
@@ -126,16 +137,27 @@ set_target_properties(RoR2ModDLL PROPERTIES
     SUFFIX ".dll"
 )
 
-# Keep Windows subsystem but add debug symbols and definitions
-set_target_properties(RoR2ModDLL PROPERTIES
-    LINK_FLAGS "-Wl,--subsystem,windows -Wl,--enable-runtime-pseudo-reloc -Wl,--export-all-symbols"
-)
+# Set link flags based on build type
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set_target_properties(RoR2ModDLL PROPERTIES
+        LINK_FLAGS "-Wl,--subsystem,windows -Wl,--enable-runtime-pseudo-reloc -Wl,--export-all-symbols -static -pthread -s"
+    )
+else()
+    set_target_properties(RoR2ModDLL PROPERTIES
+        LINK_FLAGS "-Wl,--subsystem,windows -Wl,--enable-runtime-pseudo-reloc -Wl,--export-all-symbols -static -pthread"
+    )
+endif()
 
-# Injector
 add_executable(injector
     injector.cpp
 )
 
-set_target_properties(injector PROPERTIES
-    LINK_FLAGS "-Wl,--subsystem,windows"
-)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set_target_properties(injector PROPERTIES
+        LINK_FLAGS "-Wl,--subsystem,windows -static -pthread -s"
+    )
+else()
+    set_target_properties(injector PROPERTIES
+        LINK_FLAGS "-Wl,--subsystem,windows -static -pthread"
+    )
+endif()

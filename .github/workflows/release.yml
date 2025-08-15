@@ -22,10 +22,15 @@ jobs:
       with:
         submodules: recursive
 
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
     - name: Install MinGW-w64
       run: |
         sudo apt-get update
-        sudo apt-get install -y mingw-w64 cmake zip
+        sudo apt-get install -y mingw-w64 cmake zip python3
 
     - name: Extract version info
       id: get_version

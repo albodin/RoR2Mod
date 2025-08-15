@@ -16,10 +16,15 @@ jobs:
       with:
         submodules: recursive
 
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
     - name: Install MinGW-w64
       run: |
         sudo apt-get update
-        sudo apt-get install -y mingw-w64 cmake
+        sudo apt-get install -y mingw-w64 cmake python3
 
     - name: Extract version and build info
       id: get_version
@@ -49,16 +54,16 @@ jobs:
         echo "Updated version.h:"
         grep VERSION_STRING src/version.h
 
-    - name: Configure CMake
+    - name: Configure CMake (Release)
       run: |
         mkdir -p build
         cd build
-        cmake -DCMAKE_TOOLCHAIN_FILE=../mingw-toolchain.cmake ..
+        cmake -DCMAKE_TOOLCHAIN_FILE=../mingw-toolchain.cmake -DCMAKE_BUILD_TYPE=Release ..
 
-    - name: Build
+    - name: Build (Release)
       run: |
         cd build
-        cmake --build . --config Debug
+        cmake --build . --config Release
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
