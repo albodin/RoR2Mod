@@ -48,7 +48,7 @@
         {
             "label": "Inject DLL",
             "type": "shell",
-            "command": "cd build && protontricks-launch --no-bwrap --appid 632360 ${workspaceFolder}/build/injector.exe \"Risk of Rain 2.exe\" \"Z:${workspaceFolder}/build/RoR2Mod.dll\"",
+            "command": "cd build && protontricks-launch --no-bwrap --appid 632360 ${workspaceFolder}/build/injector.exe \"Risk of Rain 2.exe\" \"${workspaceFolder}/build/RoR2Mod.dll\"",
             "problemMatcher": [],
             "dependsOn": [
                 "Build All",
@@ -58,7 +58,7 @@
         {
             "label": "Inject and Run",
             "type": "shell",
-            "command": "cd ${workspaceFolder}/build && protontricks-launch --no-bwrap --appid 632360 ${workspaceFolder}/build/injector.exe \"Risk of Rain 2.exe\" \"Z:${workspaceFolder}/build/RoR2Mod.dll\"",
+            "command": "cd ${workspaceFolder}/build && protontricks-launch --no-bwrap --appid 632360 ${workspaceFolder}/build/injector.exe \"Risk of Rain 2.exe\" \"${workspaceFolder}/build/RoR2Mod.dll\"",
             "problemMatcher": [],
             "dependsOn": [
                 "Build All",

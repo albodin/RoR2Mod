@@ -5,10 +5,10 @@
             "name": "Attach to Risk of Rain 2",
             "type": "cppdbg",
             "request": "attach",
-            "program": "${userHome}/.steam/debian-installation/steamapps/common/Risk of Rain 2/Risk of Rain 2.exe",
+            "program": "${userHome}/.local/share/Steam/steamapps/common/Risk of Rain 2/Risk of Rain 2.exe",
             "processId": "${command:pickProcess}",
             "MIMode": "gdb",
-            "miDebuggerPath": "/usr/local/bin/gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
             "logging": {
                 "engineLogging": true
             },
