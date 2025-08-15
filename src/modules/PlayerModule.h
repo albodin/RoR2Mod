@@ -1,17 +1,17 @@
 #pragma once
 #include "ModuleBase.h"
-#include "menu/InputControls.h"
 #include "game/GameStructs.h"
+#include "menu/InputControls.h"
 #include "utils/ModStructs.h"
 #include <map>
-#include <vector>
-#include <shared_mutex>
-#include <queue>
-#include <mutex>
 #include <memory>
+#include <mutex>
+#include <queue>
+#include <shared_mutex>
+#include <vector>
 
 class PlayerModule : public ModuleBase {
-private:
+  private:
     std::unique_ptr<ToggleControl> godModeControl;
     std::unique_ptr<FloatControl> baseMoveSpeedControl;
     std::unique_ptr<FloatControl> baseDamageControl;
@@ -60,13 +60,14 @@ private:
     std::mutex trackerCacheMutex;
 
     Vector3 playerPosition;
+    Vector3 crosshairPosition;
     bool isProvidingFlight;
 
     bool isMoneyConversionActive;
 
     void SortItemsByName();
 
-public:
+  public:
     PlayerModule();
     ~PlayerModule() override;
 
@@ -117,10 +118,9 @@ public:
     void DrawItemInputs(ItemTier_Value tier);
 
     Vector3 GetPlayerPosition() { return playerPosition; }
+    Vector3 GetCrosshairPosition() { return crosshairPosition; }
     LocalUser* GetLocalUser() { return localUser_cached; }
-    CharacterBody* GetLocalPlayerBody() {
-        return localUser_cached ? localUser_cached->cachedBody_backing : nullptr;
-    }
+    CharacterBody* GetLocalPlayerBody() { return localUser_cached ? localUser_cached->cachedBody_backing : nullptr; }
 
     void OnHuntressTrackerStart(void* huntressTracker);
     void OnCharacterBodyDestroyed(void* characterBody);

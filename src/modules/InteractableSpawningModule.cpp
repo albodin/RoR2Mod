@@ -1,0 +1,105 @@
+#include "InteractableSpawningModule.h"
+#include "game/InteractablePaths.h"
+#include "globals/globals.h"
+#include "imgui/imgui.h"
+#include <algorithm>
+
+InteractableSpawningModule::InteractableSpawningModule() {
+    interactableSelectControl = std::make_unique<ComboControl>("Interactable", "interactableSpawn_selected", std::vector<std::string>{"Loading..."}, 0, true);
+
+    spawnButtonControl = std::make_unique<ButtonControl>("Spawn", "interactableSpawn_button", "Spawn on Player");
+    spawnAtCrosshairButtonControl = std::make_unique<ButtonControl>("Spawn at Crosshair", "interactableSpawn_crosshair", "Spawn at Crosshair");
+
+    spawnButtonControl->SetOnClick([this]() { SpawnSelectedInteractable(true); });
+    spawnAtCrosshairButtonControl->SetOnClick([this]() { SpawnSelectedInteractable(false); });
+}
+
+InteractableSpawningModule::~InteractableSpawningModule() {}
+
+void InteractableSpawningModule::Initialize() {
+    G::logger.LogInfo("Initializing InteractableSpawningModule...");
+    SetupInteractables();
+    G::logger.LogInfo("InteractableSpawningModule initialized with %zu interactables", interactableNames.size());
+}
+
+void InteractableSpawningModule::Update() {
+    interactableSelectControl->Update();
+    spawnButtonControl->Update();
+    spawnAtCrosshairButtonControl->Update();
+}
+
+void InteractableSpawningModule::DrawUI() {
+    if (interactableNames.empty()) {
+        ImGui::Text("No interactables loaded");
+        return;
+    }
+
+    interactableSelectControl->Draw();
+
+    if (!G::csHelper || !G::csHelper->IsLoaded()) {
+        ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "C# Helper not loaded");
+    } else {
+        spawnButtonControl->Draw();
+        spawnAtCrosshairButtonControl->Draw();
+    }
+}
+
+void InteractableSpawningModule::SetupInteractables() {
+    const auto& knownPaths = InteractablePaths::ALL_INTERACTABLE_PATHS;
+
+    interactableNames.clear();
+    interactablePaths.clear();
+
+    for (const auto& path : knownPaths) {
+        std::string name = path;
+        size_t lastSlash = name.find_last_of('/');
+        if (lastSlash != std::string::npos) {
+            name = name.substr(lastSlash + 1);
+        }
+
+        interactableNames.push_back(name);
+        interactablePaths.push_back(path);
+    }
+
+    interactableSelectControl->SetItems(interactableNames);
+
+    G::logger.LogInfo("Loaded %zu interactables", interactableNames.size());
+}
+
+void InteractableSpawningModule::SpawnSelectedInteractable(bool playerPosition) {
+    if (!G::csHelper || !G::csHelper->IsLoaded()) {
+        G::logger.LogError("C# Helper not available for spawning");
+        return;
+    }
+
+    int selectedIndex = interactableSelectControl->GetSelectedIndex();
+    if (selectedIndex < 0 || selectedIndex >= static_cast<int>(interactablePaths.size())) {
+        G::logger.LogError("Invalid interactable selection index: %d", selectedIndex);
+        return;
+    }
+
+    std::string selectedPath = interactablePaths[selectedIndex];
+    std::string selectedName = interactableNames[selectedIndex];
+
+    Vector3 spawnPos;
+    const char* locationDesc;
+
+    if (playerPosition) {
+        spawnPos = G::localPlayer->GetPlayerPosition();
+        locationDesc = "near player";
+        if (spawnPos.x == 0.0f && spawnPos.y == 0.0f && spawnPos.z == 0.0f) {
+            G::logger.LogError("Could not get player position");
+            return;
+        }
+    } else {
+        spawnPos = G::localPlayer->GetCrosshairPosition();
+        locationDesc = "at crosshair";
+        if (spawnPos.x == 0.0f && spawnPos.y == 0.0f && spawnPos.z == 0.0f) {
+            G::logger.LogError("Could not get crosshair position");
+            return;
+        }
+    }
+
+    G::logger.LogInfo("Spawning %s %s (%.2f, %.2f, %.2f)", selectedName.c_str(), locationDesc, spawnPos.x, spawnPos.y, spawnPos.z);
+    G::csHelper->SpawnInteractable(selectedPath, spawnPos.x, spawnPos.y, spawnPos.z);
+}

@@ -42,4 +42,11 @@ CMakeUserPresets.json
 # Reference code (decompiled C# source)
 RoR2CSCode/
 
-.serena
+
+# Python
+*.pyc
+venv/
+
+# C# helper files
+src/generated/
+src/helper/obj/

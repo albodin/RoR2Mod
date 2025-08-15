@@ -1,15 +1,15 @@
 #pragma once
 
-#include <windows.h>
+#include "MonoTypes.h"
+#include <cstdint>
 #include <string>
 #include <unordered_map>
-#include "MonoTypes.h"
+#include <windows.h>
 
+typedef enum { MONO_IMAGE_OK = 0, MONO_IMAGE_ERROR_ERRNO, MONO_IMAGE_MISSING_ASSEMBLYREF, MONO_IMAGE_IMAGE_INVALID } MonoImageOpenStatus;
 
-// MonoRuntime.h - Base class for interacting with the Mono runtime
 class MonoRuntime {
-private:
-    // Mono API function pointers
+  private:
     mono_get_root_domain_t m_mono_get_root_domain;
     mono_domain_assembly_foreach_t m_mono_domain_assembly_foreach;
     mono_assembly_get_image_t m_mono_assembly_get_image;
@@ -48,22 +48,22 @@ private:
     mono_class_get_name_t m_mono_class_get_name;
     mono_object_new_t m_mono_object_new;
     mono_field_set_value_t m_mono_field_set_value;
+    mono_image_open_from_data_with_name_t m_mono_image_open_from_data_with_name;
+    mono_image_open_from_data_t m_mono_image_open_from_data;
+    mono_assembly_load_from_full_t m_mono_assembly_load_from_full;
+    mono_image_close_t m_mono_image_close;
+    mono_assembly_close_t m_mono_assembly_close;
 
-    // Mono runtime state
     MonoDomain* m_rootDomain;
     MonoThread* m_thread;
-    
-    // Cache for found assemblies, images, and classes
+
     std::unordered_map<std::string, MonoImage*> m_imageCache;
     std::unordered_map<std::string, MonoClass*> m_classCache;
-    
-    // Helper function to generate cache keys
+
     std::string MakeClassCacheKey(const char* nameSpace, const char* className);
-    
-    // Assembly iteration callback
     static void __cdecl AssemblyIterationCallback(MonoAssembly* assembly, void* user_data);
 
-public:
+  public:
     mono_object_unbox_t m_mono_object_unbox;
 
     MonoRuntime();
@@ -72,19 +72,20 @@ public:
     bool Initialize(const char* monoDllName = "mono-2.0-bdwgc.dll");
     bool AttachThread();
     void DetachThread();
+    MonoAssembly* LoadAssemblyFromMemory(const unsigned char* data, size_t size, const char* name);
+    MonoImage* GetAssemblyImage(MonoAssembly* assembly);
+    void UnloadAssembly(MonoAssembly* assembly);
     MonoImage* GetImage(const char* assemblyName);
     MonoClass* GetClass(const char* assemblyName, const char* nameSpace, const char* className);
     MonoMethod* GetMethod(MonoClass* klass, const char* methodName, int paramCount);
     LPVOID GetMethodAddress(const char* assemblyName, const char* nameSpace, const char* className, const char* methodName, int paramCount);
-    LPVOID GetMethodAddress(const char* assemblyName, const char* nameSpace, const char* className, const char* methodName, int paramCount, const char* returnType, const char** paramTypes);
+    LPVOID GetMethodAddress(const char* assemblyName, const char* nameSpace, const char* className, const char* methodName, int paramCount,
+                            const char* returnType, const char** paramTypes);
     MonoObject* InvokeMethod(MonoMethod* method, void* obj, void** params);
     MonoField* GetField(MonoClass* klass, const char* fieldName);
-    template<typename T>
-    T GetFieldValue(MonoObject* obj, MonoField* field);
-    template<typename T>
-    T GetStaticFieldValue(MonoClass* klass, MonoField* field);
-    template<typename T>
-    void SetStaticFieldValue(MonoClass* klass, MonoField* field, T value);
+    template <typename T> T GetFieldValue(MonoObject* obj, MonoField* field);
+    template <typename T> T GetStaticFieldValue(MonoClass* klass, MonoField* field);
+    template <typename T> void SetStaticFieldValue(MonoClass* klass, MonoField* field, T value);
     MonoString* CreateString(const char* text);
     std::string StringToUtf8(MonoString* monoString);
     MonoProperty* GetProperty(MonoClass* klass, const char* propertyName);
@@ -99,47 +100,43 @@ public:
 };
 
 // Template method implementations
-template<typename T>
-T MonoRuntime::GetFieldValue(MonoObject* obj, MonoField* field) {
+template <typename T> T MonoRuntime::GetFieldValue(MonoObject* obj, MonoField* field) {
     if (!obj || !field) {
         T defaultValue = T();
         return defaultValue;
     }
-    
+
     T value;
     m_mono_field_get_value(obj, field, &value);
     return value;
 }
 
-template<typename T>
-T MonoRuntime::GetStaticFieldValue(MonoClass* klass, MonoField* field) {
+template <typename T> T MonoRuntime::GetStaticFieldValue(MonoClass* klass, MonoField* field) {
     if (!klass || !field) {
         T defaultValue = T();
         return defaultValue;
     }
-    
-    // Get the vtable for the class
+
     MonoVTable* vtable = m_mono_class_vtable(m_rootDomain, klass);
     if (!vtable) {
         T defaultValue = T();
         return defaultValue;
     }
-    
+
     T value;
     m_mono_field_static_get_value(vtable, field, &value);
     return value;
 }
 
-template<typename T>
-void MonoRuntime::SetStaticFieldValue(MonoClass* klass, MonoField* field, T value) {
+template <typename T> void MonoRuntime::SetStaticFieldValue(MonoClass* klass, MonoField* field, T value) {
     if (!klass || !field) {
         return;
     }
-    
+
     MonoVTable* vtable = m_mono_class_vtable(m_rootDomain, klass);
     if (!vtable) {
         return;
     }
-    
+
     m_mono_field_static_set_value(vtable, field, &value);
 }

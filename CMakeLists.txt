@@ -41,11 +41,41 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/minhook)
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
+# C# Helper DLL Configuration
+set(HELPER_CS_PROJECT ${CMAKE_CURRENT_SOURCE_DIR}/src/helper/RoR2ModHelper.csproj)
+set(HELPER_CS_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/helper/RoR2ModHelper.cs)
+set(HELPER_DLL_OUTPUT ${CMAKE_BINARY_DIR}/RoR2ModHelper.dll)
+set(HELPER_HEADER_OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/RoR2ModHelper_dll.h)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+find_program(DOTNET_EXECUTABLE dotnet REQUIRED)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/generated)
+add_custom_command(
+    OUTPUT ${HELPER_DLL_OUTPUT}
+    COMMAND ${DOTNET_EXECUTABLE} restore ${HELPER_CS_PROJECT}
+    COMMAND ${DOTNET_EXECUTABLE} build ${HELPER_CS_PROJECT} --no-restore -c Release
+    DEPENDS ${HELPER_CS_SOURCE} ${HELPER_CS_PROJECT}
+    COMMENT "Building C# helper DLL with dotnet..."
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/helper
+    VERBATIM
+)
+add_custom_command(
+    OUTPUT ${HELPER_HEADER_OUTPUT}
+    COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/dll_to_header.py
+        ${HELPER_DLL_OUTPUT}
+        ${HELPER_HEADER_OUTPUT}
+    DEPENDS ${HELPER_DLL_OUTPUT}
+    COMMENT "Converting helper DLL to C++ header..."
+    VERBATIM
+)
+add_custom_target(generate_helper ALL DEPENDS ${HELPER_HEADER_OUTPUT})
+
 # Include directories
 include_directories(
     ${INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/minhook/include
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/generated
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
 )
@@ -60,6 +90,7 @@ file(GLOB_RECURSE MENU_SOURCES ${SRC_DIR}/menu/*.cpp)
 file(GLOB_RECURSE FONT_SOURCES ${SRC_DIR}/fonts/*.cpp)
 file(GLOB_RECURSE MODULE_SOURCES ${SRC_DIR}/modules/*.cpp)
 file(GLOB_RECURSE CONFIG_SOURCES ${SRC_DIR}/config/*.cpp)
+file(GLOB_RECURSE HELPER_SOURCES ${SRC_DIR}/helper/*.cpp)
 
 # DLL
 add_library(RoR2ModDLL SHARED
@@ -75,7 +106,10 @@ add_library(RoR2ModDLL SHARED
     ${FONT_SOURCES}
     ${MODULE_SOURCES}
     ${CONFIG_SOURCES}
+    ${HELPER_SOURCES}
 )
+
+add_dependencies(RoR2ModDLL generate_helper)
 
 target_link_libraries(RoR2ModDLL PRIVATE
     minhook

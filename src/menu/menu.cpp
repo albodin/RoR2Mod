@@ -1,31 +1,25 @@
 #include "menu.h"
+#include "config/ConfigManager.h"
+#include "fonts/FontManager.h"
 #include "globals/globals.h"
 #include "utils/MonoApi.h"
-#include "fonts/FontManager.h"
-#include "config/ConfigManager.h"
-#include <imgui.h>
 #include <filesystem>
+#include <imgui.h>
 
-void DrawPlayerTab() {
-    G::localPlayer->DrawUI();
-}
+void DrawPlayerTab() { G::localPlayer->DrawUI(); }
 
-void DrawWorldTab() {
-    G::worldModule->DrawUI();
-}
+void DrawWorldTab() { G::worldModule->DrawUI(); }
 
-void DrawESPTab() {
-    G::espModule->DrawUI();
-}
+void DrawESPTab() { G::espModule->DrawUI(); }
 
-void DrawAimbotTab() {
-
-}
+void DrawAimbotTab() {}
 
 void DrawEnemiesTab() {
     G::enemySpawningModule->DrawUI();
     G::enemyModule->DrawUI();
 }
+
+void DrawInteractablesTab() { G::interactableSpawningModule->DrawUI(); }
 
 void DumpGameToDirectory(std::string directoryName) {
     static bool initialized = false;
@@ -72,9 +66,7 @@ void DrawConfigTab() {
         ImGui::SameLine();
         ImGui::SetNextItemWidth(200);
         if (ImGui::BeginCombo("##configselect",
-            selectedConfigIndex >= 0 && selectedConfigIndex < configs.size()
-                ? configs[selectedConfigIndex].c_str()
-                : "Select a config...")) {
+                              selectedConfigIndex >= 0 && selectedConfigIndex < configs.size() ? configs[selectedConfigIndex].c_str() : "Select a config...")) {
 
             for (int i = 0; i < configs.size(); i++) {
                 bool isSelected = (selectedConfigIndex == i);
@@ -145,8 +137,7 @@ void DrawConfigTab() {
 
                     // Select new config
                     auto& updatedConfigs = ConfigManager::GetAvailableConfigs();
-                    auto it = std::find(updatedConfigs.begin(), updatedConfigs.end(),
-                                      ConfigManager::GetCurrentConfigName());
+                    auto it = std::find(updatedConfigs.begin(), updatedConfigs.end(), ConfigManager::GetCurrentConfigName());
                     if (it != updatedConfigs.end()) {
                         selectedConfigIndex = std::distance(updatedConfigs.begin(), it);
                     }
@@ -265,7 +256,6 @@ void DrawConfigTab() {
                             statusMessage = "Error: Failed to create directory '" + std::string(directoryName) + "'";
                         }
 
-
                     } else {
                         bool isEmpty = true;
                         for (const auto& _ : std::filesystem::directory_iterator(dirPath)) {
@@ -283,18 +273,15 @@ void DrawConfigTab() {
                             showErrorMessage = true;
                             showSuccessMessage = false;
                             messageTimer = 15.0f;
-                            statusMessage = "Error: Directory '" + std::string(directoryName) +
-                                            "' is not empty. Please empty it first.";
+                            statusMessage = "Error: Directory '" + std::string(directoryName) + "' is not empty. Please empty it first.";
                         }
                     }
-                }
-                catch (const std::filesystem::filesystem_error& e) {
+                } catch (const std::filesystem::filesystem_error& e) {
                     showErrorMessage = true;
                     showSuccessMessage = false;
                     messageTimer = 15.0f;
                     statusMessage = "Filesystem error: " + std::string(e.what());
-                }
-                catch (const std::exception& e) {
+                } catch (const std::exception& e) {
                     showErrorMessage = true;
                     showSuccessMessage = false;
                     messageTimer = 15.0f;
@@ -307,12 +294,10 @@ void DrawConfigTab() {
         if (showSuccessMessage || showErrorMessage) {
             messageTimer -= ImGui::GetIO().DeltaTime;
             if (messageTimer > 0.0f) {
-                ImVec4 color = showSuccessMessage ?
-                    ImVec4(0.0f, 1.0f, 0.0f, 1.0f) :  // Green for success
-                    ImVec4(1.0f, 0.0f, 0.0f, 1.0f);   // Red for error
+                ImVec4 color = showSuccessMessage ? ImVec4(0.0f, 1.0f, 0.0f, 1.0f) : // Green for success
+                                   ImVec4(1.0f, 0.0f, 0.0f, 1.0f);                   // Red for error
                 ImGui::TextColored(color, "%s", statusMessage.c_str());
-            }
-            else {
+            } else {
                 showSuccessMessage = false;
                 showErrorMessage = false;
             }
@@ -320,8 +305,6 @@ void DrawConfigTab() {
     }
 
     ImGui::Separator();
-
-
 }
 
 void DrawMenu() {
@@ -346,6 +329,10 @@ void DrawMenu() {
         }
         if (ImGui::BeginTabItem("Enemies")) {
             DrawEnemiesTab();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Interactables")) {
+            DrawInteractablesTab();
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Config")) {
