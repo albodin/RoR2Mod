@@ -45,25 +45,32 @@ void InteractableSpawningModule::DrawUI() {
 }
 
 void InteractableSpawningModule::SetupInteractables() {
-    const auto& knownPaths = InteractablePaths::ALL_INTERACTABLE_PATHS;
+    const auto& addressablePaths = InteractablePaths::ADDRESSABLE_PATHS;
 
     interactableNames.clear();
     interactablePaths.clear();
 
-    for (const auto& path : knownPaths) {
-        std::string name = path;
-        size_t lastSlash = name.find_last_of('/');
-        if (lastSlash != std::string::npos) {
-            name = name.substr(lastSlash + 1);
-        }
+    for (const auto& [name, path] : addressablePaths) {
+        interactableNames.push_back(name);
+        interactablePaths.push_back(path);
+    }
 
+    std::vector<std::pair<std::string, std::string>> sortedPairs;
+    for (size_t i = 0; i < interactableNames.size(); ++i) {
+        sortedPairs.push_back({interactableNames[i], interactablePaths[i]});
+    }
+    std::sort(sortedPairs.begin(), sortedPairs.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+
+    interactableNames.clear();
+    interactablePaths.clear();
+    for (const auto& [name, path] : sortedPairs) {
         interactableNames.push_back(name);
         interactablePaths.push_back(path);
     }
 
     interactableSelectControl->SetItems(interactableNames);
 
-    G::logger.LogInfo("Loaded %zu interactables", interactableNames.size());
+    G::logger.LogInfo("Loaded %zu interactables with addressable paths", interactableNames.size());
 }
 
 void InteractableSpawningModule::SpawnSelectedInteractable(bool playerPosition) {

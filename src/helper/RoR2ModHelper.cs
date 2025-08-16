@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using RoR2;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace RoR2ModHelper
 {
@@ -131,11 +133,11 @@ namespace RoR2ModHelper
 
     public static class SpawnHelper
     {
-        public static void SpawnInteractable(string resourcePath, float x, float y, float z)
+        public static void SpawnInteractable(string addressablePath, float x, float y, float z)
         {
-            if (string.IsNullOrEmpty(resourcePath))
+            if (string.IsNullOrEmpty(addressablePath))
             {
-                Debug.LogError($"RoR2ModHelper: Empty resource path provided");
+                Debug.LogError($"RoR2ModHelper: Empty addressable path provided");
                 return;
             }
 
@@ -143,34 +145,36 @@ namespace RoR2ModHelper
             {
                 try
                 {
-                    Debug.Log($"RoR2ModHelper: Attempting to spawn {resourcePath}");
+                    Debug.Log($"RoR2ModHelper: Loading SpawnCard from: {addressablePath}");
 
-                    SpawnCard spawnCard = LegacyResourcesAPI.Load<SpawnCard>(resourcePath);
+                    var handle = Addressables.LoadAssetAsync<SpawnCard>(addressablePath);
+                    SpawnCard spawnCard = handle.WaitForCompletion();
+
                     if (spawnCard == null)
                     {
-                        Debug.LogError($"RoR2ModHelper: SpawnCard not found for path: {resourcePath}");
+                        Debug.LogError($"RoR2ModHelper: Failed to load SpawnCard from: {addressablePath}");
                         return;
                     }
 
                     if (spawnCard.prefab == null)
                     {
-                        Debug.LogError($"RoR2ModHelper: SpawnCard has null prefab: {resourcePath}");
+                        Debug.LogError($"RoR2ModHelper: SpawnCard has null prefab: {addressablePath}");
                         return;
                     }
 
                     var obj = UnityEngine.Object.Instantiate(spawnCard.prefab);
                     if (obj == null)
                     {
-                        Debug.LogError($"RoR2ModHelper: Failed to instantiate prefab: {resourcePath}");
+                        Debug.LogError($"RoR2ModHelper: Failed to instantiate prefab: {addressablePath}");
                         return;
                     }
 
                     obj.transform.position = new Vector3(x, y, z);
-                    Debug.Log($"RoR2ModHelper: Successfully spawned {resourcePath} at ({x:F2}, {y:F2}, {z:F2})");
+                    Debug.Log($"RoR2ModHelper: Successfully spawned {addressablePath} at ({x:F2}, {y:F2}, {z:F2})");
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"RoR2ModHelper: Spawn failed for {resourcePath}: {ex.Message}");
+                    Debug.LogError($"RoR2ModHelper: Spawn failed for {addressablePath}: {ex.Message}");
                     Debug.LogError($"RoR2ModHelper: Stack trace: {ex.StackTrace}");
                 }
             });
