@@ -99,7 +99,7 @@ void PlayerModule::Initialize() {
         "Targeting Mode", "huntressTargetingMode", std::vector<std::string>{"None", "Distance", "Angle", "Distance + Angle"}, std::vector<int>{0, 1, 2, 3}, 3);
 
     blockPhysicsEffectsControl = std::make_unique<ToggleControl>("Block Enemy Forces", "blockPhysicsEffects", false);
-    blockPullsControl = std::make_unique<ToggleControl>("Block Displacements", "blockPulls", true);
+    blockPullsControl = std::make_unique<ToggleControl>("Block Displacements", "blockPulls", false);
 
     flightControl = std::make_unique<ToggleControl>("Flight", "flight", false);
 
