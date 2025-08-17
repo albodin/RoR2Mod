@@ -1,22 +1,17 @@
+// clang-format off
 #include <windows.h>
 #include <tlhelp32.h>
-#include <iostream>
+// clang-format on
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <iostream>
 
 void PrintLastError(const char* prefix) {
     DWORD error = GetLastError();
     char errorMessage[256];
 
-    FormatMessageA(
-        FORMAT_MESSAGE_FROM_SYSTEM,
-        NULL,
-        error,
-        0,
-        errorMessage,
-        sizeof(errorMessage),
-        NULL
-    );
+    FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, 0, errorMessage, sizeof(errorMessage), NULL);
 
     std::cout << prefix << " Error: " << error << " - " << errorMessage << std::endl;
 }
@@ -43,12 +38,16 @@ DWORD GetProcessIdByName(const char* processName) {
     return pid;
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     std::string processName;
     std::string dllPath;
 
     bool isConsole = GetConsoleWindow() != NULL;
+
+    // When running through wine force console mode
+    if (std::getenv("WINEPREFIX") != nullptr) {
+        isConsole = true;
+    }
 
     if (argc < 3) {
         processName = "Risk of Rain 2.exe";
@@ -98,9 +97,7 @@ int main(int argc, char* argv[])
         std::cout << "Process ID: " << pid << std::endl;
     }
 
-    HANDLE hProcess = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION |
-                                 PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ,
-                                 FALSE, pid);
+    HANDLE hProcess = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ, FALSE, pid);
     if (!hProcess) {
         if (isConsole) {
             PrintLastError("Failed to open process");
@@ -114,8 +111,7 @@ int main(int argc, char* argv[])
     }
 
     // Allocate space for the DLL path in the target process.
-    LPVOID allocMem = VirtualAllocEx(hProcess, NULL, dllPathLen,
-                                    MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    LPVOID allocMem = VirtualAllocEx(hProcess, NULL, dllPathLen, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (!allocMem) {
         PrintLastError("Failed to allocate memory in target process");
         CloseHandle(hProcess);
@@ -168,9 +164,7 @@ int main(int argc, char* argv[])
     }
 
     // Create a remote thread that calls LoadLibraryA with the DLL path.
-    HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0,
-                        (LPTHREAD_START_ROUTINE)loadLibraryAddr,
-                        allocMem, 0, NULL);
+    HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)loadLibraryAddr, allocMem, 0, NULL);
     if (!hThread) {
         PrintLastError("Failed to create remote thread in target process");
         VirtualFreeEx(hProcess, allocMem, 0, MEM_RELEASE);
