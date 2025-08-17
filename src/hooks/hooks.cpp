@@ -27,9 +27,11 @@ std::queue<std::pair<std::string, std::function<void()>>> internalCallInitQueue;
 bool CreateHook(const char* assemblyName, const char* nameSpace, const char* className, const char* methodName, int paramCount, const char* returnType,
                 const char** paramTypes, LPVOID pDetour, LPVOID* ppOriginal) {
     std::string hookName = std::string(nameSpace) + std::string(className) + std::string(methodName);
-    bool hook_success = false;
 
-    while (true) {
+    const int maxRetries = 100;
+    const int retryDelay = 50;
+
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
         LPVOID pTarget = G::g_monoRuntime->GetMethodAddress(assemblyName, nameSpace, className, methodName, paramCount, returnType, paramTypes);
 
         if (!pTarget) {
@@ -38,25 +40,22 @@ bool CreateHook(const char* assemblyName, const char* nameSpace, const char* cla
             return false;
         }
 
-        // Try to create the hook
         MH_STATUS create_status = MH_CreateHook(pTarget, pDetour, ppOriginal);
-        if (create_status != MH_OK) {
-            continue;
+        if (create_status == MH_OK) {
+            hooks[hookName] = *ppOriginal;
+            hookTargets[hookName] = pTarget;
+            return true;
         }
 
-        hooks[hookName] = *ppOriginal;
-        hookTargets[hookName] = pTarget;
-        hook_success = true;
-        break;
+        if (attempt < maxRetries - 1) {
+            G::logger.LogWarning("Hook creation attempt %d failed for %s::%s::%s (Status: %d), retrying...", attempt + 1, nameSpace, className, methodName,
+                                 create_status);
+            Sleep(retryDelay);
+        }
     }
 
-    if (!hook_success) {
-        G::logger.LogError("Hook creation failed for " + std::string(assemblyName) + "::" + std::string(nameSpace) + "::" + std::string(className) +
-                           "::" + std::string(methodName));
-        return false;
-    }
-
-    return true;
+    G::logger.LogError("Hook creation failed after %d attempts for %s::%s::%s", maxRetries, nameSpace, className, methodName);
+    return false;
 }
 
 #define STRINGIFY(x) #x
