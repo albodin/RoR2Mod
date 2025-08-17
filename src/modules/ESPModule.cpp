@@ -663,18 +663,29 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
             if (!categoryControl || !categoryControl->IsMasterEnabled())
                 continue;
 
-            float distance = interactable->position.Distance(localPlayerPos);
+            // Get current position of portals
+            Vector3 currentPosition = interactable->position;
+            if (interactable->category == InteractableCategory::Portal && interactable->gameObject) {
+                if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
+                    void* transform = Hooks::Component_get_transform(interactable->gameObject);
+                    if (transform) {
+                        Hooks::Transform_get_position_Injected(transform, &currentPosition);
+                    }
+                }
+            }
+
+            float distance = currentPosition.Distance(localPlayerPos);
             ChestESPSubControl* control = categoryControl->GetSubControl();
             if (!control->IsEnabled() || distance > control->GetMaxDistance())
                 continue;
 
             Vector3 screenPos3D;
-            Hooks::Camera_WorldToScreenPoint_Injected(mainCamera, &interactable->position, MonoOrStereoscopicEye::Mono, &screenPos3D);
+            Hooks::Camera_WorldToScreenPoint_Injected(mainCamera, &currentPosition, MonoOrStereoscopicEye::Mono, &screenPos3D);
             if (screenPos3D.z <= 0)
                 continue;
 
             ImVec2 screenPos(screenPos3D.x, ImGui::GetIO().DisplaySize.y - screenPos3D.y);
-            bool isVisible = IsVisible(interactable->position);
+            bool isVisible = IsVisible(currentPosition);
             bool onScreen = screenPos.x >= 0 && screenPos.x <= ImGui::GetIO().DisplaySize.x && screenPos.y >= 0 && screenPos.y <= ImGui::GetIO().DisplaySize.y;
 
             // Check availability
