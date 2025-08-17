@@ -10,6 +10,96 @@ from pathlib import Path
 from typing import Dict
 import argparse
 
+ISC_DISPLAY_NAMES = {
+    "iscBarrel1": "Barrel",
+    "iscBrokenDrone1": "Broken Gunner Drone",
+    "iscBrokenDrone2": "Broken Healing Drone",
+    "iscBrokenEmergencyDrone": "Broken Emergency Drone",
+    "iscBrokenEquipmentDrone": "Broken Equipment Drone",
+    "iscBrokenFlameDrone": "Broken Incinerator Drone",
+    "iscBrokenMegaDrone": "Broken TC-280",
+    "iscBrokenMissileDrone": "Broken Missile Drone",
+    "iscBrokenTurret1": "Broken Gunner Turret",
+    "iscCasinoChest": "Adaptive Chest",
+    "iscCategoryChest2Damage": "Large Chest - Damage",
+    "iscCategoryChest2Healing": "Large Chest - Healing",
+    "iscCategoryChest2Utility": "Large Chest - Utility",
+    "iscCategoryChestDamage": "Chest - Damage",
+    "iscCategoryChestHealing": "Chest - Healing",
+    "iscCategoryChestUtility": "Chest - Utility",
+    "iscChest1": "Chest",
+    "iscChest1Stealthed": "Cloaked Chest",
+    "iscChest2": "Large Chest",
+    "iscColossusPortal": "Green Portal",
+    "iscCommandChest": "Command Chest",
+    "iscDeepVoidPortal": "Deep Void Portal",
+    "iscDeepVoidPortalBattery": "Deep Void Signal",
+    "iscDestinationPortal": "Destination Portal",
+    "iscDuplicator": "3D Printer",
+    "iscDuplicatorLarge": "3D Printer (Green)",
+    "iscDuplicatorMilitary": "Mili-Tech Printer",
+    "iscDuplicatorWild": "Overgrown 3D Printer",
+    "iscEquipmentBarrel": "Equipment Barrel",
+    "iscEventTrigger": "Prime Meridian - Event Trigger",
+    "iscFreeChest": "Crashed Multishop Terminal",
+    "iscGauntletEntrance": "Gauntlet Entrance",
+    "iscGeode": "Aurelionite Geode",
+    "iscGoldChest": "Legendary Chest",
+    "iscGoldshoresBeacon": "Halcyon Beacon",
+    "iscGoldshoresPortal": "Gold Portal",
+    "iscInfiniteTowerPortal": "Infinite Portal",
+    "iscInfiniteTowerSafeWard": "Assessment Focus",
+    "iscInfiniteTowerSafeWardAwaitingInteraction": "Assessment Focus (Awaiting)",
+    "iscLemurianEgg": "Lemurian Egg",
+    "iscLockbox": "Rusty Lockbox",
+    "iscLockboxVoid": "Encrusted Lockbox",
+    "iscLunarChest": "Lunar Pod",
+    "iscLunarTeleporter": "Teleporter (Lunar)",
+    "iscMSPortal": "Celestial Portal",
+    "iscRadarTower": "Radio Scanner",
+    "iscScavBackpack": "Scavenger's Sack",
+    "iscScavLunarBackpack": "Scavenger Backpack (Lunar)",
+    "iscScrapper": "Scrapper",
+    "iscShopPortal": "Blue Portal",
+    "iscShrineBlood": "Shrine of Blood",
+    "iscShrineBloodSandy": "Shrine of Blood (Sandy)",
+    "iscShrineBloodSnowy": "Shrine of Blood (Snowy)",
+    "iscShrineBoss": "Shrine of the Mountain",
+    "iscShrineBossSandy": "Shrine of the Mountain (Sandy)",
+    "iscShrineBossSnowy": "Shrine of the Mountain (Snowy)",
+    "iscShrineChance": "Shrine of Chance",
+    "iscShrineChanceSandy": "Shrine of Chance (Sandy)",
+    "iscShrineChanceSnowy": "Shrine of Chance (Snowy)",
+    "iscShrineCleanse": "Cleansing Pool",
+    "iscShrineCleanseSandy": "Cleansing Pool (Sandy)",
+    "iscShrineCleanseSnowy": "Cleansing Pool (Snowy)",
+    "iscShrineColossusAccess": "Shrine of Shaping",
+    "iscShrineCombat": "Shrine of Combat",
+    "iscShrineCombatSandy": "Shrine of Combat (Sandy)",
+    "iscShrineCombatSnowy": "Shrine of Combat (Snowy)",
+    "iscShrineGoldshoresAccess": "Altar of Gold",
+    "iscShrineHalcyonite": "Halcyon Shrine",
+    "iscShrineHalcyoniteTier1": "Halcyon Shrine Tier 1",
+    "iscShrineHealing": "Shrine of the Woods",
+    "iscShrineRestack": "Shrine of Order",
+    "iscShrineRestackSandy": "Shrine of Order (Sandy)",
+    "iscShrineRestackSnowy": "Shrine of Order (Snowy)",
+    "iscSquidTurret": "Squid Turret",
+    "iscTeleporter": "Teleporter",
+    "iscTripleShop": "Multishop Terminal",
+    "iscTripleShopEquipment": "Multishop Terminal (Equipment)",
+    "iscTripleShopLarge": "Multishop Terminal (Green)",
+    "iscVoidCamp": "Void Seed",
+    "iscVoidChest": "Void Cradle",
+    "iscVoidChestSacrificeOn": "Void Cradle (Sacrifice)",
+    "iscVoidCoinBarrel": "Stalk",
+    "iscVoidOutroPortal": "Void Outro Portal",
+    "iscVoidPortal": "Void Portal",
+    "iscVoidRaidSafeWard": "Cell Vent",
+    "iscVoidSuppressor": "Void Eradicator",
+    "iscVoidTriple": "Void Potential",
+}
+
 class RoR2SpawnCardExtractor:
     def __init__(self, game_dir: Path):
         self.game_dir = game_dir
@@ -54,11 +144,15 @@ class RoR2SpawnCardExtractor:
 
 namespace InteractablePaths {{
 
-const std::unordered_map<std::string, std::string> ADDRESSABLE_PATHS = {{
+const std::unordered_map<std::string, std::string> INTERACTABLES = {{
 '''
 
-        for name, addr_path in sorted(self.addressable_paths.items()):
-            header_content += f'    {{"{name}", "{addr_path}"}},\n'
+        entries = []
+        for name, addr_path in self.addressable_paths.items():
+            display_name = ISC_DISPLAY_NAMES.get(name, name)
+            entries.append((display_name, addr_path))
+        for display_name, addr_path in sorted(entries):
+            header_content += f'    {{"{display_name}", "{addr_path}"}},\n'
 
         header_content += f'''}};
 
@@ -93,10 +187,15 @@ const std::unordered_map<std::string, std::string> ADDRESSABLE_PATHS = {{
         print(f"Game directory: {self.game_dir}")
         print(f"Total addressable paths found: {len(self.addressable_paths)}")
 
+        mapped_display_names = len([name for name in self.addressable_paths if name in ISC_DISPLAY_NAMES])
+        print(f"ISCs with display names: {mapped_display_names}/{len(self.addressable_paths)}")
+
         if self.addressable_paths:
             print("\nAddressable paths:")
             for name, path in sorted(self.addressable_paths.items()):
-                print(f"  - {name}: {path}")
+                display_name = ISC_DISPLAY_NAMES.get(name, name)
+                comment = f" // {display_name}" if display_name != name else ""
+                print(f"  - {name}: {path}{comment}")
 
 def find_game_directory() -> Path:
     """Find the Risk of Rain 2 installation directory."""

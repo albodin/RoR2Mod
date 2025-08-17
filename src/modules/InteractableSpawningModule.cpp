@@ -45,12 +45,10 @@ void InteractableSpawningModule::DrawUI() {
 }
 
 void InteractableSpawningModule::SetupInteractables() {
-    const auto& addressablePaths = InteractablePaths::ADDRESSABLE_PATHS;
-
     interactableNames.clear();
     interactablePaths.clear();
 
-    for (const auto& [name, path] : addressablePaths) {
+    for (const auto& [name, path] : InteractablePaths::INTERACTABLES) {
         interactableNames.push_back(name);
         interactablePaths.push_back(path);
     }
