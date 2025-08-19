@@ -1,15 +1,15 @@
 #pragma once
+#include "utils/json.hpp"
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
-#include "utils/json.hpp"
 
 using json = nlohmann::json;
 
 class InputControl;
 
 class ConfigManager {
-private:
+  private:
     static std::string configDirectory;
     static std::string defaultConfigName;
     static std::string currentConfigName;
@@ -19,7 +19,7 @@ private:
     static void EnsureConfigDirectoryExists();
     static std::string GetConfigPath(const std::string& configName);
 
-public:
+  public:
     static void Initialize();
     static void CreateDefaultConfig();
     static void RefreshConfigList();

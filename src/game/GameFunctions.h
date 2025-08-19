@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/MonoRuntime.h"
-#include "utils/Math.h"
 #include "game/GameStructs.h"
+#include "utils/Math.h"
 
 // Nullable<TeamIndex> structure for Mono interop
 #pragma pack(push, 1)
@@ -13,7 +13,7 @@ struct NullableTeamIndex {
 #pragma pack(pop)
 
 class GameFunctions {
-private:
+  private:
     MonoRuntime* m_runtime;
     MonoClass* m_localUserManagerClass;
     MonoClass* m_localUserClass;
@@ -40,7 +40,7 @@ private:
 
     TeamManager* m_cachedTeamManager;
 
-public:
+  public:
     GameFunctions(MonoRuntime* runtime);
     ~GameFunctions() = default;
 
@@ -61,7 +61,8 @@ public:
     int RoR2Application_GetLoadGameContentPercentage();
     void TeleportHelper_TeleportBody(void* m_characterBody, Vector3 position);
     float GetRunStopwatch();
-    bool SpawnEnemyAtPosition(int masterIndex, Vector3 position, int teamIndex = 2, bool matchDifficulty = false, int eliteIndex = 0, const std::vector<std::pair<int, int>>& items = {});
+    bool SpawnEnemyAtPosition(int masterIndex, Vector3 position, int teamIndex = 2, bool matchDifficulty = false, int eliteIndex = 0,
+                              const std::vector<std::pair<int, int>>& items = {});
 
     TeamManager* GetTeamManagerInstance();
     void CacheTeamManagerInstance(TeamManager* instance);

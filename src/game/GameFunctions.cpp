@@ -31,7 +31,8 @@ GameFunctions::GameFunctions(MonoRuntime* runtime) {
 
 void GameFunctions::Cursor_SetLockState(int lockState) {
     std::function<void()> task = [this, lockState]() {
-        if (!m_cursorClass) return;
+        if (!m_cursorClass)
+            return;
 
         MonoMethod* method = m_runtime->GetMethod(m_cursorClass, "set_lockState", 1);
         if (!method) {
@@ -51,7 +52,8 @@ void GameFunctions::Cursor_SetLockState(int lockState) {
 
 void GameFunctions::Cursor_SetVisible(bool visible) {
     std::function<void()> task = [this, visible]() {
-        if (!m_cursorClass) return;
+        if (!m_cursorClass)
+            return;
 
         MonoMethod* method = m_runtime->GetMethod(m_cursorClass, "set_visible", 1);
         if (!method) {
@@ -70,7 +72,8 @@ void GameFunctions::Cursor_SetVisible(bool visible) {
 }
 
 std::string GameFunctions::Language_GetString(MonoString* token) {
-    if (!m_languageClass) return "";
+    if (!m_languageClass)
+        return "";
 
     MonoMethod* method = m_runtime->GetMethod(m_languageClass, "GetString", 1);
     if (!method) {
@@ -91,7 +94,8 @@ std::string GameFunctions::Language_GetString(MonoString* token) {
 }
 
 PickupDef* GameFunctions::GetPickupDef(int pickupIndex) {
-    if (!m_pickupCatalogClass) return nullptr;
+    if (!m_pickupCatalogClass)
+        return nullptr;
 
     MonoField* entriesField = m_runtime->GetField(m_pickupCatalogClass, "entries");
     if (!entriesField) {
@@ -118,7 +122,7 @@ PickupDef* GameFunctions::GetPickupDef(int pickupIndex) {
         return nullptr;
     }
 
-    void* params[1] = { &pickupIndex };
+    void* params[1] = {&pickupIndex};
     MonoObject* pickupDefObj = m_runtime->InvokeMethod(getItemMethod, entriesArray, params);
     if (!pickupDefObj) {
         G::logger.LogError("Failed to get PickupDef at index %d", pickupIndex);
@@ -129,7 +133,8 @@ PickupDef* GameFunctions::GetPickupDef(int pickupIndex) {
 }
 
 int GameFunctions::LoadPickupNames() {
-    if (!m_pickupCatalogClass) return -1;
+    if (!m_pickupCatalogClass)
+        return -1;
 
     MonoField* entriesField = m_runtime->GetField(m_pickupCatalogClass, "entries");
     if (!entriesField) {
@@ -185,16 +190,16 @@ int GameFunctions::LoadItems() {
 
     G::logger.LogInfo("Found " + std::to_string(itemCount) + " items");
 
-    MonoField* nameTokenField =  m_runtime->GetField(m_itemDefClass, "nameToken");
-    MonoField* pickupTokenField =  m_runtime->GetField(m_itemDefClass, "pickupToken");
-    MonoField* descTokenField =  m_runtime->GetField(m_itemDefClass, "descriptionToken");
-    MonoField* loreTokenField =  m_runtime->GetField(m_itemDefClass, "loreToken");
-    MonoField* itemTierDefField =  m_runtime->GetField(m_itemDefClass, "_itemTierDef");
-    MonoField* itemIndexField =  m_runtime->GetField(m_itemDefClass, "_itemIndex");
-    MonoField* canRemoveField =  m_runtime->GetField(m_itemDefClass, "canRemove");
-    MonoField* isConsumedField =  m_runtime->GetField(m_itemDefClass, "isConsumed");
-    MonoField* hiddenField =  m_runtime->GetField(m_itemDefClass, "hidden");
-    MonoField* tagsField =  m_runtime->GetField(m_itemDefClass, "tags");
+    MonoField* nameTokenField = m_runtime->GetField(m_itemDefClass, "nameToken");
+    MonoField* pickupTokenField = m_runtime->GetField(m_itemDefClass, "pickupToken");
+    MonoField* descTokenField = m_runtime->GetField(m_itemDefClass, "descriptionToken");
+    MonoField* loreTokenField = m_runtime->GetField(m_itemDefClass, "loreToken");
+    MonoField* itemTierDefField = m_runtime->GetField(m_itemDefClass, "_itemTierDef");
+    MonoField* itemIndexField = m_runtime->GetField(m_itemDefClass, "_itemIndex");
+    MonoField* canRemoveField = m_runtime->GetField(m_itemDefClass, "canRemove");
+    MonoField* isConsumedField = m_runtime->GetField(m_itemDefClass, "isConsumed");
+    MonoField* hiddenField = m_runtime->GetField(m_itemDefClass, "hidden");
+    MonoField* tagsField = m_runtime->GetField(m_itemDefClass, "tags");
 
     MonoClass* arrayClass = m_runtime->GetObjectClass((MonoObject*)itemDefsArray);
     MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
@@ -206,9 +211,10 @@ int GameFunctions::LoadItems() {
     std::unique_lock<std::shared_mutex> lock(G::itemsMutex);
     G::items.clear();
     for (int i = 0; i < itemCount; i++) {
-        void* params[1] = { &i };
+        void* params[1] = {&i};
         MonoObject* itemDefObj = m_runtime->InvokeMethod(getItemMethod, itemDefsArray, params);
-        if (!itemDefObj) continue;
+        if (!itemDefObj)
+            continue;
 
         RoR2Item item;
         item.index = -1;
@@ -242,17 +248,20 @@ int GameFunctions::LoadItems() {
 
         if (pickupTokenField) {
             MonoString* str = m_runtime->GetFieldValue<MonoString*>(itemDefObj, pickupTokenField);
-            if (str) item.pickupToken = m_runtime->StringToUtf8(str);
+            if (str)
+                item.pickupToken = m_runtime->StringToUtf8(str);
         }
 
         if (descTokenField) {
             MonoString* str = m_runtime->GetFieldValue<MonoString*>(itemDefObj, descTokenField);
-            if (str) item.descriptionToken = m_runtime->StringToUtf8(str);
+            if (str)
+                item.descriptionToken = m_runtime->StringToUtf8(str);
         }
 
         if (loreTokenField) {
             MonoString* str = m_runtime->GetFieldValue<MonoString*>(itemDefObj, loreTokenField);
-            if (str) item.loreToken = m_runtime->StringToUtf8(str);
+            if (str)
+                item.loreToken = m_runtime->StringToUtf8(str);
         }
 
         if (itemTierDefField) {
@@ -316,7 +325,7 @@ int GameFunctions::LoadItems() {
                 MonoMethod* tagsGetItemMethod = m_runtime->GetMethod(tagsArrayClass, "Get", 1);
                 if (tagsGetItemMethod) {
                     for (int j = 0; j < tagCount; j++) {
-                        void* tagParams[1] = { &j };
+                        void* tagParams[1] = {&j};
                         MonoObject* tagObj = m_runtime->InvokeMethod(tagsGetItemMethod, tagsArray, tagParams);
                         if (tagObj) {
                             int tag = *(int*)m_runtime->m_mono_object_unbox(tagObj);
@@ -338,7 +347,6 @@ int GameFunctions::LoadItems() {
         } else {
             G::items.push_back(item);
         }
-
     }
 
     return itemCount;
@@ -381,23 +389,28 @@ int GameFunctions::LoadEnemies() {
     G::enemies.clear();
 
     for (int i = 0; i < masterCount; i++) {
-        void* params[1] = { &i };
+        void* params[1] = {&i};
         MonoObject* masterPrefab = m_runtime->InvokeMethod(getItemMethod, masterPrefabsArray, params);
-        if (!masterPrefab) continue;
+        if (!masterPrefab)
+            continue;
 
         // Get GameObject name
         MonoClass* gameObjectClass = m_runtime->GetObjectClass(masterPrefab);
         MonoProperty* nameProp = m_runtime->GetProperty(gameObjectClass, "name");
-        if (!nameProp) continue;
+        if (!nameProp)
+            continue;
 
         MonoMethod* getNameMethod = m_runtime->GetPropertyGetMethod(nameProp);
-        if (!getNameMethod) continue;
+        if (!getNameMethod)
+            continue;
 
         MonoObject* nameObj = m_runtime->InvokeMethod(getNameMethod, masterPrefab, nullptr);
-        if (!nameObj) continue;
+        if (!nameObj)
+            continue;
 
         std::string masterName = m_runtime->StringToUtf8((MonoString*)nameObj);
-        if (masterName.empty()) continue;
+        if (masterName.empty())
+            continue;
 
         RoR2Enemy enemy;
         enemy.masterIndex = i;
@@ -465,27 +478,33 @@ int GameFunctions::LoadElites() {
 
     // Iterate through all buffs to find elite ones
     for (int i = 0; i < buffCount; i++) {
-        void* params[1] = { &i };
+        void* params[1] = {&i};
         MonoObject* buffDefObj = m_runtime->InvokeMethod(getItemMethod, buffDefsArray, params);
-        if (!buffDefObj) continue;
+        if (!buffDefObj)
+            continue;
 
         // Check if this buff is an elite buff (eliteDef != null)
         MonoObject* eliteDefObj = m_runtime->GetFieldValue<MonoObject*>(buffDefObj, eliteDefField);
-        if (!eliteDefObj) continue;
+        if (!eliteDefObj)
+            continue;
 
         // Get the elite name from EliteDef
         MonoClass* eliteDefClass = m_runtime->GetObjectClass(eliteDefObj);
         MonoProperty* eliteNameProp = m_runtime->GetProperty(eliteDefClass, "name");
-        if (!eliteNameProp) continue;
+        if (!eliteNameProp)
+            continue;
 
         MonoMethod* getEliteNameMethod = m_runtime->GetPropertyGetMethod(eliteNameProp);
-        if (!getEliteNameMethod) continue;
+        if (!getEliteNameMethod)
+            continue;
 
         MonoObject* eliteNameObj = m_runtime->InvokeMethod(getEliteNameMethod, eliteDefObj, nullptr);
-        if (!eliteNameObj) continue;
+        if (!eliteNameObj)
+            continue;
 
         std::string eliteName = m_runtime->StringToUtf8((MonoString*)eliteNameObj);
-        if (eliteName.empty()) continue;
+        if (eliteName.empty())
+            continue;
 
         G::eliteNames.push_back(eliteName);
         G::eliteBuffIndices[eliteName] = i;
@@ -528,7 +547,7 @@ bool GameFunctions::ApplyEliteToMaster(void* characterMaster, int eliteBuffIndex
         return false;
     }
 
-    void* buffIndexParams[1] = { &eliteBuffIndex };
+    void* buffIndexParams[1] = {&eliteBuffIndex};
     MonoObject* buffDef = m_runtime->InvokeMethod(getBuffDefMethod, nullptr, buffIndexParams);
     if (!buffDef) {
         G::logger.LogError("Failed to get BuffDef for elite index %d", eliteBuffIndex);
@@ -591,7 +610,7 @@ bool GameFunctions::ApplyEliteToMaster(void* characterMaster, int eliteBuffIndex
         return false;
     }
 
-    void* equipParams[1] = { &equipmentIndex };
+    void* equipParams[1] = {&equipmentIndex};
     m_runtime->InvokeMethod(setEquipmentIndexMethod, inventory, equipParams);
 
     G::logger.LogInfo("Applied elite equipment index %d (from buff index %d) to spawned enemy", equipmentIndex, eliteBuffIndex);
@@ -600,7 +619,8 @@ bool GameFunctions::ApplyEliteToMaster(void* characterMaster, int eliteBuffIndex
 
 void GameFunctions::Inventory_GiveItem(void* m_inventory, int itemIndex, int count) {
     std::function<void()> task = [this, m_inventory, itemIndex, count]() {
-        if (!m_inventoryClass) return;
+        if (!m_inventoryClass)
+            return;
 
         MonoMethod* method = m_runtime->GetMethod(m_inventoryClass, "GiveItem", 2);
         if (!method) {
@@ -610,7 +630,7 @@ void GameFunctions::Inventory_GiveItem(void* m_inventory, int itemIndex, int cou
 
         int localItemIndex = itemIndex;
         int localCount = count;
-        void* params[2] = { &localItemIndex, &localCount };
+        void* params[2] = {&localItemIndex, &localCount};
         m_runtime->InvokeMethod(method, m_inventory, params);
     };
     std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
@@ -618,7 +638,8 @@ void GameFunctions::Inventory_GiveItem(void* m_inventory, int itemIndex, int cou
 }
 
 bool GameFunctions::RoR2Application_IsLoading() {
-    if (!m_RoR2ApplicationClass) return false;
+    if (!m_RoR2ApplicationClass)
+        return false;
 
     MonoMethod* method = m_runtime->GetMethod(m_RoR2ApplicationClass, "get_isLoading", 0);
     if (!method) {
@@ -636,7 +657,8 @@ bool GameFunctions::RoR2Application_IsLoading() {
 }
 
 bool GameFunctions::RoR2Application_IsLoadFinished() {
-    if (!m_RoR2ApplicationClass) return false;
+    if (!m_RoR2ApplicationClass)
+        return false;
 
     MonoMethod* method = m_runtime->GetMethod(m_RoR2ApplicationClass, "get_loadFinished", 0);
     if (!method) {
@@ -654,7 +676,8 @@ bool GameFunctions::RoR2Application_IsLoadFinished() {
 }
 
 bool GameFunctions::RoR2Application_IsModded() {
-    if (!m_RoR2ApplicationClass) return false;
+    if (!m_RoR2ApplicationClass)
+        return false;
 
     MonoField* field = m_runtime->GetField(m_RoR2ApplicationClass, "isModded");
     if (!field) {
@@ -666,7 +689,8 @@ bool GameFunctions::RoR2Application_IsModded() {
 }
 
 void GameFunctions::RoR2Application_SetModded(bool modded) {
-    if (!m_RoR2ApplicationClass) return;
+    if (!m_RoR2ApplicationClass)
+        return;
 
     MonoField* field = m_runtime->GetField(m_RoR2ApplicationClass, "isModded");
     if (!field) {
@@ -677,7 +701,8 @@ void GameFunctions::RoR2Application_SetModded(bool modded) {
 }
 
 int GameFunctions::RoR2Application_GetLoadGameContentPercentage() {
-    if (!m_RoR2ApplicationClass) return 0;
+    if (!m_RoR2ApplicationClass)
+        return 0;
 
     MonoProperty* instanceProperty = m_runtime->GetProperty(m_RoR2ApplicationClass, "instance");
     if (!instanceProperty) {
@@ -708,7 +733,8 @@ int GameFunctions::RoR2Application_GetLoadGameContentPercentage() {
 
 void GameFunctions::TeleportHelper_TeleportBody(void* m_characterBody, Vector3 position) {
     std::function<void()> task = [this, m_characterBody, position]() {
-        if (!m_teleportHelperClass) return;
+        if (!m_teleportHelperClass)
+            return;
 
         MonoMethod* method = m_runtime->GetMethod(m_teleportHelperClass, "TeleportBody", 3);
         if (!method) {
@@ -718,7 +744,7 @@ void GameFunctions::TeleportHelper_TeleportBody(void* m_characterBody, Vector3 p
 
         Vector3 localPosition = position;
         bool forceOutOfVehicle = false;
-        void* params[3] = { m_characterBody, &localPosition, &forceOutOfVehicle };
+        void* params[3] = {m_characterBody, &localPosition, &forceOutOfVehicle};
         m_runtime->InvokeMethod(method, nullptr, params);
     };
     std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
@@ -740,32 +766,39 @@ float GameFunctions::GetRunStopwatch() {
     }
 }
 
-bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int teamIndex, bool matchDifficulty, int eliteIndex, const std::vector<std::pair<int, int>>& items) {
+bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int teamIndex, bool matchDifficulty, int eliteIndex,
+                                         const std::vector<std::pair<int, int>>& items) {
     std::function<bool()> task = [this, masterIndex, position, teamIndex, matchDifficulty, eliteIndex, items]() -> bool {
         if (!m_masterSummonClass || !m_masterCatalogClass) {
             return false;
         }
 
         MonoField* masterPrefabsField = m_runtime->GetField(m_masterCatalogClass, "masterPrefabs");
-        if (!masterPrefabsField) return false;
+        if (!masterPrefabsField)
+            return false;
 
         MonoArray* masterPrefabsArray = m_runtime->GetStaticFieldValue<MonoArray*>(m_masterCatalogClass, masterPrefabsField);
-        if (!masterPrefabsArray) return false;
+        if (!masterPrefabsArray)
+            return false;
 
         int masterCount = m_runtime->GetArrayLength(masterPrefabsArray);
-        if (masterIndex < 0 || masterIndex >= masterCount) return false;
+        if (masterIndex < 0 || masterIndex >= masterCount)
+            return false;
 
         MonoClass* arrayClass = m_runtime->GetObjectClass((MonoObject*)masterPrefabsArray);
         MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
-        if (!getItemMethod) return false;
+        if (!getItemMethod)
+            return false;
 
         int localMasterIndex = masterIndex;
-        void* params[1] = { &localMasterIndex };
+        void* params[1] = {&localMasterIndex};
         MonoObject* masterPrefab = m_runtime->InvokeMethod(getItemMethod, masterPrefabsArray, params);
-        if (!masterPrefab) return false;
+        if (!masterPrefab)
+            return false;
 
         MonoObject* masterSummon = m_runtime->CreateObject(m_masterSummonClass);
-        if (!masterSummon) return false;
+        if (!masterSummon)
+            return false;
 
         // Set masterPrefab
         MonoField* masterPrefabField = m_runtime->GetField(m_masterSummonClass, "masterPrefab");
@@ -783,7 +816,9 @@ bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int 
         // Set rotation (identity quaternion)
         MonoField* rotationField = m_runtime->GetField(m_masterSummonClass, "rotation");
         if (rotationField) {
-            struct { float x, y, z, w; } rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+            struct {
+                float x, y, z, w;
+            } rotation = {0.0f, 0.0f, 0.0f, 1.0f};
             m_runtime->SetFieldValue(masterSummon, rotationField, &rotation);
         }
 
@@ -812,10 +847,12 @@ bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int 
 
         // Perform the spawn
         MonoMethod* performMethod = m_runtime->GetMethod(m_masterSummonClass, "Perform", 0);
-        if (!performMethod) return false;
+        if (!performMethod)
+            return false;
 
         MonoObject* spawnedMaster = m_runtime->InvokeMethod(performMethod, masterSummon, nullptr);
-        if (!spawnedMaster) return false;
+        if (!spawnedMaster)
+            return false;
 
         // Give items if difficulty matching is enabled or custom items are requested
         if ((matchDifficulty || !items.empty()) && m_characterMasterClass && m_inventoryClass) {
@@ -878,17 +915,11 @@ bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int 
     return true;
 }
 
-TeamManager* GameFunctions::GetTeamManagerInstance() {
-    return m_cachedTeamManager;
-}
+TeamManager* GameFunctions::GetTeamManagerInstance() { return m_cachedTeamManager; }
 
-void GameFunctions::CacheTeamManagerInstance(TeamManager* instance) {
-    m_cachedTeamManager = instance;
-}
+void GameFunctions::CacheTeamManagerInstance(TeamManager* instance) { m_cachedTeamManager = instance; }
 
-void GameFunctions::ClearTeamManagerInstance() {
-    m_cachedTeamManager = nullptr;
-}
+void GameFunctions::ClearTeamManagerInstance() { m_cachedTeamManager = nullptr; }
 
 uint32_t GameFunctions::GetTeamLevel(TeamIndex_Value teamIndex) {
     TeamManager* teamManager = GetTeamManagerInstance();
@@ -921,7 +952,7 @@ void GameFunctions::SetTeamLevel(TeamIndex_Value teamIndex, uint32_t level) {
 
         TeamIndex_Value localTeamIndex = teamIndex;
         uint32_t localLevel = level;
-        void* params[2] = { &localTeamIndex, &localLevel };
+        void* params[2] = {&localTeamIndex, &localLevel};
         m_runtime->InvokeMethod(method, teamManager, params);
 
         G::logger.LogInfo("SetTeamLevel: Called method for team %d level %u", (int)teamIndex, level);
@@ -980,7 +1011,7 @@ void GameFunctions::AwardLunarCoins(NetworkUser* networkUser, uint32_t coinsToAd
         }
 
         uint32_t localCoinsToAdd = coinsToAdd;
-        void* params[1] = { &localCoinsToAdd };
+        void* params[1] = {&localCoinsToAdd};
         m_runtime->InvokeMethod(method, networkUser, params);
 
         G::logger.LogInfo("AwardLunarCoins: Called RpcAwardLunarCoins with %u coins", coinsToAdd);
@@ -1003,7 +1034,7 @@ void GameFunctions::DeductLunarCoins(NetworkUser* networkUser, uint32_t coinsToR
         }
 
         uint32_t localCoinsToRemove = coinsToRemove;
-        void* params[1] = { &localCoinsToRemove };
+        void* params[1] = {&localCoinsToRemove};
         m_runtime->InvokeMethod(method, networkUser, params);
 
         G::logger.LogInfo("DeductLunarCoins: Called RpcDeductLunarCoins with %u coins", coinsToRemove);

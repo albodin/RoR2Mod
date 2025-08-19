@@ -1,15 +1,15 @@
 #pragma once
 #include "ModuleBase.h"
-#include "menu/InputControls.h"
 #include "game/GameStructs.h"
+#include "menu/InputControls.h"
 #include "utils/ModStructs.h"
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <shared_mutex>
-#include <memory>
 
 class EnemySpawningModule : public ModuleBase {
-private:
+  private:
     std::unique_ptr<ComboControl> enemySelectControl;
     std::unique_ptr<ComboControl> teamSelectControl;
     std::unique_ptr<IntControl> spawnCountControl;
@@ -18,7 +18,8 @@ private:
     std::unique_ptr<ButtonControl> spawnButtonControl;
 
     std::mutex queuedSpawnsMutex;
-    std::queue<std::tuple<int, int, int, bool, int, std::vector<std::pair<int, int>>>> queuedSpawns; // masterIndex, count, teamIndex, matchDifficulty, eliteIndex, items
+    std::queue<std::tuple<int, int, int, bool, int, std::vector<std::pair<int, int>>>>
+        queuedSpawns; // masterIndex, count, teamIndex, matchDifficulty, eliteIndex, items
 
     std::vector<RoR2Enemy> enemies;
     std::vector<std::string> enemyNames;
@@ -29,7 +30,7 @@ private:
     std::vector<RoR2Item> items;
     std::map<int, std::unique_ptr<IntControl>> itemControls;
 
-public:
+  public:
     EnemySpawningModule();
     ~EnemySpawningModule();
 

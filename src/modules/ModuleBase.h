@@ -2,7 +2,7 @@
 #include <string>
 
 class ModuleBase {
-public:
+  public:
     ModuleBase() {};
     virtual ~ModuleBase() {};
 

@@ -1,10 +1,10 @@
 #include "ConfigManager.h"
-#include "menu/InputControls.h"
-#include "globals/globals.h"
 #include "fonts/FontManager.h"
+#include "globals/globals.h"
+#include "menu/InputControls.h"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
-#include <algorithm>
 
 std::string ConfigManager::configDirectory = "ror2modconfigs";
 std::string ConfigManager::defaultConfigName = "default";
@@ -38,9 +38,7 @@ void ConfigManager::EnsureConfigDirectoryExists() {
     }
 }
 
-std::string ConfigManager::GetConfigPath(const std::string& configName) {
-    return configDirectory + "/" + configName + ".json";
-}
+std::string ConfigManager::GetConfigPath(const std::string& configName) { return configDirectory + "/" + configName + ".json"; }
 
 void ConfigManager::RefreshConfigList() {
     availableConfigs.clear();
@@ -57,12 +55,13 @@ void ConfigManager::RefreshConfigList() {
     }
 
     // Sort configs alphabetically, but keep "default" first
-    std::sort(availableConfigs.begin(), availableConfigs.end(),
-        [](const std::string& a, const std::string& b) {
-            if (a == "default") return true;
-            if (b == "default") return false;
-            return a < b;
-        });
+    std::sort(availableConfigs.begin(), availableConfigs.end(), [](const std::string& a, const std::string& b) {
+        if (a == "default")
+            return true;
+        if (b == "default")
+            return false;
+        return a < b;
+    });
 }
 
 bool ConfigManager::SaveConfig(const std::string& configName) {
@@ -82,10 +81,7 @@ bool ConfigManager::SaveConfig(const std::string& configName) {
             }
         }
 
-        config["fontSettings"] = {
-            {"fontIndex", FontManager::CurrentFontIndex},
-            {"fontSize", FontManager::ESPFontSize}
-        };
+        config["fontSettings"] = {{"fontIndex", FontManager::CurrentFontIndex}, {"fontSize", FontManager::ESPFontSize}};
 
         std::ofstream file(GetConfigPath(configName));
         if (!file.is_open()) {
@@ -194,12 +190,7 @@ void ConfigManager::RegisterControl(InputControl* control) {
 }
 
 void ConfigManager::UnregisterControl(InputControl* control) {
-    registeredControls.erase(
-        std::remove(registeredControls.begin(), registeredControls.end(), control),
-        registeredControls.end()
-    );
+    registeredControls.erase(std::remove(registeredControls.begin(), registeredControls.end(), control), registeredControls.end());
 }
 
-bool ConfigManager::ConfigExists(const std::string& configName) {
-    return std::filesystem::exists(GetConfigPath(configName));
-}
+bool ConfigManager::ConfigExists(const std::string& configName) { return std::filesystem::exists(GetConfigPath(configName)); }

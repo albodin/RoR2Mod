@@ -1,28 +1,28 @@
 #pragma once
-#include <string>
-#include <imgui.h>
-#include <functional>
 #include "utils/json.hpp"
+#include <functional>
+#include <imgui.h>
+#include <string>
 
 using json = nlohmann::json;
 
 // Key state helper functions
 namespace InputHelper {
-    bool IsKeyPressed(ImGuiKey key);
-    bool IsKeyDown(ImGuiKey key);
-    const char* KeyToString(ImGuiKey key);
-    bool DrawHotkeyButton(const char* id, ImGuiKey* key);
-}
+bool IsKeyPressed(ImGuiKey key);
+bool IsKeyDown(ImGuiKey key);
+const char* KeyToString(ImGuiKey key);
+bool DrawHotkeyButton(const char* id, ImGuiKey* key);
+} // namespace InputHelper
 
 // Freezing modes for numeric controls
 enum class FreezeMode {
-    MinimumValue,  // Allow increases above frozen value
-    HardLock       // Force value to always equal frozen value
+    MinimumValue, // Allow increases above frozen value
+    HardLock      // Force value to always equal frozen value
 };
 
 // Base interface for all input controls
 class InputControl {
-protected:
+  protected:
     std::string label;
     std::string id;
     bool enabled;
@@ -30,7 +30,7 @@ protected:
     bool isCapturingHotkey;
     bool saveEnabledState;
 
-public:
+  public:
     InputControl(const std::string& label, const std::string& id, bool enabled = false);
     virtual ~InputControl() = default;
 
@@ -53,11 +53,11 @@ public:
 
 // Toggle (checkbox) control
 class ToggleControl : public InputControl {
-private:
+  private:
     std::function<void(bool)> onChange;
     bool showHotkey;
 
-public:
+  public:
     ToggleControl(const std::string& label, const std::string& id, bool enabled = false, bool autoRegister = true, bool showHotkey = true);
     virtual ~ToggleControl();
 
@@ -72,7 +72,7 @@ public:
 
 // Integer input control
 class IntControl : public InputControl {
-private:
+  private:
     int value;
     int frozenValue; // Value to maintain when protection is enabled
     int minValue;
@@ -90,10 +90,9 @@ private:
     std::function<void(int)> onChange;
     std::function<void(bool)> onToggle;
 
-public:
-    IntControl(const std::string& label, const std::string& id, int value,
-              int minValue, int maxValue, int step = 1, bool enabled = false,
-              bool disableValueOnToggle = true, bool showCheckbox = false);
+  public:
+    IntControl(const std::string& label, const std::string& id, int value, int minValue, int maxValue, int step = 1, bool enabled = false,
+               bool disableValueOnToggle = true, bool showCheckbox = false);
     virtual ~IntControl();
 
     void Draw() override;
@@ -111,7 +110,10 @@ public:
     void SetShowCheckbox(bool show) { showCheckbox = show; }
     void SetFreezeMode(FreezeMode mode) { freezeMode = mode; }
     FreezeMode GetFreezeMode() const { return freezeMode; }
-    void SetGameValueFunctions(std::function<int()> getter, std::function<void(int)> setter) { getValueFunc = getter; setValueFunc = setter; }
+    void SetGameValueFunctions(std::function<int()> getter, std::function<void(int)> setter) {
+        getValueFunc = getter;
+        setValueFunc = setter;
+    }
     void UpdateFreezeLogic();
 
     json Serialize() const override;
@@ -120,7 +122,7 @@ public:
 
 // Float input control
 class FloatControl : public InputControl {
-private:
+  private:
     float value;
     float frozenValue; // Value to maintain when protection is enabled
     float minValue;
@@ -138,10 +140,9 @@ private:
     std::function<void(float)> onChange;
     std::function<void(bool)> onToggle;
 
-public:
-    FloatControl(const std::string& label, const std::string& id, float value,
-                float minValue = 0.0f, float maxValue = FLT_MAX, float step = 1.0f,
-                bool enabled = false, bool disableValueOnToggle = true, bool showCheckbox = false);
+  public:
+    FloatControl(const std::string& label, const std::string& id, float value, float minValue = 0.0f, float maxValue = FLT_MAX, float step = 1.0f,
+                 bool enabled = false, bool disableValueOnToggle = true, bool showCheckbox = false);
     virtual ~FloatControl();
 
     void Draw() override;
@@ -159,7 +160,10 @@ public:
     void SetShowCheckbox(bool show) { showCheckbox = show; }
     void SetFreezeMode(FreezeMode mode) { freezeMode = mode; }
     FreezeMode GetFreezeMode() const { return freezeMode; }
-    void SetGameValueFunctions(std::function<float()> getter, std::function<void(float)> setter) { getValueFunc = getter; setValueFunc = setter; }
+    void SetGameValueFunctions(std::function<float()> getter, std::function<void(float)> setter) {
+        getValueFunc = getter;
+        setValueFunc = setter;
+    }
     void UpdateFreezeLogic();
 
     json Serialize() const override;
@@ -167,15 +171,14 @@ public:
 };
 
 class ButtonControl : public InputControl {
-private:
+  private:
     std::function<void()> onClick;
     std::string buttonText;
     bool highlighted;
     float highlightTimer;
 
-public:
-    ButtonControl(const std::string& label, const std::string& id, const std::string& buttonText = "",
-                  std::function<void()> callback = nullptr);
+  public:
+    ButtonControl(const std::string& label, const std::string& id, const std::string& buttonText = "", std::function<void()> callback = nullptr);
     virtual ~ButtonControl();
 
     void Draw() override;
@@ -188,18 +191,16 @@ public:
 };
 
 class ESPControl : public InputControl {
-private:
+  private:
     float distance;
     float maxDistance;
     ImVec4 color;
     ImVec4 outlineColor;
     bool enableOutline;
 
-public:
-    ESPControl(const std::string& label, const std::string& id,
-              bool enabled = false, float defaultDistance = 100.0f,
-              float maxDistance = 500.0f, ImVec4 defaultColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
-              ImVec4 outlineColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f), bool enableOutline = true);
+  public:
+    ESPControl(const std::string& label, const std::string& id, bool enabled = false, float defaultDistance = 100.0f, float maxDistance = 500.0f,
+               ImVec4 defaultColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f), ImVec4 outlineColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f), bool enableOutline = true);
     virtual ~ESPControl();
 
     void Draw() override;
@@ -221,15 +222,14 @@ public:
 };
 
 class SliderControl : public InputControl {
-private:
+  private:
     float value;
     float minValue;
     float maxValue;
     std::function<void(float)> onChange;
 
-public:
-    SliderControl(const std::string& label, const std::string& id, float value,
-                 float minValue = 0.0f, float maxValue = 100.0f, bool autoRegister = true);
+  public:
+    SliderControl(const std::string& label, const std::string& id, float value, float minValue = 0.0f, float maxValue = 100.0f, bool autoRegister = true);
     virtual ~SliderControl();
 
     void Draw() override;
@@ -243,7 +243,7 @@ public:
 };
 
 class ToggleButtonControl : public InputControl {
-private:
+  private:
     std::function<void()> onAction;
     std::string buttonText;
     ImGuiKey actionHotkey;
@@ -251,10 +251,8 @@ private:
     bool actionHighlighted;
     float actionHighlightTimer;
 
-public:
-    ToggleButtonControl(const std::string& label, const std::string& id,
-                      const std::string& buttonText = "Execute",
-                      bool enabled = false);
+  public:
+    ToggleButtonControl(const std::string& label, const std::string& id, const std::string& buttonText = "Execute", bool enabled = false);
     virtual ~ToggleButtonControl();
 
     void Draw() override;
@@ -270,7 +268,7 @@ public:
 };
 
 class EntityESPSubControl {
-private:
+  private:
     std::string label;
     std::string id;
 
@@ -290,7 +288,7 @@ private:
     ImVec4 boxColor;
     ImVec4 tracelineColor;
 
-public:
+  public:
     EntityESPSubControl(const std::string& label, const std::string& id);
     ~EntityESPSubControl();
 
@@ -325,12 +323,12 @@ public:
 };
 
 class EntityESPControl : public InputControl {
-private:
+  private:
     std::unique_ptr<ToggleControl> masterEnabled;
     std::unique_ptr<EntityESPSubControl> visibleControl;
     std::unique_ptr<EntityESPSubControl> nonVisibleControl;
 
-public:
+  public:
     EntityESPControl(const std::string& label, const std::string& id);
     ~EntityESPControl();
 
@@ -346,7 +344,7 @@ public:
 };
 
 class ChestESPSubControl : public InputControl {
-private:
+  private:
     std::unique_ptr<ToggleControl> enabled;
     std::unique_ptr<ToggleControl> showName;
     std::unique_ptr<ToggleControl> showDistance;
@@ -365,7 +363,7 @@ private:
     ImVec4 distanceShadowColor;
     ImVec4 costShadowColor;
 
-public:
+  public:
     ChestESPSubControl(const std::string& label, const std::string& id);
     ~ChestESPSubControl();
 
@@ -403,11 +401,11 @@ public:
 };
 
 class ChestESPControl : public InputControl {
-private:
+  private:
     std::unique_ptr<ToggleControl> masterEnabled;
     std::unique_ptr<ChestESPSubControl> subControl;
 
-public:
+  public:
     ChestESPControl(const std::string& label, const std::string& id);
     ~ChestESPControl();
 
@@ -423,10 +421,10 @@ public:
 
 // Dropdown control with hotkey navigation
 class ComboControl : public InputControl {
-private:
+  private:
     int selectedIndex;
     std::vector<std::string> items;
-    std::vector<int> itemValues;  // Optional associated values
+    std::vector<int> itemValues; // Optional associated values
     ImGuiKey prevHotkey;
     ImGuiKey nextHotkey;
     bool isCapturingPrevHotkey;
@@ -434,14 +432,10 @@ private:
     std::function<void(int)> onChange;
     bool showHotkeys;
 
-public:
-    ComboControl(const std::string& label, const std::string& id,
-                const std::vector<std::string>& items,
-                int defaultIndex = 0, bool showHotkeys = true);
-    ComboControl(const std::string& label, const std::string& id,
-                const std::vector<std::string>& items,
-                const std::vector<int>& values,
-                int defaultIndex = 0, bool showHotkeys = true);
+  public:
+    ComboControl(const std::string& label, const std::string& id, const std::vector<std::string>& items, int defaultIndex = 0, bool showHotkeys = true);
+    ComboControl(const std::string& label, const std::string& id, const std::vector<std::string>& items, const std::vector<int>& values, int defaultIndex = 0,
+                 bool showHotkeys = true);
     virtual ~ComboControl();
 
     void Draw() override;

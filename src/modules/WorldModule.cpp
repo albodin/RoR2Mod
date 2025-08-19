@@ -3,12 +3,9 @@
 #include "hooks/hooks.h"
 #include "imgui.h"
 
-WorldModule::WorldModule() : ModuleBase() {
-    Initialize();
-}
+WorldModule::WorldModule() : ModuleBase() { Initialize(); }
 
-WorldModule::~WorldModule() {
-}
+WorldModule::~WorldModule() {}
 
 void WorldModule::Initialize() {
     instantTeleporterControl = std::make_unique<ToggleControl>("Instant Teleporter", "instantTeleporter", false);
@@ -20,24 +17,15 @@ void WorldModule::Initialize() {
     forceAllPortalsControl = std::make_unique<ToggleControl>("Force All Additional Portals", "forceAllPortals", false);
 
     stageClearCountControl = std::make_unique<IntControl>("Stages Cleared", "stage_clear_count", 0, 0, INT_MAX, 1, false, false, true);
-    stageClearCountControl->SetGameValueFunctions(
-        []() { return G::gameFunctions->GetStageClearCount(); },
-        [](int value) { G::gameFunctions->SetStageClearCount(value); }
-    );
+    stageClearCountControl->SetGameValueFunctions([]() { return G::gameFunctions->GetStageClearCount(); },
+                                                  [](int value) { G::gameFunctions->SetStageClearCount(value); });
 
     fixedTimeControl = std::make_unique<FloatControl>("Fixed Time", "fixed_time", 1.0f, 0.0f, FLT_MAX, 1.0f, false, false, true);
-    fixedTimeControl->SetGameValueFunctions(
-        []() { return G::gameFunctions->GetFixedTime(); },
-        [](float value) { G::gameFunctions->SetFixedTime(value); }
-    );
+    fixedTimeControl->SetGameValueFunctions([]() { return G::gameFunctions->GetFixedTime(); }, [](float value) { G::gameFunctions->SetFixedTime(value); });
 
-    stageClearCountControl->SetOnChange([](int newValue) {
-        G::gameFunctions->SetStageClearCount(newValue);
-    });
+    stageClearCountControl->SetOnChange([](int newValue) { G::gameFunctions->SetStageClearCount(newValue); });
 
-    fixedTimeControl->SetOnChange([](float newValue) {
-        G::gameFunctions->SetFixedTime(newValue);
-    });
+    fixedTimeControl->SetOnChange([](float newValue) { G::gameFunctions->SetFixedTime(newValue); });
 }
 
 void WorldModule::Update() {
@@ -84,10 +72,12 @@ void WorldModule::OnTeleporterInteractionAwake(void* teleporter) {
 
 void WorldModule::OnTeleporterInteractionFixedUpdate(void* teleporter) {
     TeleporterInteraction* teleporter_ptr = (TeleporterInteraction*)teleporter;
-    if (!teleporter_ptr) return;
+    if (!teleporter_ptr)
+        return;
 
     // Instant teleporter logic
-    if (instantTeleporterControl->IsEnabled() && teleporter_ptr->holdoutZoneController_backing && teleporter_ptr->holdoutZoneController_backing->_charge < 1.0f) {
+    if (instantTeleporterControl->IsEnabled() && teleporter_ptr->holdoutZoneController_backing &&
+        teleporter_ptr->holdoutZoneController_backing->_charge < 1.0f) {
         teleporter_ptr->holdoutZoneController_backing->_charge = 1.0f;
     }
 
@@ -106,10 +96,12 @@ void WorldModule::OnTeleporterInteractionFixedUpdate(void* teleporter) {
 }
 
 void WorldModule::OnHoldoutZoneControllerUpdate(void* holdoutZoneController) {
-    if (!instantHoldoutZoneControl->IsEnabled()) return;
+    if (!instantHoldoutZoneControl->IsEnabled())
+        return;
 
     HoldoutZoneController* controller = (HoldoutZoneController*)holdoutZoneController;
-    if (!controller) return;
+    if (!controller)
+        return;
 
     if (controller->_charge < 1.0f && controller->_charge > 0.0f) {
         controller->_charge = 1.0f;

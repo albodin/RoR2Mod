@@ -1,10 +1,10 @@
 #pragma once
+#include "core/MonoRuntime.h"
 #include <string>
 #include <vector>
-#include "core/MonoRuntime.h"
 
 class MonoList {
-private:
+  private:
     MonoObject* list;
     MonoMethod* getItemMethod;
     MonoMethod* addMethod;
@@ -12,10 +12,10 @@ private:
     MonoMethod* clearMethod;
     MonoMethod* getCountMethod;
     int count;
-    
-public:
+
+  public:
     MonoList(MonoObject* listObject);
-    
+
     void UpdateCount();
     int Count() const;
     bool IsValid() const;

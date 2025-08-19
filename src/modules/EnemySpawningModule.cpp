@@ -1,8 +1,8 @@
 #include "EnemySpawningModule.h"
+#include "config/ConfigManager.h"
 #include "globals/globals.h"
 #include "imgui.h"
 #include "menu/InputControls.h"
-#include "config/ConfigManager.h"
 
 EnemySpawningModule::EnemySpawningModule() : ModuleBase() {
     // Team names for dropdown
@@ -36,10 +36,7 @@ EnemySpawningModule::EnemySpawningModule() : ModuleBase() {
     });
 }
 
-EnemySpawningModule::~EnemySpawningModule() {
-    itemControls.clear();
-}
-
+EnemySpawningModule::~EnemySpawningModule() { itemControls.clear(); }
 
 void EnemySpawningModule::Update() {
     // Controls handle their own hotkey updates
@@ -122,7 +119,8 @@ void EnemySpawningModule::OnLocalUserUpdate(void* localUser) {
                 break;
             }
         }
-        G::logger.LogInfo("Spawning %d %s enemies with difficulty matching %s (masterIndex: %d, team: %d)", count, eliteType.c_str(), matchDifficulty ? "enabled" : "disabled", masterIndex, teamIndex);
+        G::logger.LogInfo("Spawning %d %s enemies with difficulty matching %s (masterIndex: %d, team: %d)", count, eliteType.c_str(),
+                          matchDifficulty ? "enabled" : "disabled", masterIndex, teamIndex);
 
         for (int i = 0; i < count; i++) {
             bool success = G::gameFunctions->SpawnEnemyAtPosition(masterIndex, spawnPosition, teamIndex, matchDifficulty, eliteBuffIndex, items);
@@ -184,7 +182,8 @@ void EnemySpawningModule::DrawItemInputs(ItemTier_Value tier) {
     std::shared_lock<std::shared_mutex> lock(itemsMutex);
 
     for (const auto& item : items) {
-        if (item.tier != tier) continue;
+        if (item.tier != tier)
+            continue;
         int index = item.index;
 
         if (itemControls.count(index) > 0) {
@@ -210,8 +209,6 @@ void EnemySpawningModule::PrepareEnemyLists() {
         enemySelectControl->SetSelectedIndex(0);
     }
 }
-
-
 
 void EnemySpawningModule::SpawnEnemy(int masterIndex, int count, int eliteIndex) {
     std::unique_lock<std::mutex> lock(queuedSpawnsMutex);

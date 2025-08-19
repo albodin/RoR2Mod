@@ -8,7 +8,7 @@
 #include <vector>
 
 class FontManager {
-public:
+  public:
     struct FontInfo {
         std::string name;
         std::string path;

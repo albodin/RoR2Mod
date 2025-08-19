@@ -30,21 +30,17 @@ void FontManager::InitializeFonts(ImFontAtlas* atlas) {
     FontInfo defaultFontInfo = {"Default Font", "", DefaultFont};
     AvailableFonts.push_back(defaultFontInfo);
 
-    static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+    static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
     ImFontConfig icons_config;
     icons_config.MergeMode = true;
     icons_config.PixelSnapH = true;
     icons_config.FontDataOwnedByAtlas = false;
 
-    FontAwesomeSolid = atlas->AddFontFromMemoryCompressedTTF(
-        FontAwesome6Solid900_compressed_data,
-        FontAwesome6Solid900_compressed_size,
-        BaseFontSize, &icons_config, icons_ranges);
+    FontAwesomeSolid = atlas->AddFontFromMemoryCompressedTTF(FontAwesome6Solid900_compressed_data, FontAwesome6Solid900_compressed_size, BaseFontSize,
+                                                             &icons_config, icons_ranges);
 
-    JetBrainsMono = atlas->AddFontFromMemoryCompressedTTF(
-        JetBrainsMonoReg_compressed_data,
-        JetBrainsMonoReg_compressed_size,
-        BaseFontSize, &config, glyphRanges);
+    JetBrainsMono =
+        atlas->AddFontFromMemoryCompressedTTF(JetBrainsMonoReg_compressed_data, JetBrainsMonoReg_compressed_size, BaseFontSize, &config, glyphRanges);
     FontInfo jetBrainsMonoInfo = {"JetBrains Mono", "", JetBrainsMono};
     AvailableFonts.push_back(jetBrainsMonoInfo);
 
@@ -80,7 +76,8 @@ void FontManager::LoadCustomFonts(ImFontAtlas* atlas) {
 
     try {
         for (const auto& entry : std::filesystem::directory_iterator(fontDir)) {
-            if (!entry.is_regular_file()) continue;
+            if (!entry.is_regular_file())
+                continue;
 
             std::string ext = entry.path().extension().string();
             std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
@@ -138,7 +135,7 @@ void FontManager::SetupUnicodeRanges(ImFontGlyphRangesBuilder& builder) {
     // Add Latin Extended A & B (for European languages including Turkish)
     // Latin Extended-A: U+0100-U+017F (includes Eastern European characters)
     // Latin Extended-B: U+0180-U+024F (includes additional phonetic extensions)
-    static const ImWchar latin_extended_ranges[] = { 0x0100, 0x024F, 0 };
+    static const ImWchar latin_extended_ranges[] = {0x0100, 0x024F, 0};
     builder.AddRanges(latin_extended_ranges);
 
     builder.AddRanges(io.Fonts->GetGlyphRangesCyrillic());

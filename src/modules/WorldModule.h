@@ -1,11 +1,11 @@
 #pragma once
 #include "ModuleBase.h"
-#include "menu/InputControls.h"
 #include "game/GameStructs.h"
+#include "menu/InputControls.h"
 #include <memory>
 
 class WorldModule : public ModuleBase {
-private:
+  private:
     std::unique_ptr<ToggleControl> instantTeleporterControl;
     std::unique_ptr<ToggleControl> instantHoldoutZoneControl;
     std::unique_ptr<ToggleControl> openExpiredTimedChestsControl;
@@ -17,7 +17,7 @@ private:
     std::unique_ptr<IntControl> stageClearCountControl;
     std::unique_ptr<FloatControl> fixedTimeControl;
 
-public:
+  public:
     WorldModule();
     ~WorldModule() override;
 

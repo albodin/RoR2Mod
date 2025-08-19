@@ -1,20 +1,18 @@
-#include <algorithm>
 #include "InputControls.h"
-#include "globals/globals.h"
-#include "fonts/IconsFontAwesome6.h"
 #include "config/ConfigManager.h"
+#include "fonts/IconsFontAwesome6.h"
+#include "globals/globals.h"
+#include <algorithm>
 
 // Static key state arrays
 static bool s_capturingKey = false;
 static ImGuiKey* s_captureTargetKey = nullptr;
 static float s_labelWidth = 180.0f;
 
-
 // Helper function for drawing complete settings popup
-template<typename T>
-static void DrawSettingsPopup(const std::string& id, const std::string& label, bool showSettings,
-                                     InputControl* control, ImGuiKey& decHotkey, ImGuiKey& incHotkey,
-                                     T& step, T minStep, bool isFloat = false) {
+template <typename T>
+static void DrawSettingsPopup(const std::string& id, const std::string& label, bool showSettings, InputControl* control, ImGuiKey& decHotkey,
+                              ImGuiKey& incHotkey, T& step, T minStep, bool isFloat = false) {
     // Store button position for popup positioning
     ImVec2 buttonPos = ImGui::GetItemRectMin();
     ImVec2 buttonSize = ImGui::GetItemRectSize();
@@ -34,11 +32,12 @@ static void DrawSettingsPopup(const std::string& id, const std::string& label, b
     }
 
     if (isModal) {
-        popupOpen = ImGui::BeginPopupModal(("Settings##" + id).c_str(), nullptr,
-            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
+        popupOpen =
+            ImGui::BeginPopupModal(("Settings##" + id).c_str(), nullptr,
+                                   ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
     } else {
         popupOpen = ImGui::BeginPopup(("Settings##" + id).c_str(),
-            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
+                                      ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
     }
 
     if (popupOpen) {
@@ -71,7 +70,8 @@ static void DrawSettingsPopup(const std::string& id, const std::string& label, b
         }
 
         ImGui::PopItemWidth();
-        if (step < minStep) step = minStep;
+        if (step < minStep)
+            step = minStep;
 
         ImGui::Separator();
         ImGui::Text("Freeze Mode:");
@@ -85,7 +85,7 @@ static void DrawSettingsPopup(const std::string& id, const std::string& label, b
         if (intControl || floatControl) {
             FreezeMode currentMode = intControl ? intControl->GetFreezeMode() : floatControl->GetFreezeMode();
             int currentModeInt = static_cast<int>(currentMode);
-            const char* freezeModeOptions[] = { "Minimum Value", "Hard Lock" };
+            const char* freezeModeOptions[] = {"Minimum Value", "Hard Lock"};
 
             if (ImGui::Combo("##freezemode", &currentModeInt, freezeModeOptions, 2)) {
                 FreezeMode newMode = static_cast<FreezeMode>(currentModeInt);
@@ -107,15 +107,10 @@ static void DrawSettingsPopup(const std::string& id, const std::string& label, b
     }
 }
 
-
 // InputHelper implementation
-bool InputHelper::IsKeyPressed(ImGuiKey key) {
-    return ImGui::IsKeyPressed(key);
-}
+bool InputHelper::IsKeyPressed(ImGuiKey key) { return ImGui::IsKeyPressed(key); }
 
-bool InputHelper::IsKeyDown(ImGuiKey key) {
-    return ImGui::IsKeyDown(key);
-}
+bool InputHelper::IsKeyDown(ImGuiKey key) { return ImGui::IsKeyDown(key); }
 
 const char* InputHelper::KeyToString(ImGuiKey key) {
     const char* name = ImGui::GetKeyName(key);
@@ -175,16 +170,11 @@ bool InputHelper::DrawHotkeyButton(const char* id, ImGuiKey* key) {
     return s_capturingKey && s_captureTargetKey == key;
 }
 
-
 // InputControl implementation
 InputControl::InputControl(const std::string& label, const std::string& id, bool enabled)
-    : label(label), id(id), enabled(enabled), hotkey(ImGuiKey_None), isCapturingHotkey(false), saveEnabledState(true)
-{
-}
+    : label(label), id(id), enabled(enabled), hotkey(ImGuiKey_None), isCapturingHotkey(false), saveEnabledState(true) {}
 
-bool InputControl::DrawHotkeyButton() {
-    return InputHelper::DrawHotkeyButton((id + "_hotkey").c_str(), &hotkey);
-}
+bool InputControl::DrawHotkeyButton() { return InputHelper::DrawHotkeyButton((id + "_hotkey").c_str(), &hotkey); }
 
 json InputControl::Serialize() const {
     json data;
@@ -196,23 +186,21 @@ json InputControl::Serialize() const {
 }
 
 void InputControl::Deserialize(const json& data) {
-    if (data.contains("enabled")) enabled = data["enabled"];
-    if (data.contains("hotkey")) hotkey = static_cast<ImGuiKey>(data["hotkey"]);
+    if (data.contains("enabled"))
+        enabled = data["enabled"];
+    if (data.contains("hotkey"))
+        hotkey = static_cast<ImGuiKey>(data["hotkey"]);
 }
-
 
 // ToggleControl implementation
 ToggleControl::ToggleControl(const std::string& label, const std::string& id, bool enabled, bool autoRegister, bool showHotkey)
-    : InputControl(label, id, enabled), onChange(nullptr), showHotkey(showHotkey)
-{
+    : InputControl(label, id, enabled), onChange(nullptr), showHotkey(showHotkey) {
     if (autoRegister) {
         ConfigManager::RegisterControl(this);
     }
 }
 
-ToggleControl::~ToggleControl() {
-    ConfigManager::UnregisterControl(this);
-}
+ToggleControl::~ToggleControl() { ConfigManager::UnregisterControl(this); }
 
 void ToggleControl::Draw() {
     ImGui::PushID(id.c_str());
@@ -242,29 +230,20 @@ void ToggleControl::Update() {
     }
 }
 
-json ToggleControl::Serialize() const {
-    return InputControl::Serialize();
-}
+json ToggleControl::Serialize() const { return InputControl::Serialize(); }
 
-void ToggleControl::Deserialize(const json& data) {
-    InputControl::Deserialize(data);
-}
-
+void ToggleControl::Deserialize(const json& data) { InputControl::Deserialize(data); }
 
 // IntControl implementation
-IntControl::IntControl(const std::string& label, const std::string& id, int value,
-                      int minValue, int maxValue, int step, bool enabled, bool disableValueOnToggle, bool showCheckbox)
-    : InputControl(label, id), value(value), frozenValue(value), minValue(minValue), maxValue(maxValue), step(step),
-      incHotkey(ImGuiKey_None), decHotkey(ImGuiKey_None), isCapturingIncHotkey(false), isCapturingDecHotkey(false),
-      disableValueOnToggle(disableValueOnToggle), showCheckbox(showCheckbox), freezeMode(FreezeMode::HardLock),
-      getValueFunc(nullptr), setValueFunc(nullptr), onChange(nullptr), onToggle(nullptr)
-{
+IntControl::IntControl(const std::string& label, const std::string& id, int value, int minValue, int maxValue, int step, bool enabled,
+                       bool disableValueOnToggle, bool showCheckbox)
+    : InputControl(label, id), value(value), frozenValue(value), minValue(minValue), maxValue(maxValue), step(step), incHotkey(ImGuiKey_None),
+      decHotkey(ImGuiKey_None), isCapturingIncHotkey(false), isCapturingDecHotkey(false), disableValueOnToggle(disableValueOnToggle),
+      showCheckbox(showCheckbox), freezeMode(FreezeMode::HardLock), getValueFunc(nullptr), setValueFunc(nullptr), onChange(nullptr), onToggle(nullptr) {
     ConfigManager::RegisterControl(this);
 }
 
-IntControl::~IntControl() {
-    ConfigManager::UnregisterControl(this);
-}
+IntControl::~IntControl() { ConfigManager::UnregisterControl(this); }
 
 void IntControl::Draw() {
     ImGui::PushID(id.c_str());
@@ -414,13 +393,17 @@ void IntControl::Deserialize(const json& data) {
     if (data.contains("freezeMode")) {
         freezeMode = static_cast<FreezeMode>(data["freezeMode"]);
     }
-    if (data.contains("incHotkey")) incHotkey = static_cast<ImGuiKey>(data["incHotkey"]);
-    if (data.contains("decHotkey")) decHotkey = static_cast<ImGuiKey>(data["decHotkey"]);
-    if (data.contains("step")) step = data["step"];
+    if (data.contains("incHotkey"))
+        incHotkey = static_cast<ImGuiKey>(data["incHotkey"]);
+    if (data.contains("decHotkey"))
+        decHotkey = static_cast<ImGuiKey>(data["decHotkey"]);
+    if (data.contains("step"))
+        step = data["step"];
 }
 
 void IntControl::UpdateFreezeLogic() {
-    if (!getValueFunc || !setValueFunc) return;
+    if (!getValueFunc || !setValueFunc)
+        return;
 
     int currentValue = getValueFunc();
     if (enabled) {
@@ -439,21 +422,16 @@ void IntControl::UpdateFreezeLogic() {
     }
 }
 
-
 // FloatControl implementation
-FloatControl::FloatControl(const std::string& label, const std::string& id, float value,
-                         float minValue, float maxValue, float step, bool enabled, bool disableValueOnToggle, bool showCheckbox)
-    : InputControl(label, id), value(value), frozenValue(value), minValue(minValue), maxValue(maxValue), step(step),
-      incHotkey(ImGuiKey_None), decHotkey(ImGuiKey_None), isCapturingIncHotkey(false), isCapturingDecHotkey(false),
-      disableValueOnToggle(disableValueOnToggle), showCheckbox(showCheckbox), freezeMode(FreezeMode::HardLock),
-      getValueFunc(nullptr), setValueFunc(nullptr), onChange(nullptr), onToggle(nullptr)
-{
+FloatControl::FloatControl(const std::string& label, const std::string& id, float value, float minValue, float maxValue, float step, bool enabled,
+                           bool disableValueOnToggle, bool showCheckbox)
+    : InputControl(label, id), value(value), frozenValue(value), minValue(minValue), maxValue(maxValue), step(step), incHotkey(ImGuiKey_None),
+      decHotkey(ImGuiKey_None), isCapturingIncHotkey(false), isCapturingDecHotkey(false), disableValueOnToggle(disableValueOnToggle),
+      showCheckbox(showCheckbox), freezeMode(FreezeMode::HardLock), getValueFunc(nullptr), setValueFunc(nullptr), onChange(nullptr), onToggle(nullptr) {
     ConfigManager::RegisterControl(this);
 }
 
-FloatControl::~FloatControl() {
-    ConfigManager::UnregisterControl(this);
-}
+FloatControl::~FloatControl() { ConfigManager::UnregisterControl(this); }
 
 void FloatControl::Draw() {
     ImGui::PushID(id.c_str());
@@ -600,13 +578,17 @@ void FloatControl::Deserialize(const json& data) {
     if (data.contains("freezeMode")) {
         freezeMode = static_cast<FreezeMode>(data["freezeMode"]);
     }
-    if (data.contains("incHotkey")) incHotkey = static_cast<ImGuiKey>(data["incHotkey"]);
-    if (data.contains("decHotkey")) decHotkey = static_cast<ImGuiKey>(data["decHotkey"]);
-    if (data.contains("step")) step = data["step"];
+    if (data.contains("incHotkey"))
+        incHotkey = static_cast<ImGuiKey>(data["incHotkey"]);
+    if (data.contains("decHotkey"))
+        decHotkey = static_cast<ImGuiKey>(data["decHotkey"]);
+    if (data.contains("step"))
+        step = data["step"];
 }
 
 void FloatControl::UpdateFreezeLogic() {
-    if (!getValueFunc || !setValueFunc) return;
+    if (!getValueFunc || !setValueFunc)
+        return;
 
     float currentValue = getValueFunc();
     if (enabled) {
@@ -625,18 +607,13 @@ void FloatControl::UpdateFreezeLogic() {
     }
 }
 
-
 // ButtonControl implementation
 ButtonControl::ButtonControl(const std::string& label, const std::string& id, const std::string& buttonText, std::function<void()> callback)
-    : InputControl(label, id), buttonText(buttonText.empty() ? label : buttonText),
-      onClick(callback), highlighted(false), highlightTimer(0.0f)
-{
+    : InputControl(label, id), buttonText(buttonText.empty() ? label : buttonText), onClick(callback), highlighted(false), highlightTimer(0.0f) {
     ConfigManager::RegisterControl(this);
 }
 
-ButtonControl::~ButtonControl() {
-    ConfigManager::UnregisterControl(this);
-}
+ButtonControl::~ButtonControl() { ConfigManager::UnregisterControl(this); }
 
 void ButtonControl::Draw() {
     ImGui::PushID(id.c_str());
@@ -686,33 +663,19 @@ void ButtonControl::Update() {
     }
 }
 
-json ButtonControl::Serialize() const {
-    return InputControl::Serialize();
-}
+json ButtonControl::Serialize() const { return InputControl::Serialize(); }
 
-void ButtonControl::Deserialize(const json& data) {
-    InputControl::Deserialize(data);
-}
-
+void ButtonControl::Deserialize(const json& data) { InputControl::Deserialize(data); }
 
 // ESP Control implementation
-ESPControl::ESPControl(const std::string& label, const std::string& id,
-                     bool enabled, float defaultDistance,
-                     float maxDistance, ImVec4 defaultColor,
-                     ImVec4 defaultOutlineColor, bool defaultEnableOutline)
-    : InputControl(label, id, enabled),
-      distance(defaultDistance),
-      maxDistance(maxDistance),
-      color(defaultColor),
-      outlineColor(defaultOutlineColor),
-      enableOutline(defaultEnableOutline)
-{
+ESPControl::ESPControl(const std::string& label, const std::string& id, bool enabled, float defaultDistance, float maxDistance, ImVec4 defaultColor,
+                       ImVec4 defaultOutlineColor, bool defaultEnableOutline)
+    : InputControl(label, id, enabled), distance(defaultDistance), maxDistance(maxDistance), color(defaultColor), outlineColor(defaultOutlineColor),
+      enableOutline(defaultEnableOutline) {
     ConfigManager::RegisterControl(this);
 }
 
-ESPControl::~ESPControl() {
-    ConfigManager::UnregisterControl(this);
-}
+ESPControl::~ESPControl() { ConfigManager::UnregisterControl(this); }
 
 void ESPControl::Draw() {
     ImGui::PushID(id.c_str());
@@ -736,8 +699,7 @@ void ESPControl::Draw() {
     ImGui::PopItemWidth();
     ImGui::SameLine();
 
-    ImGui::ColorEdit4(("##" + id + "_color").c_str(), (float*)&color,
-                     ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+    ImGui::ColorEdit4(("##" + id + "_color").c_str(), (float*)&color, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
     ImGui::SameLine();
 
     ImGui::Checkbox(("O##" + id + "_outline_toggle").c_str(), &enableOutline);
@@ -745,8 +707,7 @@ void ESPControl::Draw() {
         ImGui::SetTooltip("Toggle outline");
     ImGui::SameLine();
 
-    ImGui::ColorEdit4(("##" + id + "_outline_color").c_str(), (float*)&outlineColor,
-                        ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+    ImGui::ColorEdit4(("##" + id + "_outline_color").c_str(), (float*)&outlineColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
     ImGui::SameLine();
 
     InputHelper::DrawHotkeyButton((id + "_hotkey").c_str(), &hotkey);
@@ -760,22 +721,13 @@ void ESPControl::Update() {
     }
 }
 
-void ESPControl::SetDistance(float newDistance) {
-    distance = std::min(std::max(newDistance, 0.0f), maxDistance);
-}
+void ESPControl::SetDistance(float newDistance) { distance = std::min(std::max(newDistance, 0.0f), maxDistance); }
 
-void ESPControl::SetColor(const ImVec4& newColor) {
-    color = newColor;
-}
+void ESPControl::SetColor(const ImVec4& newColor) { color = newColor; }
 
+void ESPControl::SetOutlineColor(const ImVec4& newOutlineColor) { outlineColor = newOutlineColor; }
 
-void ESPControl::SetOutlineColor(const ImVec4& newOutlineColor) {
-    outlineColor = newOutlineColor;
-}
-
-void ESPControl::SetEnableOutline(bool enable) {
-    enableOutline = enable;
-}
+void ESPControl::SetEnableOutline(bool enable) { enableOutline = enable; }
 
 json ESPControl::Serialize() const {
     json data = InputControl::Serialize();
@@ -788,30 +740,27 @@ json ESPControl::Serialize() const {
 
 void ESPControl::Deserialize(const json& data) {
     InputControl::Deserialize(data);
-    if (data.contains("distance")) distance = data["distance"];
+    if (data.contains("distance"))
+        distance = data["distance"];
     if (data.contains("color") && data["color"].is_array() && data["color"].size() == 4) {
         color = ImVec4(data["color"][0], data["color"][1], data["color"][2], data["color"][3]);
     }
     if (data.contains("outlineColor") && data["outlineColor"].is_array() && data["outlineColor"].size() == 4) {
         outlineColor = ImVec4(data["outlineColor"][0], data["outlineColor"][1], data["outlineColor"][2], data["outlineColor"][3]);
     }
-    if (data.contains("enableOutline")) enableOutline = data["enableOutline"];
+    if (data.contains("enableOutline"))
+        enableOutline = data["enableOutline"];
 }
 
-
 // SliderControl implementation
-SliderControl::SliderControl(const std::string& label, const std::string& id, float value,
-                           float minValue, float maxValue, bool autoRegister)
-    : InputControl(label, id, false), value(value), minValue(minValue), maxValue(maxValue), onChange(nullptr)
-{
+SliderControl::SliderControl(const std::string& label, const std::string& id, float value, float minValue, float maxValue, bool autoRegister)
+    : InputControl(label, id, false), value(value), minValue(minValue), maxValue(maxValue), onChange(nullptr) {
     if (autoRegister) {
         ConfigManager::RegisterControl(this);
     }
 }
 
-SliderControl::~SliderControl() {
-    ConfigManager::UnregisterControl(this);
-}
+SliderControl::~SliderControl() { ConfigManager::UnregisterControl(this); }
 
 void SliderControl::Draw() {
     ImGui::PushID(id.c_str());
@@ -833,9 +782,7 @@ void SliderControl::Update() {
     // No hotkey support for simple sliders
 }
 
-void SliderControl::SetValue(float newValue) {
-    value = std::min(std::max(newValue, minValue), maxValue);
-}
+void SliderControl::SetValue(float newValue) { value = std::min(std::max(newValue, minValue), maxValue); }
 
 json SliderControl::Serialize() const {
     json data = InputControl::Serialize();
@@ -845,22 +792,18 @@ json SliderControl::Serialize() const {
 
 void SliderControl::Deserialize(const json& data) {
     InputControl::Deserialize(data);
-    if (data.contains("value")) SetValue(data["value"]);
+    if (data.contains("value"))
+        SetValue(data["value"]);
 }
 
 // ToggleButtonControl implementation
-ToggleButtonControl::ToggleButtonControl(const std::string& label, const std::string& id,
-                                     const std::string& buttonText, bool enabled)
-    : InputControl(label, id, enabled), buttonText(buttonText), actionHotkey(ImGuiKey_None),
-      isCapturingActionHotkey(false), actionHighlighted(false), actionHighlightTimer(0.0f),
-      onAction(nullptr)
-{
+ToggleButtonControl::ToggleButtonControl(const std::string& label, const std::string& id, const std::string& buttonText, bool enabled)
+    : InputControl(label, id, enabled), buttonText(buttonText), actionHotkey(ImGuiKey_None), isCapturingActionHotkey(false), actionHighlighted(false),
+      actionHighlightTimer(0.0f), onAction(nullptr) {
     ConfigManager::RegisterControl(this);
 }
 
-ToggleButtonControl::~ToggleButtonControl() {
-    ConfigManager::UnregisterControl(this);
-}
+ToggleButtonControl::~ToggleButtonControl() { ConfigManager::UnregisterControl(this); }
 
 void ToggleButtonControl::Draw() {
     ImGui::PushID(id.c_str());
@@ -941,19 +884,14 @@ json ToggleButtonControl::Serialize() const {
 
 void ToggleButtonControl::Deserialize(const json& data) {
     InputControl::Deserialize(data);
-    if (data.contains("actionHotkey")) actionHotkey = static_cast<ImGuiKey>(data["actionHotkey"]);
+    if (data.contains("actionHotkey"))
+        actionHotkey = static_cast<ImGuiKey>(data["actionHotkey"]);
 }
-
 
 // EntityESPSubControl implementation
 EntityESPSubControl::EntityESPSubControl(const std::string& label, const std::string& id)
-    : label(label), id(id),
-      nameColor(1.0f, 1.0f, 1.0f, 1.0f),
-      distanceColor(0.8f, 0.8f, 0.8f, 1.0f),
-      healthColor(0.0f, 1.0f, 0.0f, 1.0f),
-      maxHealthColor(0.0f, 0.8f, 0.0f, 1.0f),
-      boxColor(1.0f, 0.0f, 0.0f, 1.0f),
-      tracelineColor(1.0f, 1.0f, 0.0f, 1.0f) {
+    : label(label), id(id), nameColor(1.0f, 1.0f, 1.0f, 1.0f), distanceColor(0.8f, 0.8f, 0.8f, 1.0f), healthColor(0.0f, 1.0f, 0.0f, 1.0f),
+      maxHealthColor(0.0f, 0.8f, 0.0f, 1.0f), boxColor(1.0f, 0.0f, 0.0f, 1.0f), tracelineColor(1.0f, 1.0f, 0.0f, 1.0f) {
 
     enabled = std::make_unique<ToggleControl>("Enabled", id + "_enabled", false, false);
     showName = std::make_unique<ToggleControl>("Show Name", id + "_showName", true, false);
@@ -966,8 +904,7 @@ EntityESPSubControl::EntityESPSubControl(const std::string& label, const std::st
     maxDistance = std::make_unique<SliderControl>("Max Distance", id + "_maxDistance", 100.0f, 0.0f, 1000.0f, false);
 }
 
-EntityESPSubControl::~EntityESPSubControl() {
-}
+EntityESPSubControl::~EntityESPSubControl() {}
 
 void EntityESPSubControl::Draw() {
     if (ImGui::CollapsingHeader(label.c_str())) {
@@ -976,35 +913,29 @@ void EntityESPSubControl::Draw() {
         // Text options with color pickers
         showName->Draw();
         ImGui::SameLine();
-        ImGui::ColorEdit4(("Name Color##" + id).c_str(), (float*)&nameColor,
-                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(("Name Color##" + id).c_str(), (float*)&nameColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
         showDistance->Draw();
         ImGui::SameLine();
-        ImGui::ColorEdit4(("Distance Color##" + id).c_str(), (float*)&distanceColor,
-                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(("Distance Color##" + id).c_str(), (float*)&distanceColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
         showHealth->Draw();
         ImGui::SameLine();
-        ImGui::ColorEdit4(("Health Color##" + id).c_str(), (float*)&healthColor,
-                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(("Health Color##" + id).c_str(), (float*)&healthColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
         showMaxHealth->Draw();
         ImGui::SameLine();
-        ImGui::ColorEdit4(("Max Health Color##" + id).c_str(), (float*)&maxHealthColor,
-                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(("Max Health Color##" + id).c_str(), (float*)&maxHealthColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
         showHealthbar->Draw();
 
         showBox->Draw();
         ImGui::SameLine();
-        ImGui::ColorEdit4(("Box Color##" + id).c_str(), (float*)&boxColor,
-                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(("Box Color##" + id).c_str(), (float*)&boxColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
         showTraceline->Draw();
         ImGui::SameLine();
-        ImGui::ColorEdit4(("Traceline Color##" + id).c_str(), (float*)&tracelineColor,
-                         ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        ImGui::ColorEdit4(("Traceline Color##" + id).c_str(), (float*)&tracelineColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
         // Sliders
         maxDistance->Draw();
@@ -1067,15 +998,24 @@ json EntityESPSubControl::Serialize() const {
 }
 
 void EntityESPSubControl::Deserialize(const json& data) {
-    if (data.contains("enabled")) enabled->Deserialize(data["enabled"]);
-    if (data.contains("showName")) showName->Deserialize(data["showName"]);
-    if (data.contains("showDistance")) showDistance->Deserialize(data["showDistance"]);
-    if (data.contains("showHealth")) showHealth->Deserialize(data["showHealth"]);
-    if (data.contains("showMaxHealth")) showMaxHealth->Deserialize(data["showMaxHealth"]);
-    if (data.contains("showHealthbar")) showHealthbar->Deserialize(data["showHealthbar"]);
-    if (data.contains("showBox")) showBox->Deserialize(data["showBox"]);
-    if (data.contains("showTraceline")) showTraceline->Deserialize(data["showTraceline"]);
-    if (data.contains("maxDistance")) maxDistance->Deserialize(data["maxDistance"]);
+    if (data.contains("enabled"))
+        enabled->Deserialize(data["enabled"]);
+    if (data.contains("showName"))
+        showName->Deserialize(data["showName"]);
+    if (data.contains("showDistance"))
+        showDistance->Deserialize(data["showDistance"]);
+    if (data.contains("showHealth"))
+        showHealth->Deserialize(data["showHealth"]);
+    if (data.contains("showMaxHealth"))
+        showMaxHealth->Deserialize(data["showMaxHealth"]);
+    if (data.contains("showHealthbar"))
+        showHealthbar->Deserialize(data["showHealthbar"]);
+    if (data.contains("showBox"))
+        showBox->Deserialize(data["showBox"]);
+    if (data.contains("showTraceline"))
+        showTraceline->Deserialize(data["showTraceline"]);
+    if (data.contains("maxDistance"))
+        maxDistance->Deserialize(data["maxDistance"]);
     if (data.contains("nameColor") && data["nameColor"].is_array() && data["nameColor"].size() == 4) {
         nameColor = ImVec4(data["nameColor"][0], data["nameColor"][1], data["nameColor"][2], data["nameColor"][3]);
     }
@@ -1097,8 +1037,7 @@ void EntityESPSubControl::Deserialize(const json& data) {
 }
 
 // EntityESPControl implementation
-EntityESPControl::EntityESPControl(const std::string& label, const std::string& id)
-    : InputControl(label, id, false) {
+EntityESPControl::EntityESPControl(const std::string& label, const std::string& id) : InputControl(label, id, false) {
 
     masterEnabled = std::make_unique<ToggleControl>("Master Enabled", id + "_master", false, false);
     visibleControl = std::make_unique<EntityESPSubControl>("Visible " + label, id + "_visible");
@@ -1107,9 +1046,7 @@ EntityESPControl::EntityESPControl(const std::string& label, const std::string& 
     ConfigManager::RegisterControl(this);
 }
 
-EntityESPControl::~EntityESPControl() {
-    ConfigManager::UnregisterControl(this);
-}
+EntityESPControl::~EntityESPControl() { ConfigManager::UnregisterControl(this); }
 
 void EntityESPControl::Draw() {
     ImGui::PushID(id.c_str());
@@ -1143,14 +1080,16 @@ json EntityESPControl::Serialize() const {
 
 void EntityESPControl::Deserialize(const json& data) {
     InputControl::Deserialize(data);
-    if (data.contains("masterEnabled")) masterEnabled->Deserialize(data["masterEnabled"]);
-    if (data.contains("visible")) visibleControl->Deserialize(data["visible"]);
-    if (data.contains("nonVisible")) nonVisibleControl->Deserialize(data["nonVisible"]);
+    if (data.contains("masterEnabled"))
+        masterEnabled->Deserialize(data["masterEnabled"]);
+    if (data.contains("visible"))
+        visibleControl->Deserialize(data["visible"]);
+    if (data.contains("nonVisible"))
+        nonVisibleControl->Deserialize(data["nonVisible"]);
 }
 
 // ChestESPSubControl implementation
-ChestESPSubControl::ChestESPSubControl(const std::string& label, const std::string& id)
-    : InputControl(label, id, false) {
+ChestESPSubControl::ChestESPSubControl(const std::string& label, const std::string& id) : InputControl(label, id, false) {
 
     enabled = std::make_unique<ToggleControl>("Enabled", id + "_enabled", true, false);
     showName = std::make_unique<ToggleControl>("Show Name", id + "_showName", true, false);
@@ -1163,17 +1102,16 @@ ChestESPSubControl::ChestESPSubControl(const std::string& label, const std::stri
     enableCostShadow = std::make_unique<ToggleControl>("O", id + "_enableCostShadow", true, false, false);
     maxDistance = std::make_unique<SliderControl>("Max Distance", id + "_maxDistance", 500.0f, 0.0f, 1000.0f, false);
 
-    nameColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);  // White
-    distanceColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);  // White
-    costColor = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);  // Yellow
-    tracelineColor = ImVec4(0.0f, 1.0f, 0.0f, 1.0f); // Green
-    nameShadowColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f); // Black
+    nameColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);           // White
+    distanceColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // White
+    costColor = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);           // Yellow
+    tracelineColor = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);      // Green
+    nameShadowColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);     // Black
     distanceShadowColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f); // Black
-    costShadowColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f); // Black
+    costShadowColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);     // Black
 }
 
-ChestESPSubControl::~ChestESPSubControl() {
-}
+ChestESPSubControl::~ChestESPSubControl() {}
 
 void ChestESPSubControl::Draw() {
     ImGui::PushID(id.c_str());
@@ -1185,41 +1123,36 @@ void ChestESPSubControl::Draw() {
             // Show Name with color picker and shadow controls
             showName->Draw();
             ImGui::SameLine();
-            ImGui::ColorEdit4(("##" + id + "_name_color").c_str(), (float*)&nameColor,
-                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            ImGui::ColorEdit4(("##" + id + "_name_color").c_str(), (float*)&nameColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
             ImGui::SameLine();
             enableNameShadow->Draw();
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Toggle outline");
             ImGui::SameLine();
-            ImGui::ColorEdit4(("##" + id + "_name_shadow_color").c_str(), (float*)&nameShadowColor,
-                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            ImGui::ColorEdit4(("##" + id + "_name_shadow_color").c_str(), (float*)&nameShadowColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
             // Show Distance with color picker and shadow controls
             showDistance->Draw();
             ImGui::SameLine();
-            ImGui::ColorEdit4(("##" + id + "_distance_color").c_str(), (float*)&distanceColor,
-                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            ImGui::ColorEdit4(("##" + id + "_distance_color").c_str(), (float*)&distanceColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
             ImGui::SameLine();
             enableDistanceShadow->Draw();
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Toggle outline");
             ImGui::SameLine();
             ImGui::ColorEdit4(("##" + id + "_distance_shadow_color").c_str(), (float*)&distanceShadowColor,
-                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+                              ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
             // Show Cost with color picker and shadow controls
             showCost->Draw();
             ImGui::SameLine();
-            ImGui::ColorEdit4(("##" + id + "_cost_color").c_str(), (float*)&costColor,
-                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            ImGui::ColorEdit4(("##" + id + "_cost_color").c_str(), (float*)&costColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
             ImGui::SameLine();
             enableCostShadow->Draw();
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Toggle outline");
             ImGui::SameLine();
-            ImGui::ColorEdit4(("##" + id + "_cost_shadow_color").c_str(), (float*)&costShadowColor,
-                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            ImGui::ColorEdit4(("##" + id + "_cost_shadow_color").c_str(), (float*)&costShadowColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
             // Show Unavailable (no color picker needed)
             showUnavailable->Draw();
@@ -1227,8 +1160,7 @@ void ChestESPSubControl::Draw() {
             // Show Traceline with color picker
             showTraceline->Draw();
             ImGui::SameLine();
-            ImGui::ColorEdit4(("##" + id + "_traceline_color").c_str(), (float*)&tracelineColor,
-                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+            ImGui::ColorEdit4(("##" + id + "_traceline_color").c_str(), (float*)&tracelineColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
             // Max Distance slider
             maxDistance->Draw();
@@ -1306,16 +1238,26 @@ json ChestESPSubControl::Serialize() const {
 void ChestESPSubControl::Deserialize(const json& data) {
     // Don't call base class deserialize - we don't use those fields
 
-    if (data.contains("enabled")) enabled->Deserialize(data["enabled"]);
-    if (data.contains("showName")) showName->Deserialize(data["showName"]);
-    if (data.contains("showDistance")) showDistance->Deserialize(data["showDistance"]);
-    if (data.contains("showCost")) showCost->Deserialize(data["showCost"]);
-    if (data.contains("showUnavailable")) showUnavailable->Deserialize(data["showUnavailable"]);
-    if (data.contains("showTraceline")) showTraceline->Deserialize(data["showTraceline"]);
-    if (data.contains("enableNameShadow")) enableNameShadow->Deserialize(data["enableNameShadow"]);
-    if (data.contains("enableDistanceShadow")) enableDistanceShadow->Deserialize(data["enableDistanceShadow"]);
-    if (data.contains("enableCostShadow")) enableCostShadow->Deserialize(data["enableCostShadow"]);
-    if (data.contains("maxDistance")) maxDistance->Deserialize(data["maxDistance"]);
+    if (data.contains("enabled"))
+        enabled->Deserialize(data["enabled"]);
+    if (data.contains("showName"))
+        showName->Deserialize(data["showName"]);
+    if (data.contains("showDistance"))
+        showDistance->Deserialize(data["showDistance"]);
+    if (data.contains("showCost"))
+        showCost->Deserialize(data["showCost"]);
+    if (data.contains("showUnavailable"))
+        showUnavailable->Deserialize(data["showUnavailable"]);
+    if (data.contains("showTraceline"))
+        showTraceline->Deserialize(data["showTraceline"]);
+    if (data.contains("enableNameShadow"))
+        enableNameShadow->Deserialize(data["enableNameShadow"]);
+    if (data.contains("enableDistanceShadow"))
+        enableDistanceShadow->Deserialize(data["enableDistanceShadow"]);
+    if (data.contains("enableCostShadow"))
+        enableCostShadow->Deserialize(data["enableCostShadow"]);
+    if (data.contains("maxDistance"))
+        maxDistance->Deserialize(data["maxDistance"]);
 
     if (data.contains("nameColor") && data["nameColor"].is_array() && data["nameColor"].size() == 4) {
         nameColor = ImVec4(data["nameColor"][0], data["nameColor"][1], data["nameColor"][2], data["nameColor"][3]);
@@ -1333,7 +1275,8 @@ void ChestESPSubControl::Deserialize(const json& data) {
         nameShadowColor = ImVec4(data["nameShadowColor"][0], data["nameShadowColor"][1], data["nameShadowColor"][2], data["nameShadowColor"][3]);
     }
     if (data.contains("distanceShadowColor") && data["distanceShadowColor"].is_array() && data["distanceShadowColor"].size() == 4) {
-        distanceShadowColor = ImVec4(data["distanceShadowColor"][0], data["distanceShadowColor"][1], data["distanceShadowColor"][2], data["distanceShadowColor"][3]);
+        distanceShadowColor =
+            ImVec4(data["distanceShadowColor"][0], data["distanceShadowColor"][1], data["distanceShadowColor"][2], data["distanceShadowColor"][3]);
     }
     if (data.contains("costShadowColor") && data["costShadowColor"].is_array() && data["costShadowColor"].size() == 4) {
         costShadowColor = ImVec4(data["costShadowColor"][0], data["costShadowColor"][1], data["costShadowColor"][2], data["costShadowColor"][3]);
@@ -1341,8 +1284,7 @@ void ChestESPSubControl::Deserialize(const json& data) {
 }
 
 // ChestESPControl implementation
-ChestESPControl::ChestESPControl(const std::string& label, const std::string& id)
-    : InputControl(label, id, false) {
+ChestESPControl::ChestESPControl(const std::string& label, const std::string& id) : InputControl(label, id, false) {
 
     masterEnabled = std::make_unique<ToggleControl>("Master Enabled", id + "_master", false, false);
     subControl = std::make_unique<ChestESPSubControl>(label + " Settings", id + "_settings");
@@ -1350,9 +1292,7 @@ ChestESPControl::ChestESPControl(const std::string& label, const std::string& id
     ConfigManager::RegisterControl(this);
 }
 
-ChestESPControl::~ChestESPControl() {
-    ConfigManager::UnregisterControl(this);
-}
+ChestESPControl::~ChestESPControl() { ConfigManager::UnregisterControl(this); }
 
 void ChestESPControl::Draw() {
     ImGui::PushID(id.c_str());
@@ -1384,38 +1324,27 @@ json ChestESPControl::Serialize() const {
 
 void ChestESPControl::Deserialize(const json& data) {
     InputControl::Deserialize(data);
-    if (data.contains("masterEnabled")) masterEnabled->Deserialize(data["masterEnabled"]);
-    if (data.contains("settings")) subControl->Deserialize(data["settings"]);
+    if (data.contains("masterEnabled"))
+        masterEnabled->Deserialize(data["masterEnabled"]);
+    if (data.contains("settings"))
+        subControl->Deserialize(data["settings"]);
 }
-
 
 // ComboControl implementation
-ComboControl::ComboControl(const std::string& label, const std::string& id,
-                         const std::vector<std::string>& items,
-                         int defaultIndex, bool showHotkeys)
-    : InputControl(label, id), items(items), selectedIndex(defaultIndex),
-      prevHotkey(ImGuiKey_None), nextHotkey(ImGuiKey_None),
-      isCapturingPrevHotkey(false), isCapturingNextHotkey(false),
-      onChange(nullptr), showHotkeys(showHotkeys)
-{
+ComboControl::ComboControl(const std::string& label, const std::string& id, const std::vector<std::string>& items, int defaultIndex, bool showHotkeys)
+    : InputControl(label, id), items(items), selectedIndex(defaultIndex), prevHotkey(ImGuiKey_None), nextHotkey(ImGuiKey_None), isCapturingPrevHotkey(false),
+      isCapturingNextHotkey(false), onChange(nullptr), showHotkeys(showHotkeys) {
     ConfigManager::RegisterControl(this);
 }
 
-ComboControl::ComboControl(const std::string& label, const std::string& id,
-                         const std::vector<std::string>& items,
-                         const std::vector<int>& values,
-                         int defaultIndex, bool showHotkeys)
-    : InputControl(label, id), items(items), itemValues(values), selectedIndex(defaultIndex),
-      prevHotkey(ImGuiKey_None), nextHotkey(ImGuiKey_None),
-      isCapturingPrevHotkey(false), isCapturingNextHotkey(false),
-      onChange(nullptr), showHotkeys(showHotkeys)
-{
+ComboControl::ComboControl(const std::string& label, const std::string& id, const std::vector<std::string>& items, const std::vector<int>& values,
+                           int defaultIndex, bool showHotkeys)
+    : InputControl(label, id), items(items), itemValues(values), selectedIndex(defaultIndex), prevHotkey(ImGuiKey_None), nextHotkey(ImGuiKey_None),
+      isCapturingPrevHotkey(false), isCapturingNextHotkey(false), onChange(nullptr), showHotkeys(showHotkeys) {
     ConfigManager::RegisterControl(this);
 }
 
-ComboControl::~ComboControl() {
-    ConfigManager::UnregisterControl(this);
-}
+ComboControl::~ComboControl() { ConfigManager::UnregisterControl(this); }
 
 void ComboControl::Draw() {
     ImGui::PushID(id.c_str());
@@ -1423,8 +1352,7 @@ void ComboControl::Draw() {
     ImGui::Text("%s:", label.c_str());
     ImGui::SameLine();
 
-    const char* preview = (selectedIndex >= 0 && selectedIndex < items.size())
-        ? items[selectedIndex].c_str() : "Select...";
+    const char* preview = (selectedIndex >= 0 && selectedIndex < items.size()) ? items[selectedIndex].c_str() : "Select...";
 
     if (ImGui::BeginCombo("##combo", preview)) {
         for (int i = 0; i < items.size(); i++) {
@@ -1488,12 +1416,14 @@ void ComboControl::SetSelectedIndex(int index) {
 }
 
 void ComboControl::SelectNext() {
-    if (items.empty()) return;
+    if (items.empty())
+        return;
     SetSelectedIndex((selectedIndex + 1) % items.size());
 }
 
 void ComboControl::SelectPrevious() {
-    if (items.empty()) return;
+    if (items.empty())
+        return;
     SetSelectedIndex((selectedIndex - 1 + items.size()) % items.size());
 }
 
@@ -1515,7 +1445,10 @@ json ComboControl::Serialize() const {
 
 void ComboControl::Deserialize(const json& data) {
     InputControl::Deserialize(data);
-    if (data.contains("selectedIndex")) selectedIndex = data["selectedIndex"];
-    if (data.contains("prevHotkey")) prevHotkey = static_cast<ImGuiKey>(data["prevHotkey"]);
-    if (data.contains("nextHotkey")) nextHotkey = static_cast<ImGuiKey>(data["nextHotkey"]);
+    if (data.contains("selectedIndex"))
+        selectedIndex = data["selectedIndex"];
+    if (data.contains("prevHotkey"))
+        prevHotkey = static_cast<ImGuiKey>(data["prevHotkey"]);
+    if (data.contains("nextHotkey"))
+        nextHotkey = static_cast<ImGuiKey>(data["nextHotkey"]);
 }

@@ -1,16 +1,16 @@
 #pragma once
 
-#include "ModuleBase.h"
 #include "../menu/InputControls.h"
+#include "ModuleBase.h"
 #include <memory>
 
 class EnemyModule : public ModuleBase {
-private:
+  private:
     std::unique_ptr<IntControl> monsterLevelControl;
     std::unique_ptr<IntControl> lunarLevelControl;
     std::unique_ptr<IntControl> voidLevelControl;
 
-public:
+  public:
     EnemyModule();
     ~EnemyModule() override;
 
