@@ -157,6 +157,7 @@ int GameFunctions::LoadPickupNames() {
             if (!name.empty()) {
                 G::espModule->CachePickupName(i, name);
             }
+            G::logger.LogInfo("Loaded pickup %d: %s", i, name.c_str());
         }
     }
 

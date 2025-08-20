@@ -34,6 +34,7 @@ struct SkillFamily;
 struct MultiShopController;
 struct PickupDisplay;
 struct CharacterMotor;
+struct ChestBehavior;
 
 typedef void* GameObject;
 typedef void* NetworkIdentity;
@@ -121,7 +122,6 @@ typedef void* SkillOverride;
 typedef void* StateMachineResolver;
 typedef void* Indicator;
 typedef void* Variant;
-typedef void* PickupPickerController;
 typedef void* Entry;
 typedef void* Boolean;
 typedef void* NetworkUIPromptController;
@@ -141,6 +141,10 @@ typedef void* HitGroundDelegate;
 typedef void* MovementHitDelegate;
 typedef void* SerializableLoadout;
 typedef void* ItemCountPair;
+typedef void* PickupIndexUnityEvent;
+typedef void* PickupPickerPanel;
+typedef void* Option;
+typedef void* EventFunctions;
 
 typedef int32_t Int32;
 typedef unsigned char Byte;
@@ -355,6 +359,12 @@ enum class DeployableSlot_Value : int32_t {
     MinorConstructOnKill = 20,
     CaptainSupplyDrop = 21,
     None = 22
+};
+
+enum class PickupArtifactFlag_Value : int32_t {
+    NONE = 0,
+    COMMAND = 1,
+    DELUSION = 2,
 };
 
 /* No Header Structs */
@@ -762,6 +772,21 @@ struct CharacterGravityParameters_Value {
 // Generated from RoR2.CharacterFlightParameters
 struct CharacterFlightParameters_Value {
     int32_t channeledFlightGranterCount;
+};
+
+// Generated from .CreatePickupInfo
+struct CreatePickupInfo_Value {
+    Vector3 position;
+    Quaternion rotation;
+    void* _pickupIndex;
+    char padding3[4];
+    Option* pickerOptions;
+    GameObject* prefabOverride;
+    ChestBehavior* chest;
+    PickupArtifactFlag_Value artifactFlag;
+    ItemIndex_Value delusionItemIndex;
+    ItemIndex_Value falseChoice1;
+    ItemIndex_Value falseChoice2;
 };
 
 /* Normal Class Objects with headers */
@@ -2580,6 +2605,41 @@ struct SkillFamily {
     Variant* variants;            // Offset: 24
     int32_t catalogIndex_backing; // Offset: 32
     uint32_t defaultVariantIndex; // Offset: 36
+};
+
+// Generated from RoR2.PickupPickerController
+struct PickupPickerController {
+    char padding0[48];                                    // Padding
+    GameObject* panelPrefab;                              // Offset: 48
+    PickupIndexUnityEvent* onPickupSelected;              // Offset: 56
+    InteractorUnityEvent* onServerInteractionBegin;       // Offset: 64
+    void* contextString;                                  // Offset: 72
+    Inventory* delusionInventory;                         // Offset: 80
+    NetworkUIPromptController* networkUIPromptController; // Offset: 88
+    GameObject* panelInstance;                            // Offset: 96
+    PickupPickerPanel* panelInstanceController;           // Offset: 104
+    ChestBehavior* chestGeneratedFrom;                    // Offset: 112
+    Option* options;                                      // Offset: 120
+    EventFunctions* eventFunctions;                       // Offset: 128
+    float cutoffDistance;                                 // Offset: 136
+    bool available;                                       // Offset: 140
+    bool shouldProximityHighlight;                        // Offset: 141
+    bool synchronizeItemSelectionAcrossNetwork;           // Offset: 142
+    bool isDelusionChoice;                                // Offset: 143
+    bool isRebirthChoice;                                 // Offset: 144
+    bool delusionOptionsSet;                              // Offset: 145
+    char padding18[2];                                    // Padding
+    int32_t delusionChoicePickupIndex;                    // Offset: 148
+    int32_t numberOfPickUpsSelected;                      // Offset: 152
+    bool multiOptionsAvailable;                           // Offset: 156
+};
+
+// Generated from RoR2.PickupDropletController
+struct PickupDropletController {
+    char padding0[48];                       // Padding
+    CreatePickupInfo_Value createPickupInfo; // Offset: 48
+    PickupIndex_Value pickupIndex;           // Offset: 128
+    bool alive;                              // Offset: 132
 };
 
 // Generated from RoR2.ChestBehavior

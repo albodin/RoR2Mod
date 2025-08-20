@@ -190,6 +190,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, TeamManager, OnDisable, 0, "System.Void", {});
     HOOK(RoR2, RoR2, GenericInteraction, OnEnable, 0, "System.Void", {});
     HOOK(RoR2, RoR2, PickupPickerController, Awake, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, PickupPickerController, OnDisable, 0, "System.Void", {});
     HOOK(RoR2, RoR2, ScrapperController, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, Run, AdvanceStage, 1, "System.Void", {"RoR2.SceneDef"});
     HOOK(RoR2, RoR2, Run, Awake, 0, "System.Void", {});
@@ -797,6 +798,21 @@ void Hooks::hkRoR2PickupPickerControllerAwake(void* instance) {
         return;
 
     G::espModule->OnPickupPickerControllerSpawned(instance);
+}
+
+void Hooks::hkRoR2PickupPickerControllerOnDisable(void* instance) {
+    static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2PickupPickerControllerOnDisable"]);
+    
+    if (!G::hooksInitialized) {
+        originalFunc(instance);
+        return;
+    }
+
+    G::logger.LogInfo("PickupPickerController (%p) OnDisable called - marking as unavailable", instance);
+    PickupPickerController* pcc = (PickupPickerController*)instance;
+    pcc->available = false;
+    
+    originalFunc(instance);
 }
 
 void Hooks::hkRoR2ScrapperControllerStart(void* instance) {

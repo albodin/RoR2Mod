@@ -14,7 +14,7 @@ struct TrackedEntity {
     std::string displayName;
 };
 
-enum class InteractableCategory { Chest, Shop, Drone, Shrine, Special, Barrel, ItemPickup, Portal, Unknown };
+enum class InteractableCategory { Chest, Shop, Drone, Shrine, Special, Barrel, ItemPickup, Portal, CommandCube, Unknown };
 
 struct TrackedInteractable {
     void* gameObject;

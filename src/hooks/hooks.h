@@ -45,6 +45,7 @@ void hkRoR2TimedChestControllerOnEnable(void*);
 void hkRoR2TimedChestControllerOnDisable(void*);
 void hkRoR2GenericInteractionOnEnable(void*);
 void hkRoR2PickupPickerControllerAwake(void*);
+void hkRoR2PickupPickerControllerOnDisable(void*);
 void hkRoR2ScrapperControllerStart(void*);
 void hkRoR2RunAdvanceStage(void*, void*);
 void hkRoR2RunAwake(void*);

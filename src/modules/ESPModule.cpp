@@ -9,6 +9,8 @@
 #include <cstdio>
 #include <imgui.h>
 #include <sstream>
+#include <unordered_map>
+#include <unordered_set>
 
 // ESPRenderOrderManager implementation
 ESPRenderOrderManager::ESPRenderOrderManager() { ResetToDefault(); }
@@ -365,7 +367,7 @@ void ESPModule::Update() {
     specialESPControl->Update();
     barrelESPControl->Update();
 
-    // Clean up consumed item pickups
+    // Clean up consumed item pickups and command cubes
     {
         std::lock_guard<std::mutex> lock(interactablesMutex);
         trackedInteractables.erase(std::remove_if(trackedInteractables.begin(), trackedInteractables.end(),
@@ -374,6 +376,11 @@ void ESPModule::Update() {
                                                           // Check if the pickup has been consumed or recycled
                                                           GenericPickupController* gpc = static_cast<GenericPickupController*>(tracked->gameObject);
                                                           if (gpc->Recycled || gpc->consumed) {
+                                                              return true;
+                                                          }
+                                                      } else if (tracked->category == InteractableCategory::CommandCube && tracked->gameObject) {
+                                                          PickupPickerController* ppc = static_cast<PickupPickerController*>(tracked->gameObject);
+                                                          if (!ppc->available) {
                                                               return true;
                                                           }
                                                       }
@@ -392,6 +399,8 @@ void ESPModule::InitializeCategoryMappings() {
     m_categoryMappings[static_cast<int>(InteractableCategory::Special)] = {ESPMainCategory::Specials, specialESPControl.get()};
     m_categoryMappings[static_cast<int>(InteractableCategory::Barrel)] = {ESPMainCategory::Barrels, barrelESPControl.get()};
     m_categoryMappings[static_cast<int>(InteractableCategory::ItemPickup)] = {ESPMainCategory::ItemPickups, itemPickupESPControl.get()};
+    m_categoryMappings[static_cast<int>(InteractableCategory::CommandCube)] = {ESPMainCategory::ItemPickups,
+                                                                               itemPickupESPControl.get()}; // Display in ItemPickups
     m_categoryMappings[static_cast<int>(InteractableCategory::Portal)] = {ESPMainCategory::Portals, portalESPControl.get()};
     m_categoryMappings[static_cast<int>(InteractableCategory::Unknown)] = {ESPMainCategory::Specials, specialESPControl.get()};
 
@@ -701,6 +710,9 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
             } else if (interactable->category == InteractableCategory::ItemPickup && interactable->gameObject) {
                 GenericPickupController* gpc = (GenericPickupController*)interactable->gameObject;
                 isAvailable = !gpc->consumed && !gpc->Recycled;
+            } else if (interactable->category == InteractableCategory::CommandCube) {
+                PickupPickerController* pcc = (PickupPickerController*)interactable->gameObject;
+                isAvailable = pcc->available;
             } else if (interactable->purchaseInteraction) {
                 PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
                 isAvailable = pi->available;
@@ -1346,10 +1358,14 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
 
     // Don't track pickups with invalid pickup index
     if (gpc->pickupIndex <= 0) {
+        G::logger.LogInfo("GenericPickupController spawned with invalid pickup index: %d", gpc->pickupIndex);
         return;
     }
 
     std::string displayName = GetPickupName(gpc->pickupIndex);
+
+    G::logger.LogInfo("GenericPickupController (%p) spawned: pickupIndex=%d, name='%s', consumed=%d, recycled=%d", genericPickupController, gpc->pickupIndex,
+                      displayName.c_str(), gpc->consumed, gpc->Recycled);
 
     // Create tracking info - categorize as item pickup
     auto trackedInteractable = std::make_unique<TrackedInteractable>();
@@ -1370,8 +1386,6 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
 void ESPModule::OnTimedChestControllerSpawned(void* timedChestController) {
     if (!timedChestController)
         return;
-
-    TimedChestController* tcc = (TimedChestController*)timedChestController;
 
     void* gameObject = timedChestController;
 
@@ -1415,8 +1429,57 @@ void ESPModule::OnTimedChestControllerDespawned(void* timedChestController) {
 }
 
 void ESPModule::OnPickupPickerControllerSpawned(void* pickupPickerController) {
-    // TODO: Implement command selectors but don't show when inside a chest
-    return;
+    PickupPickerController* pcc = (PickupPickerController*)pickupPickerController;
+    std::string contextToken = pcc->contextString ? G::g_monoRuntime->StringToUtf8((MonoString*)pcc->contextString) : "null";
+
+    G::logger.LogInfo("PickupPickerController (%p) Spawned: contextToken='%s'", pcc, contextToken.c_str());
+
+    static const std::unordered_map<std::string, std::string> tokenTransformMap = {{"ARTIFACT_COMMAND_CUBE_INTERACTION_PROMPT", "ARTIFACT_COMMAND_NAME"},
+                                                                                   {"AURELIONITE_FRAGMENT_PICKUP_PROMPT", "AURELIONITE_FRAGMENT_PICKUP_NAME"}};
+
+    static const std::unordered_set<std::string> ignoredTokens = {"DELUSION_MEMORYGAME_PROMPT", "SCRAPPER_CONTEXT"};
+
+    if (ignoredTokens.find(contextToken) != ignoredTokens.end()) {
+        return;
+    }
+
+    std::string nameToken;
+    bool inMap = false;
+    auto it = tokenTransformMap.find(contextToken);
+    if (it != tokenTransformMap.end()) {
+        nameToken = it->second;
+        inMap = true;
+    }
+
+    if (!inMap) {
+        nameToken = contextToken;
+        G::logger.LogWarning("PickupPickerController spawned with unknown contextToken: '%s' - Please report this!", contextToken.c_str());
+    }
+
+    Vector3 position = {0, 0, 0};
+    if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
+        void* transform = Hooks::Component_get_transform(pickupPickerController);
+        if (transform) {
+            Hooks::Transform_get_position_Injected(transform, &position);
+        }
+    }
+
+    MonoString* nameTokenMono = G::g_monoRuntime->CreateString(nameToken.c_str());
+    std::string displayName = G::gameFunctions->Language_GetString(nameTokenMono);
+
+    auto trackedInteractable = std::make_unique<TrackedInteractable>();
+    trackedInteractable->gameObject = pickupPickerController;
+    trackedInteractable->purchaseInteraction = nullptr;
+    trackedInteractable->position = position;
+    trackedInteractable->displayName = displayName;
+    trackedInteractable->nameToken = contextToken;
+    trackedInteractable->category = InteractableCategory::CommandCube;
+    trackedInteractable->consumed = false;
+    trackedInteractable->pickupIndex = -1;
+    trackedInteractable->itemName = "";
+    trackedInteractable->costString = "";
+
+    trackedInteractables.push_back(std::move(trackedInteractable));
 }
 
 void ESPModule::OnScrapperControllerSpawned(void* scrapperController) {
