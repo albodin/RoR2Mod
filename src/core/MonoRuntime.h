@@ -72,7 +72,7 @@ class MonoRuntime {
     bool Initialize(const char* monoDllName = "mono-2.0-bdwgc.dll");
     bool AttachThread();
     void DetachThread();
-    MonoAssembly* LoadAssemblyFromMemory(const unsigned char* data, size_t size, const char* name);
+    MonoAssembly* LoadAssemblyFromMemory(const char* data, size_t size, const char* name);
     MonoImage* GetAssemblyImage(MonoAssembly* assembly);
     void UnloadAssembly(MonoAssembly* assembly);
     MonoImage* GetImage(const char* assemblyName);

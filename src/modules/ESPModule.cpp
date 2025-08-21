@@ -90,8 +90,8 @@ void ESPRenderOrderManager::ResetToDefault() {
     m_subCategoryOrders[ESPMainCategory::Enemies] = {ESPSubCategory::Visible, ESPSubCategory::NonVisible};
 
     // All others use Single sub-category
-    for (int i = 0; i < (int)ESPMainCategory::COUNT; i++) {
-        ESPMainCategory cat = (ESPMainCategory)i;
+    for (int i = 0; i < static_cast<int>(ESPMainCategory::COUNT); i++) {
+        ESPMainCategory cat = static_cast<ESPMainCategory>(i);
         if (cat != ESPMainCategory::Players && cat != ESPMainCategory::Enemies) {
             m_subCategoryOrders[cat] = {ESPSubCategory::Single};
         }
@@ -100,7 +100,7 @@ void ESPRenderOrderManager::ResetToDefault() {
 
 bool ESPRenderOrderManager::ValidateConfiguration() const {
     // Check if main category order contains all categories exactly once
-    if (m_mainCategoryOrder.size() != (int)ESPMainCategory::COUNT) {
+    if (m_mainCategoryOrder.size() != static_cast<int>(ESPMainCategory::COUNT)) {
         return false;
     }
 
@@ -207,17 +207,17 @@ std::string ESPRenderOrderManager::SerializeToString() const {
     for (size_t i = 0; i < m_mainCategoryOrder.size(); i++) {
         if (i > 0)
             ss << ",";
-        ss << (int)m_mainCategoryOrder[i];
+        ss << static_cast<int>(m_mainCategoryOrder[i]);
     }
     ss << ";";
 
     // Serialize sub orders
     for (const auto& pair : m_subCategoryOrders) {
-        ss << "sub" << (int)pair.first << ":";
+        ss << "sub" << static_cast<int>(pair.first) << ":";
         for (size_t i = 0; i < pair.second.size(); i++) {
             if (i > 0)
                 ss << ",";
-            ss << (int)pair.second[i];
+            ss << static_cast<int>(pair.second[i]);
         }
         ss << ";";
     }
@@ -260,8 +260,8 @@ void ESPRenderOrderManager::DeserializeFromString(const std::string& data) {
 
                     try {
                         int catInt = std::stoi(value);
-                        if (catInt >= 0 && catInt < (int)ESPMainCategory::COUNT) {
-                            tempOrder.push_back((ESPMainCategory)catInt);
+                        if (catInt >= 0 && catInt < static_cast<int>(ESPMainCategory::COUNT)) {
+                            tempOrder.push_back(static_cast<ESPMainCategory>(catInt));
                         }
                     } catch (const std::exception&) {
                         // Skip invalid number formats
@@ -270,7 +270,7 @@ void ESPRenderOrderManager::DeserializeFromString(const std::string& data) {
                 }
 
                 // Only accept the main order if it contains all categories
-                if (tempOrder.size() == (int)ESPMainCategory::COUNT) {
+                if (tempOrder.size() == static_cast<int>(ESPMainCategory::COUNT)) {
                     m_mainCategoryOrder = tempOrder;
                     hasValidMainOrder = true;
                 }
@@ -280,8 +280,8 @@ void ESPRenderOrderManager::DeserializeFromString(const std::string& data) {
                     std::string mainCatStr = key.substr(3);
                     int mainCatInt = std::stoi(mainCatStr);
 
-                    if (mainCatInt >= 0 && mainCatInt < (int)ESPMainCategory::COUNT) {
-                        ESPMainCategory mainCat = (ESPMainCategory)mainCatInt;
+                    if (mainCatInt >= 0 && mainCatInt < static_cast<int>(ESPMainCategory::COUNT)) {
+                        ESPMainCategory mainCat = static_cast<ESPMainCategory>(mainCatInt);
                         std::vector<ESPSubCategory> subOrder;
 
                         std::stringstream valueStream(values);
@@ -292,8 +292,8 @@ void ESPRenderOrderManager::DeserializeFromString(const std::string& data) {
 
                             try {
                                 int subCatInt = std::stoi(value);
-                                if (subCatInt >= 0 && subCatInt < (int)ESPSubCategory::COUNT) {
-                                    subOrder.push_back((ESPSubCategory)subCatInt);
+                                if (subCatInt >= 0 && subCatInt < static_cast<int>(ESPSubCategory::COUNT)) {
+                                    subOrder.push_back(static_cast<ESPSubCategory>(subCatInt));
                                 }
                             } catch (const std::exception&) {
                                 // Skip invalid number formats
@@ -453,14 +453,14 @@ void ESPModule::DrawRenderOrderUI() {
     std::vector<ESPMainCategory> mainOrder = m_renderOrderManager.GetMainOrder();
 
     // Draw main categories in priority order (reverse of render order)
-    for (int i = (int)mainOrder.size() - 1; i >= 0; i--) {
+    for (int i = static_cast<int>(mainOrder.size()) - 1; i >= 0; i--) {
         ESPMainCategory category = mainOrder[i];
         std::string categoryName = ESPRenderOrderManager::GetCategoryDisplayName(category);
 
         ImGui::PushID(i);
 
         // Priority indicator
-        ImGui::Text("%d.", (int)mainOrder.size() - i);
+        ImGui::Text("%d.", static_cast<int>(mainOrder.size()) - i);
         ImGui::SameLine();
 
         // Category label
@@ -475,7 +475,7 @@ void ESPModule::DrawRenderOrderUI() {
         }
 
         // Up/Down buttons (swap the logic since UI is in reverse order)
-        if (ImGui::ArrowButton("up", ImGuiDir_Up) && i < (int)mainOrder.size() - 1) {
+        if (ImGui::ArrowButton("up", ImGuiDir_Up) && i < static_cast<int>(mainOrder.size()) - 1) {
             m_renderOrderManager.MoveCategoryDown(category); // Down in array = Up in UI priority
         }
         ImGui::SameLine();
@@ -489,13 +489,13 @@ void ESPModule::DrawRenderOrderUI() {
 
             std::vector<ESPSubCategory> subOrder = m_renderOrderManager.GetSubOrder(category);
 
-            for (int j = (int)subOrder.size() - 1; j >= 0; j--) {
+            for (int j = static_cast<int>(subOrder.size()) - 1; j >= 0; j--) {
                 ESPSubCategory subCat = subOrder[j];
                 std::string subName = ESPRenderOrderManager::GetSubCategoryDisplayName(subCat);
 
                 ImGui::PushID(100 + j); // Offset to avoid ID conflicts
 
-                ImGui::Text("  %d.%d", (int)mainOrder.size() - i, (int)subOrder.size() - j);
+                ImGui::Text("  %d.%d", static_cast<int>(mainOrder.size()) - i, static_cast<int>(subOrder.size()) - j);
                 ImGui::SameLine();
 
                 // Sub-category label
@@ -517,7 +517,7 @@ void ESPModule::DrawRenderOrderUI() {
                 }
 
                 // Sub-category up/down buttons (swap the logic since UI is in reverse order)
-                if (ImGui::ArrowButton("sub_up", ImGuiDir_Up) && j < (int)subOrder.size() - 1) {
+                if (ImGui::ArrowButton("sub_up", ImGuiDir_Up) && j < static_cast<int>(subOrder.size()) - 1) {
                     m_renderOrderManager.MoveSubCategoryDown(category, subCat); // Down in array = Up in UI priority
                 }
                 ImGui::SameLine();
@@ -586,7 +586,7 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
             bool isVisible = IsVisible(teleporterPosition);
             bool onScreen = !(screenPos.x == 0.0f && screenPos.y == 0.0f);
 
-            items.emplace_back(ESPMainCategory::Teleporter, ESPSubCategory::Single, (void*)nullptr, distance, screenPos, isVisible, onScreen);
+            items.emplace_back(ESPMainCategory::Teleporter, ESPSubCategory::Single, static_cast<void*>(nullptr), distance, screenPos, isVisible, onScreen);
         }
     }
 
@@ -699,20 +699,20 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
             bool isAvailable = true;
             if (interactable->category == InteractableCategory::Barrel && interactable->gameObject) {
                 if (interactable->purchaseInteraction) {
-                    PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
+                    PurchaseInteraction* pi = static_cast<PurchaseInteraction*>(interactable->purchaseInteraction);
                     isAvailable = pi->available;
                 } else {
-                    BarrelInteraction* barrel = (BarrelInteraction*)interactable->gameObject;
+                    BarrelInteraction* barrel = static_cast<BarrelInteraction*>(interactable->gameObject);
                     isAvailable = !barrel->opened;
                 }
             } else if (interactable->category == InteractableCategory::ItemPickup && interactable->gameObject) {
-                GenericPickupController* gpc = (GenericPickupController*)interactable->gameObject;
+                GenericPickupController* gpc = static_cast<GenericPickupController*>(interactable->gameObject);
                 isAvailable = !gpc->consumed && !gpc->Recycled;
             } else if (interactable->category == InteractableCategory::CommandCube) {
-                PickupPickerController* pcc = (PickupPickerController*)interactable->gameObject;
+                PickupPickerController* pcc = static_cast<PickupPickerController*>(interactable->gameObject);
                 isAvailable = pcc->available;
             } else if (interactable->purchaseInteraction) {
-                PurchaseInteraction* pi = (PurchaseInteraction*)interactable->purchaseInteraction;
+                PurchaseInteraction* pi = static_cast<PurchaseInteraction*>(interactable->purchaseInteraction);
                 isAvailable = pi->available;
             }
 
@@ -734,7 +734,7 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
         const char* baseName = teleporterDisplayName.empty() ? "Teleporter" : teleporterDisplayName.c_str();
 
         char teleporterText[256];
-        snprintf(teleporterText, sizeof(teleporterText), "%s (%dm)", baseName, (int)item.distance);
+        snprintf(teleporterText, sizeof(teleporterText), "%s (%dm)", baseName, static_cast<int>(item.distance));
 
         RenderUtils::RenderText(item.screenPos, teleporterESPControl->GetColorU32(), teleporterESPControl->GetOutlineColorU32(),
                                 teleporterESPControl->IsOutlineEnabled(), true, "%s", teleporterText);
@@ -772,7 +772,7 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
 void ESPModule::OnGameUpdate() { mainCamera = Hooks::Camera_get_main(); }
 
 void ESPModule::OnTeleporterAwake(void* teleporter) {
-    TeleporterInteraction* teleporter_ptr = (TeleporterInteraction*)teleporter;
+    TeleporterInteraction* teleporter_ptr = static_cast<TeleporterInteraction*>(teleporter);
     if (teleporter_ptr && teleporter_ptr->teleporterPositionIndicator) {
         Hooks::Transform_get_position_Injected(teleporter_ptr->teleporterPositionIndicator->targetTransform, &teleporterPosition);
         teleporterDisplayName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("TELEPORTER_NAME"));
@@ -781,13 +781,13 @@ void ESPModule::OnTeleporterAwake(void* teleporter) {
 
 void ESPModule::OnCharacterBodySpawned(void* characterBody) {
     std::lock_guard<std::mutex> lock(entitiesMutex);
-    CharacterBody* body = (CharacterBody*)characterBody;
+    CharacterBody* body = static_cast<CharacterBody*>(characterBody);
 
     if (!body)
         return;
 
     auto newEntity = std::make_unique<TrackedEntity>();
-    newEntity->displayName = G::gameFunctions->Language_GetString((MonoString*)body->baseNameToken);
+    newEntity->displayName = G::gameFunctions->Language_GetString(static_cast<MonoString*>(body->baseNameToken));
     newEntity->body = body;
 
     TeamIndex_Value teamIndex = body->teamComponent_backing->_teamIndex;
@@ -797,7 +797,7 @@ void ESPModule::OnCharacterBodySpawned(void* characterBody) {
         if (body->_master && body->_master->playerCharacterMasterController_backing) {
             PlayerCharacterMasterController* pcmc = body->_master->playerCharacterMasterController_backing;
             if (pcmc->resolvedNetworkUserInstance && pcmc->resolvedNetworkUserInstance->userName) {
-                std::string playerName = G::g_monoRuntime->StringToUtf8((MonoString*)pcmc->resolvedNetworkUserInstance->userName);
+                std::string playerName = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(pcmc->resolvedNetworkUserInstance->userName));
                 if (!playerName.empty()) {
                     newEntity->displayName = playerName;
                 }
@@ -823,7 +823,7 @@ void ESPModule::OnCharacterBodySpawned(void* characterBody) {
 
 void ESPModule::OnCharacterBodyDestroyed(void* characterBody) {
     std::lock_guard<std::mutex> lock(entitiesMutex);
-    CharacterBody* body = (CharacterBody*)characterBody;
+    CharacterBody* body = static_cast<CharacterBody*>(characterBody);
 
     trackedEnemies.erase(
         std::remove_if(trackedEnemies.begin(), trackedEnemies.end(), [body](const std::unique_ptr<TrackedEntity>& enemy) { return enemy->body == body; }),
@@ -858,13 +858,13 @@ void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float d
         Vector3 minBounds(FLT_MAX, FLT_MAX, FLT_MAX);
         Vector3 maxBounds(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
-        uint32_t len = static_cast<uint32_t>(((MonoArray_Internal*)entity->body->hurtBoxGroup_backing->hurtBoxes)->max_length);
-        HurtBox** data = mono_array_addr<HurtBox*>((MonoArray_Internal*)entity->body->hurtBoxGroup_backing->hurtBoxes);
+        uint32_t len = static_cast<uint32_t>((reinterpret_cast<MonoArray_Internal*>(entity->body->hurtBoxGroup_backing->hurtBoxes))->max_length);
+        HurtBox** data = mono_array_addr<HurtBox*>(reinterpret_cast<MonoArray_Internal*>(entity->body->hurtBoxGroup_backing->hurtBoxes));
 
         for (uint32_t i = 0; i < len; ++i) {
             HurtBox* hurtBox = data[i];
             if (hurtBox) {
-                Transform* hurtBoxTransform = (Transform*)Hooks::Component_get_transform(hurtBox);
+                Transform* hurtBoxTransform = static_cast<Transform*>(Hooks::Component_get_transform(hurtBox));
                 if (hurtBoxTransform) {
                     Vector3 hurtBoxPos;
                     Hooks::Transform_get_position_Injected(hurtBoxTransform, &hurtBoxPos);
@@ -963,8 +963,8 @@ void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float d
         if (showHealth && showMaxHealth) {
             char healthPart[64];
             char maxHealthPart[32];
-            snprintf(healthPart, sizeof(healthPart), "HP: %d", (int)entity->body->healthComponent_backing->health);
-            snprintf(maxHealthPart, sizeof(maxHealthPart), "/%d", (int)entity->body->maxHealth_backing);
+            snprintf(healthPart, sizeof(healthPart), "HP: %d", static_cast<int>(entity->body->healthComponent_backing->health));
+            snprintf(maxHealthPart, sizeof(maxHealthPart), "/%d", static_cast<int>(entity->body->maxHealth_backing));
 
             ImFont* font = FontManager::GetESPFont();
             float scale = FontManager::ESPFontSize / font->FontSize;
@@ -985,12 +985,12 @@ void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float d
             textPos.y += lineHeight;
         } else if (showHealth) {
             char healthText[64];
-            snprintf(healthText, sizeof(healthText), "HP: %d", (int)entity->body->healthComponent_backing->health);
+            snprintf(healthText, sizeof(healthText), "HP: %d", static_cast<int>(entity->body->healthComponent_backing->health));
             RenderUtils::RenderText(textPos, control->GetHealthColorU32(), IM_COL32(0, 0, 0, 255), true, true, healthText);
             textPos.y += lineHeight;
         } else if (showMaxHealth) {
             char maxHealthText[64];
-            snprintf(maxHealthText, sizeof(maxHealthText), "Max HP: %d", (int)entity->body->maxHealth_backing);
+            snprintf(maxHealthText, sizeof(maxHealthText), "Max HP: %d", static_cast<int>(entity->body->maxHealth_backing));
             RenderUtils::RenderText(textPos, control->GetMaxHealthColorU32(), IM_COL32(0, 0, 0, 255), true, true, maxHealthText);
             textPos.y += lineHeight;
         }
@@ -998,7 +998,7 @@ void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float d
 
     if (control->ShouldShowDistance()) {
         char distanceText[32];
-        snprintf(distanceText, sizeof(distanceText), "%dm", (int)distance);
+        snprintf(distanceText, sizeof(distanceText), "%dm", static_cast<int>(distance));
         RenderUtils::RenderText(textPos, control->GetDistanceColorU32(), IM_COL32(0, 0, 0, 255), true, true, distanceText);
         textPos.y += lineHeight;
     }
@@ -1024,7 +1024,7 @@ Vector3 ESPModule::GetCameraPosition() {
         return Vector3{0, 0, 0};
     }
 
-    void* transform = Hooks::Component_get_transform((void*)camera);
+    void* transform = Hooks::Component_get_transform(static_cast<void*>(camera));
     if (!transform) {
         return Vector3{0, 0, 0};
     }
@@ -1140,7 +1140,7 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
     if (!purchaseInteraction)
         return;
 
-    PurchaseInteraction* pi = (PurchaseInteraction*)purchaseInteraction;
+    PurchaseInteraction* pi = static_cast<PurchaseInteraction*>(purchaseInteraction);
 
     void* gameObject = purchaseInteraction;
 
@@ -1152,7 +1152,7 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
         }
     }
 
-    std::string displayName = G::gameFunctions->Language_GetString((MonoString*)pi->displayNameToken);
+    std::string displayName = G::gameFunctions->Language_GetString(static_cast<MonoString*>(pi->displayNameToken));
 
     // Skip interactables with empty or whitespace-only names
     if (displayName.empty() || displayName.find_first_not_of(" \t\r\n") == std::string::npos) {
@@ -1160,13 +1160,13 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
     }
 
     // Determine category using language-independent token
-    InteractableCategory category = DetermineInteractableCategory(pi, (MonoString*)pi->displayNameToken);
+    InteractableCategory category = DetermineInteractableCategory(pi, static_cast<MonoString*>(pi->displayNameToken));
 
     // Log error if unknown interactable found
     if (category == InteractableCategory::Unknown) {
         std::string token = "";
         if (pi->displayNameToken) {
-            token = G::g_monoRuntime->StringToUtf8((MonoString*)pi->displayNameToken);
+            token = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(pi->displayNameToken));
         }
         G::logger.LogError("Unknown PurchaseInteraction detected: token=\"" + token + "\" display=\"" + displayName + "\" cost=" + std::to_string(pi->cost) +
                            " isShrine=" + std::to_string(pi->isShrine) + " - Please report this to the developers!");
@@ -1181,7 +1181,7 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
     trackedInteractable->displayName = displayName;
     trackedInteractable->nameToken = "";
     if (pi->displayNameToken) {
-        trackedInteractable->nameToken = G::g_monoRuntime->StringToUtf8((MonoString*)pi->displayNameToken);
+        trackedInteractable->nameToken = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(pi->displayNameToken));
     }
     trackedInteractable->category = category;
     trackedInteractable->consumed = false;
@@ -1245,7 +1245,7 @@ void ESPModule::OnBarrelInteractionSpawned(void* barrelInteraction) {
     if (!barrelInteraction)
         return;
 
-    BarrelInteraction* barrel = (BarrelInteraction*)barrelInteraction;
+    BarrelInteraction* barrel = static_cast<BarrelInteraction*>(barrelInteraction);
 
     Vector3 position = {0, 0, 0};
     if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
@@ -1255,7 +1255,7 @@ void ESPModule::OnBarrelInteractionSpawned(void* barrelInteraction) {
         }
     }
 
-    std::string displayName = G::gameFunctions->Language_GetString((MonoString*)barrel->displayNameToken);
+    std::string displayName = G::gameFunctions->Language_GetString(static_cast<MonoString*>(barrel->displayNameToken));
     // Create interactable tracking info for barrels
     auto trackedInteractable = std::make_unique<TrackedInteractable>();
     trackedInteractable->gameObject = barrelInteraction;
@@ -1264,7 +1264,7 @@ void ESPModule::OnBarrelInteractionSpawned(void* barrelInteraction) {
     trackedInteractable->displayName = displayName;
     trackedInteractable->nameToken = "";
     if (barrel->displayNameToken) {
-        trackedInteractable->nameToken = G::g_monoRuntime->StringToUtf8((MonoString*)barrel->displayNameToken);
+        trackedInteractable->nameToken = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(barrel->displayNameToken));
     }
     trackedInteractable->category = InteractableCategory::Barrel;
     trackedInteractable->consumed = false;
@@ -1279,7 +1279,7 @@ void ESPModule::OnGenericInteractionSpawned(void* genericInteraction) {
     if (!genericInteraction)
         return;
 
-    GenericInteraction* gi = (GenericInteraction*)genericInteraction;
+    GenericInteraction* gi = static_cast<GenericInteraction*>(genericInteraction);
 
     // Use the component pointer as the identifier
     void* gameObject = genericInteraction;
@@ -1295,7 +1295,7 @@ void ESPModule::OnGenericInteractionSpawned(void* genericInteraction) {
     // Get display name - GenericInteraction uses contextToken instead of displayNameToken
     std::string displayName = "Generic Interaction"; // Fallback only
     if (gi->contextToken) {
-        displayName = G::gameFunctions->Language_GetString((MonoString*)gi->contextToken);
+        displayName = G::gameFunctions->Language_GetString(static_cast<MonoString*>(gi->contextToken));
     }
 
     // Skip interactables with empty or whitespace-only names
@@ -1306,7 +1306,7 @@ void ESPModule::OnGenericInteractionSpawned(void* genericInteraction) {
     // Convert token to string for filtering (language-independent)
     std::string token = "";
     if (gi->contextToken) {
-        token = G::g_monoRuntime->StringToUtf8((MonoString*)gi->contextToken);
+        token = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(gi->contextToken));
     }
 
     // Filter out unwanted interactions using tokens
@@ -1341,7 +1341,7 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
     if (!genericPickupController)
         return;
 
-    GenericPickupController* gpc = (GenericPickupController*)genericPickupController;
+    GenericPickupController* gpc = static_cast<GenericPickupController*>(genericPickupController);
 
     // Use the component pointer as the identifier
     void* gameObject = genericPickupController;
@@ -1427,8 +1427,8 @@ void ESPModule::OnTimedChestControllerDespawned(void* timedChestController) {
 }
 
 void ESPModule::OnPickupPickerControllerSpawned(void* pickupPickerController) {
-    PickupPickerController* pcc = (PickupPickerController*)pickupPickerController;
-    std::string contextToken = pcc->contextString ? G::g_monoRuntime->StringToUtf8((MonoString*)pcc->contextString) : "null";
+    PickupPickerController* pcc = static_cast<PickupPickerController*>(pickupPickerController);
+    std::string contextToken = pcc->contextString ? G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(pcc->contextString)) : "null";
 
     G::logger.LogInfo("PickupPickerController (%p) Spawned: contextToken='%s'", pcc, contextToken.c_str());
 
@@ -1541,7 +1541,7 @@ void ESPModule::UpdateTimedChestDisplayName(TrackedInteractable* interactable, v
     if (!timedChestController)
         return;
 
-    TimedChestController* tcc = (TimedChestController*)timedChestController;
+    TimedChestController* tcc = static_cast<TimedChestController*>(timedChestController);
 
     // Use the original display name that was already localized when the interactable was created
     std::string baseName = interactable->displayName;
@@ -1584,7 +1584,7 @@ void ESPModule::UpdatePressurePlateDisplayName(TrackedInteractable* interactable
     if (!pressurePlateController)
         return;
 
-    PressurePlateController* ppc = (PressurePlateController*)pressurePlateController;
+    PressurePlateController* ppc = static_cast<PressurePlateController*>(pressurePlateController);
 
     // Use the original display name that was already localized when the interactable was created
     std::string baseName = interactable->displayName;
@@ -1631,9 +1631,9 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
         char nameText[512];
 
         if (control->ShouldShowDistance() && !isAvailable) {
-            snprintf(nameText, sizeof(nameText), "%s (%dm) (Unavailable)", interactable->displayName.c_str(), (int)distance);
+            snprintf(nameText, sizeof(nameText), "%s (%dm) (Unavailable)", interactable->displayName.c_str(), static_cast<int>(distance));
         } else if (control->ShouldShowDistance()) {
-            snprintf(nameText, sizeof(nameText), "%s (%dm)", interactable->displayName.c_str(), (int)distance);
+            snprintf(nameText, sizeof(nameText), "%s (%dm)", interactable->displayName.c_str(), static_cast<int>(distance));
         } else if (!isAvailable) {
             snprintf(nameText, sizeof(nameText), "%s (Unavailable)", interactable->displayName.c_str());
         } else {
@@ -1671,7 +1671,7 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
                 }
             } else if (interactable->gameObject) {
                 // Regular barrels - show gold and XP rewards
-                BarrelInteraction* barrel = (BarrelInteraction*)interactable->gameObject;
+                BarrelInteraction* barrel = static_cast<BarrelInteraction*>(interactable->gameObject);
                 if (barrel->goldReward > 0 || barrel->expReward > 0) {
                     rewardText = "$" + std::to_string(barrel->goldReward) + " + " + std::to_string(barrel->expReward) + " XP";
                 }
@@ -1702,7 +1702,7 @@ void ESPModule::OnShopTerminalBehaviorSpawned(void* shopTerminalBehavior) {
     if (!shopTerminalBehavior)
         return;
 
-    ShopTerminalBehavior* shop = (ShopTerminalBehavior*)shopTerminalBehavior;
+    ShopTerminalBehavior* shop = static_cast<ShopTerminalBehavior*>(shopTerminalBehavior);
 
     Vector3 shopPos = {0, 0, 0};
     if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
@@ -1723,7 +1723,7 @@ void ESPModule::OnShopTerminalBehaviorSpawned(void* shopTerminalBehavior) {
                 // Get pickup name from pickup index using PickupCatalog
                 PickupDef* pickupDef = G::gameFunctions->GetPickupDef(shop->pickupIndex);
                 if (pickupDef && pickupDef->nameToken) {
-                    tracked->itemName = G::gameFunctions->Language_GetString((MonoString*)pickupDef->nameToken);
+                    tracked->itemName = G::gameFunctions->Language_GetString(static_cast<MonoString*>(pickupDef->nameToken));
                 } else {
                     tracked->itemName = "Unknown [" + std::to_string(shop->pickupIndex) + "]";
                 }
@@ -1737,7 +1737,7 @@ void ESPModule::OnPressurePlateControllerSpawned(void* pressurePlateController) 
     if (!pressurePlateController)
         return;
 
-    PressurePlateController* ppc = (PressurePlateController*)pressurePlateController;
+    PressurePlateController* ppc = static_cast<PressurePlateController*>(pressurePlateController);
 
     Vector3 position = {0, 0, 0};
     if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
@@ -1869,7 +1869,7 @@ std::string ESPModule::GetCostString(CostTypeIndex_Value costType, int cost) {
         break;
 
     default:
-        G::logger.LogWarning("Unknown cost type: %d", (int)costType);
+        G::logger.LogWarning("Unknown cost type: %d", static_cast<int>(costType));
         return std::to_string(cost) + " Unknown";
     }
 

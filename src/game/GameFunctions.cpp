@@ -89,8 +89,7 @@ std::string GameFunctions::Language_GetString(MonoString* token) {
         G::logger.LogError("Failed to get string from token");
         return "";
     }
-
-    return m_runtime->StringToUtf8((MonoString*)result);
+    return m_runtime->StringToUtf8(static_cast<MonoString*>(result));
 }
 
 PickupDef* GameFunctions::GetPickupDef(int pickupIndex) {
@@ -115,7 +114,7 @@ PickupDef* GameFunctions::GetPickupDef(int pickupIndex) {
         return nullptr;
     }
 
-    MonoClass* arrayClass = m_runtime->GetObjectClass((MonoObject*)entriesArray);
+    MonoClass* arrayClass = m_runtime->GetObjectClass(static_cast<MonoObject*>(entriesArray));
     MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
     if (!getItemMethod) {
         G::logger.LogError("Failed to get array access method");
@@ -153,7 +152,7 @@ int GameFunctions::LoadPickupNames() {
     for (int i = 0; i < arrayLength; i++) {
         PickupDef* pickupDef = GetPickupDef(i);
         if (pickupDef && pickupDef->nameToken) {
-            std::string name = Language_GetString((MonoString*)pickupDef->nameToken);
+            std::string name = Language_GetString(static_cast<MonoString*>(pickupDef->nameToken));
             if (!name.empty()) {
                 G::espModule->CachePickupName(i, name);
             }
@@ -202,7 +201,7 @@ int GameFunctions::LoadItems() {
     MonoField* hiddenField = m_runtime->GetField(m_itemDefClass, "hidden");
     MonoField* tagsField = m_runtime->GetField(m_itemDefClass, "tags");
 
-    MonoClass* arrayClass = m_runtime->GetObjectClass((MonoObject*)itemDefsArray);
+    MonoClass* arrayClass = m_runtime->GetObjectClass(static_cast<MonoObject*>(itemDefsArray));
     MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
     if (!getItemMethod) {
         G::logger.LogError("Failed to get array access method");
@@ -234,7 +233,7 @@ int GameFunctions::LoadItems() {
             if (getNameMethod) {
                 MonoObject* nameObj = m_runtime->InvokeMethod(getNameMethod, itemDefObj, nullptr);
                 if (nameObj) {
-                    item.name = m_runtime->StringToUtf8((MonoString*)nameObj);
+                    item.name = m_runtime->StringToUtf8(static_cast<MonoString*>(nameObj));
                 }
             }
         }
@@ -297,7 +296,7 @@ int GameFunctions::LoadItems() {
                         if (getNameMethod) {
                             MonoObject* nameObj = m_runtime->InvokeMethod(getNameMethod, tierDefObj, nullptr);
                             if (nameObj) {
-                                item.tierName = m_runtime->StringToUtf8((MonoString*)nameObj);
+                                item.tierName = m_runtime->StringToUtf8(static_cast<MonoString*>(nameObj));
                             }
                         }
                     }
@@ -322,14 +321,14 @@ int GameFunctions::LoadItems() {
             if (tagsArray) {
                 int tagCount = m_runtime->GetArrayLength(tagsArray);
 
-                MonoClass* tagsArrayClass = m_runtime->GetObjectClass((MonoObject*)tagsArray);
+                MonoClass* tagsArrayClass = m_runtime->GetObjectClass(static_cast<MonoObject*>(tagsArray));
                 MonoMethod* tagsGetItemMethod = m_runtime->GetMethod(tagsArrayClass, "Get", 1);
                 if (tagsGetItemMethod) {
                     for (int j = 0; j < tagCount; j++) {
                         void* tagParams[1] = {&j};
                         MonoObject* tagObj = m_runtime->InvokeMethod(tagsGetItemMethod, tagsArray, tagParams);
                         if (tagObj) {
-                            int tag = *(int*)m_runtime->m_mono_object_unbox(tagObj);
+                            int tag = *static_cast<int*>(m_runtime->m_mono_object_unbox(tagObj));
                             item.tags.push_back(tag);
                         }
                     }
@@ -379,7 +378,7 @@ int GameFunctions::LoadEnemies() {
 
     G::logger.LogInfo("Found " + std::to_string(masterCount) + " masters");
 
-    MonoClass* arrayClass = m_runtime->GetObjectClass((MonoObject*)masterPrefabsArray);
+    MonoClass* arrayClass = m_runtime->GetObjectClass(static_cast<MonoObject*>(masterPrefabsArray));
     MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
     if (!getItemMethod) {
         G::logger.LogError("Failed to get array access method");
@@ -409,7 +408,7 @@ int GameFunctions::LoadEnemies() {
         if (!nameObj)
             continue;
 
-        std::string masterName = m_runtime->StringToUtf8((MonoString*)nameObj);
+        std::string masterName = m_runtime->StringToUtf8(static_cast<MonoString*>(nameObj));
         if (masterName.empty())
             continue;
 
@@ -470,7 +469,7 @@ int GameFunctions::LoadElites() {
         return -1;
     }
 
-    MonoClass* arrayClass = m_runtime->GetObjectClass((MonoObject*)buffDefsArray);
+    MonoClass* arrayClass = m_runtime->GetObjectClass(static_cast<MonoObject*>(buffDefsArray));
     MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
     if (!getItemMethod) {
         G::logger.LogError("Failed to get array access method");
@@ -503,7 +502,7 @@ int GameFunctions::LoadElites() {
         if (!eliteNameObj)
             continue;
 
-        std::string eliteName = m_runtime->StringToUtf8((MonoString*)eliteNameObj);
+        std::string eliteName = m_runtime->StringToUtf8(static_cast<MonoString*>(eliteNameObj));
         if (eliteName.empty())
             continue;
 
@@ -602,7 +601,7 @@ bool GameFunctions::ApplyEliteToMaster(void* characterMaster, int eliteBuffIndex
         return false;
     }
 
-    int equipmentIndex = *(int*)m_runtime->m_mono_object_unbox(equipmentIndexObj);
+    int equipmentIndex = *static_cast<int*>(m_runtime->m_mono_object_unbox(equipmentIndexObj));
 
     // Set the equipment on the inventory
     MonoMethod* setEquipmentIndexMethod = m_runtime->GetMethod(m_inventoryClass, "SetEquipmentIndex", 1);
@@ -654,7 +653,7 @@ bool GameFunctions::RoR2Application_IsLoading() {
         return false;
     }
 
-    return *(bool*)m_runtime->m_mono_object_unbox(result);
+    return *static_cast<bool*>(m_runtime->m_mono_object_unbox(result));
 }
 
 bool GameFunctions::RoR2Application_IsLoadFinished() {
@@ -673,7 +672,7 @@ bool GameFunctions::RoR2Application_IsLoadFinished() {
         return false;
     }
 
-    return *(bool*)m_runtime->m_mono_object_unbox(result);
+    return *static_cast<bool*>(m_runtime->m_mono_object_unbox(result));
 }
 
 bool GameFunctions::RoR2Application_IsModded() {
@@ -784,7 +783,7 @@ bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int 
         if (masterIndex < 0 || masterIndex >= masterCount)
             return false;
 
-        MonoClass* arrayClass = m_runtime->GetObjectClass((MonoObject*)masterPrefabsArray);
+        MonoClass* arrayClass = m_runtime->GetObjectClass(static_cast<MonoObject*>(masterPrefabsArray));
         MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
         if (!getItemMethod)
             return false;
@@ -931,7 +930,7 @@ uint32_t GameFunctions::GetTeamLevel(TeamIndex_Value teamIndex) {
         return 0;
     }
 
-    uint32_t* data = mono_array_addr<uint32_t>((MonoArray_Internal*)teamManager->teamLevels);
+    uint32_t* data = mono_array_addr<uint32_t>(reinterpret_cast<MonoArray_Internal*>(teamManager->teamLevels));
     return data[index];
 }
 
@@ -954,7 +953,7 @@ void GameFunctions::SetTeamLevel(TeamIndex_Value teamIndex, uint32_t level) {
         void* params[2] = {&localTeamIndex, &localLevel};
         m_runtime->InvokeMethod(method, teamManager, params);
 
-        G::logger.LogInfo("SetTeamLevel: Called method for team %d level %u", (int)teamIndex, level);
+        G::logger.LogInfo("SetTeamLevel: Called method for team %d level %u", static_cast<int>(teamIndex), level);
     };
     std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
     G::queuedActions.push(task);
@@ -965,8 +964,7 @@ int GameFunctions::GetStageClearCount() {
         return 0;
     }
 
-    Run* run = (Run*)G::runInstance;
-    return run->stageClearCount;
+    return G::runInstance->stageClearCount;
 }
 
 void GameFunctions::SetStageClearCount(int count) {
@@ -974,8 +972,7 @@ void GameFunctions::SetStageClearCount(int count) {
         return;
     }
 
-    Run* run = (Run*)G::runInstance;
-    run->stageClearCount = count;
+    G::runInstance->stageClearCount = count;
 }
 
 float GameFunctions::GetFixedTime() {
@@ -983,8 +980,7 @@ float GameFunctions::GetFixedTime() {
         return 0.0f;
     }
 
-    Run* run = (Run*)G::runInstance;
-    return run->fixedTime;
+    return G::runInstance->fixedTime;
 }
 
 void GameFunctions::SetFixedTime(float time) {
@@ -992,8 +988,7 @@ void GameFunctions::SetFixedTime(float time) {
         return;
     }
 
-    Run* run = (Run*)G::runInstance;
-    run->fixedTime = time;
+    G::runInstance->fixedTime = time;
 }
 
 void GameFunctions::AwardLunarCoins(NetworkUser* networkUser, uint32_t coinsToAdd) {

@@ -154,7 +154,7 @@ void Hooks::Init() {
     bool hooked = false;
     while (!hooked) {
         if (kiero::init(kiero::RenderType::D3D11) == kiero::Status::Success) {
-            kiero::bind(8, (void**)&G::oPresent, (void*)hkPresent11);
+            kiero::bind(8, reinterpret_cast<void**>(&G::oPresent), reinterpret_cast<void*>(hkPresent11));
             hooked = true;
         }
     }
@@ -259,7 +259,7 @@ void Hooks::Init() {
     std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
     for (auto& item : G::items) {
         G::logger.LogInfo("Item: " + item.displayName + ", name: " + item.name + ", index: " + std::to_string(item.index) +
-                          ", tier: " + std::to_string((int)item.tier) + ", nameToken: " + item.nameToken + ", pickupToken: " + item.pickupToken +
+                          ", tier: " + std::to_string(static_cast<int>(item.tier)) + ", nameToken: " + item.nameToken + ", pickupToken: " + item.pickupToken +
                           ", descriptionToken: " + item.descriptionToken + ", loreToken: " + item.loreToken + ", tierName: " + item.tierName +
                           ", isDroppable: " + std::to_string(item.isDroppable) + ", canScrap: " + std::to_string(item.canScrap) +
                           ", canRestack: " + std::to_string(item.canRestack) + ", canRemove: " + std::to_string(item.canRemove) + ", isConsumed: " +
@@ -287,9 +287,9 @@ void Hooks::Init() {
         if (nameToLayerMethod) {
             auto getLayerByName = [&](const char* layerName) -> int {
                 MonoString* layerNameStr = G::g_monoRuntime->CreateString(layerName);
-                MonoObject* result = G::g_monoRuntime->InvokeMethod(nameToLayerMethod, nullptr, (void**)&layerNameStr);
+                MonoObject* result = G::g_monoRuntime->InvokeMethod(nameToLayerMethod, nullptr, reinterpret_cast<void**>(&layerNameStr));
                 if (result) {
-                    return *(int*)G::g_monoRuntime->m_mono_object_unbox(result);
+                    return *static_cast<int*>(G::g_monoRuntime->m_mono_object_unbox(result));
                 }
                 return -1;
             };
@@ -340,7 +340,7 @@ void Hooks::Unhook() {
 
     if (G::oWndProc && G::windowHwnd) {
         G::logger.LogInfo("Restoring window procedure...");
-        G::oWndProc = (WNDPROC)SetWindowLongPtr(G::windowHwnd, GWLP_WNDPROC, (LONG_PTR)G::oWndProc);
+        G::oWndProc = reinterpret_cast<WNDPROC>(SetWindowLongPtr(G::windowHwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(G::oWndProc)));
     }
 
     if (G::initialized) {
@@ -534,9 +534,9 @@ void Hooks::hkRoR2SteamworksServerManagerTagsStringUpdated(void* instance) {
     originalFunc(instance);
 
     G::logger.LogInfo("ServerManagerTags::StringUpdated - instance=%p", instance);
-    ServerManagerBase* serverManager_ptr = (ServerManagerBase*)instance;
+    ServerManagerBase* serverManager_ptr = static_cast<ServerManagerBase*>(instance);
     if (serverManager_ptr && serverManager_ptr->tags) {
-        MonoList list((MonoObject*)serverManager_ptr->tags);
+        MonoList list(static_cast<MonoObject*>(serverManager_ptr->tags));
         list.AddItem("ror2mod");
     }
 }
@@ -672,7 +672,7 @@ void Hooks::hkRoR2BullseyeSearchRefreshCandidates(void* instance) {
 
         // Apply targeting mode override if enabled
         if (G::localPlayer->GetHuntressTargetingModeOverrideControl() && G::localPlayer->GetHuntressTargetingModeOverrideControl()->IsEnabled()) {
-            search->sortMode = (SortMode_Value)G::localPlayer->GetHuntressTargetingModeControl()->GetSelectedValue();
+            search->sortMode = static_cast<SortMode_Value>(G::localPlayer->GetHuntressTargetingModeControl()->GetSelectedValue());
         }
 
         originalFunc(instance);
@@ -824,7 +824,7 @@ void Hooks::hkRoR2PickupPickerControllerOnDisable(void* instance) {
     }
 
     G::logger.LogInfo("PickupPickerController::OnDisable - instance=%p", instance);
-    PickupPickerController* pcc = (PickupPickerController*)instance;
+    PickupPickerController* pcc = static_cast<PickupPickerController*>(instance);
     pcc->available = false;
 
     originalFunc(instance);
@@ -861,7 +861,7 @@ void Hooks::hkRoR2RunAwake(void* instance) {
         return;
 
     G::logger.LogInfo("Run::Awake - instance=%p", instance);
-    G::runInstance = (Run*)instance;
+    G::runInstance = static_cast<Run*>(instance);
 }
 
 void Hooks::hkRoR2RunOnDisable(void* instance) {
@@ -928,7 +928,7 @@ void Hooks::hkRoR2PortalSpawnerStart(void* instance) {
         return;
 
     G::logger.LogInfo("PortalSpawner::Start - instance=%p", instance);
-    PortalSpawner* portalSpawner = (PortalSpawner*)instance;
+    PortalSpawner* portalSpawner = static_cast<PortalSpawner*>(instance);
     if (!portalSpawner)
         return;
 
@@ -944,12 +944,12 @@ int Hooks::hkRoR2TimedChestControllerGetInteractability(void* instance, void* ac
     if (!G::hooksInitialized)
         return result;
 
-    if (G::worldModule->GetOpenExpiredTimedChestsControl()->IsEnabled() && result == (int)Interactability_Value::ConditionsNotMet) {
+    if (G::worldModule->GetOpenExpiredTimedChestsControl()->IsEnabled() && result == static_cast<int>(Interactability_Value::ConditionsNotMet)) {
 
-        TimedChestController* tcc = (TimedChestController*)instance;
+        TimedChestController* tcc = static_cast<TimedChestController*>(instance);
         // Only override if it's expired (not purchased)
         if (!tcc->purchased) {
-            return (int)Interactability_Value::Available;
+            return static_cast<int>(Interactability_Value::Available);
         }
     }
 
@@ -966,7 +966,7 @@ int Hooks::hkRoR2CharacterMasterGetDeployableSameSlotLimit(void* instance, int d
     LocalUser* localUser = G::localPlayer ? G::localPlayer->GetLocalUser() : nullptr;
     if (localUser && G::localPlayer->GetDeployableCapControl()->IsEnabled() && localUser->cachedMaster_backing == instance) {
         // Don't override the "None" slot type
-        if (deployableSlot != (int)DeployableSlot_Value::None) {
+        if (deployableSlot != static_cast<int>(DeployableSlot_Value::None)) {
             int customCap = G::localPlayer->GetDeployableCapControl()->GetValue();
             return customCap;
         }
@@ -989,7 +989,7 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
     }
 
     if (!G::initialized) {
-        if (SUCCEEDED(pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&G::pDevice))) {
+        if (SUCCEEDED(pSwapChain->GetDevice(__uuidof(ID3D11Device), reinterpret_cast<void**>(&G::pDevice)))) {
             ImGui::CreateContext();
 
             ImGuiIO& io = ImGui::GetIO();
@@ -1011,7 +1011,7 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
 
             io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-            G::oWndProc = (WNDPROC)SetWindowLongPtr(G::windowHwnd, GWLP_WNDPROC, (__int3264)(LONG_PTR)WndProc);
+            G::oWndProc = reinterpret_cast<WNDPROC>(SetWindowLongPtr(G::windowHwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(WndProc)));
             G::initialized = true;
         } else {
             return G::oPresent(pSwapChain, SyncInterval, Flags);

@@ -94,7 +94,7 @@ void EnemySpawningModule::DrawUI() {
 }
 
 void EnemySpawningModule::OnLocalUserUpdate(void* localUser) {
-    LocalUser* localUser_ptr = (LocalUser*)localUser;
+    LocalUser* localUser_ptr = static_cast<LocalUser*>(localUser);
     if (!localUser_ptr->_cameraRigController) {
         return;
     }

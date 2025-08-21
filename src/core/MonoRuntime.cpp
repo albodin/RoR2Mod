@@ -166,14 +166,14 @@ void MonoRuntime::DetachThread() {
     }
 }
 
-MonoAssembly* MonoRuntime::LoadAssemblyFromMemory(const unsigned char* data, size_t size, const char* name) {
+MonoAssembly* MonoRuntime::LoadAssemblyFromMemory(const char* data, size_t size, const char* name) {
     if (!data || size == 0 || !name) {
         G::logger.LogError("LoadAssemblyFromMemory: Invalid parameters");
         return nullptr;
     }
 
     MonoImageOpenStatus status;
-    MonoImage* image = m_mono_image_open_from_data_with_name((char*)data, (uint32_t)size, 1, &status, 0, name);
+    MonoImage* image = m_mono_image_open_from_data_with_name(const_cast<char*>(data), static_cast<uint32_t>(size), 1, &status, 0, name);
     if (!image || status != MONO_IMAGE_OK) {
         G::logger.LogError("LoadAssemblyFromMemory: Failed to open image from data "
                            "with name '%s', status: %d",

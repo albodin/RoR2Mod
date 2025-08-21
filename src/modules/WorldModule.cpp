@@ -71,7 +71,7 @@ void WorldModule::OnTeleporterInteractionAwake(void* teleporter) {
 }
 
 void WorldModule::OnTeleporterInteractionFixedUpdate(void* teleporter) {
-    TeleporterInteraction* teleporter_ptr = (TeleporterInteraction*)teleporter;
+    TeleporterInteraction* teleporter_ptr = static_cast<TeleporterInteraction*>(teleporter);
     if (!teleporter_ptr)
         return;
 
@@ -99,7 +99,7 @@ void WorldModule::OnHoldoutZoneControllerUpdate(void* holdoutZoneController) {
     if (!instantHoldoutZoneControl->IsEnabled())
         return;
 
-    HoldoutZoneController* controller = (HoldoutZoneController*)holdoutZoneController;
+    HoldoutZoneController* controller = static_cast<HoldoutZoneController*>(holdoutZoneController);
     if (!controller)
         return;
 

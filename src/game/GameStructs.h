@@ -174,8 +174,8 @@ template <typename T> static T* mono_array_addr(MonoArray_Internal* arr) {
     return reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(arr) + offsetof(MonoArray_Internal, vector_arr));
 }
 /*
-    uint32_t len = static_cast<uint32_t>(((MonoArray_Internal*)itemDefsArray)->max_length);
-    ItemDef** data = mono_array_addr<ItemDef*>((MonoArray_Internal*)itemDefsArray);
+    uint32_t len = static_cast<uint32_t>((reinterpret_cast<MonoArray_Internal*>(itemDefsArray))->max_length);
+    ItemDef** data = mono_array_addr<ItemDef*>(reinterpret_cast<MonoArray_Internal*>(itemDefsArray));
     for (uint32_t i = 0; i < len; ++i) {
         ItemDef* obj = data[i];
         // ... inspect obj, e.g. via mono_object_get_class(obj) etc.

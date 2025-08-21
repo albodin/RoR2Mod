@@ -42,7 +42,7 @@ CSharpHelper::~CSharpHelper() {
         if (cleanupMethod) {
             MonoObject* result = m_runtime->InvokeMethod(cleanupMethod, nullptr, nullptr);
             if (result) {
-                bool success = *(bool*)m_runtime->m_mono_object_unbox(result);
+                bool success = *static_cast<bool*>(m_runtime->m_mono_object_unbox(result));
                 if (success) {
                     G::logger.LogInfo("CSharpHelper: C# cleanup completed successfully");
                 } else {
@@ -113,7 +113,7 @@ bool CSharpHelper::LoadAssembly() {
 
 #ifdef _DEBUG
     G::logger.LogInfo("CSharpHelper: Debug mode - loading assembly without patching");
-    m_helperAssembly = m_runtime->LoadAssemblyFromMemory(RoR2ModHelper_dll_bytes, RoR2ModHelper_dll_size, m_assemblyName.c_str());
+    m_helperAssembly = m_runtime->LoadAssemblyFromMemory(reinterpret_cast<const char*>(RoR2ModHelper_dll_bytes), RoR2ModHelper_dll_size, m_assemblyName.c_str());
 #else
     std::vector<unsigned char> patchedData(RoR2ModHelper_dll_bytes, RoR2ModHelper_dll_bytes + RoR2ModHelper_dll_size);
 
@@ -127,7 +127,7 @@ bool CSharpHelper::LoadAssembly() {
         }
     }
 
-    m_helperAssembly = m_runtime->LoadAssemblyFromMemory(patchedData.data(), patchedData.size(), m_assemblyName.c_str());
+    m_helperAssembly = m_runtime->LoadAssemblyFromMemory(reinterpret_cast<const char*>(patchedData.data()), patchedData.size(), m_assemblyName.c_str());
 #endif
 
     if (!m_helperAssembly) {

@@ -119,7 +119,7 @@ const char* InputHelper::KeyToString(ImGuiKey key) {
         return name;
 
     static char buffer[32];
-    snprintf(buffer, sizeof(buffer), "Key %d", (int)key);
+    snprintf(buffer, sizeof(buffer), "Key %d", static_cast<int>(key));
     return buffer;
 }
 

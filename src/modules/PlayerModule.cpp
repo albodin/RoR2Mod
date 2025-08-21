@@ -351,7 +351,7 @@ void PlayerModule::DrawUI() {
 }
 
 void PlayerModule::OnLocalUserUpdate(void* localUser) {
-    LocalUser* localUser_ptr = (LocalUser*)localUser;
+    LocalUser* localUser_ptr = static_cast<LocalUser*>(localUser);
     if (!localUser_ptr->cachedMaster_backing || !localUser_ptr->cachedBody_backing || !localUser_ptr->cachedBody_backing->healthComponent_backing) {
         return;
     }
@@ -440,7 +440,7 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
 }
 
 void PlayerModule::OnInventoryChanged(void* inventory) {
-    Inventory* inventory_ptr = (Inventory*)inventory;
+    Inventory* inventory_ptr = static_cast<Inventory*>(inventory);
     if (!inventory_ptr || !inventory_ptr->itemStacks) {
         return;
     }
@@ -559,7 +559,7 @@ void PlayerModule::DrawItemInputs(ItemTier_Value tier) {
 void PlayerModule::OnHuntressTrackerStart(void* huntressTracker) {
     if (!huntressTracker)
         return;
-    HuntressTracker* tracker = (HuntressTracker*)huntressTracker;
+    HuntressTracker* tracker = static_cast<HuntressTracker*>(huntressTracker);
 
     // Only cache player team trackers
     if (tracker->teamComponent && tracker->teamComponent->_teamIndex == TeamIndex_Value::Player) {
@@ -581,7 +581,7 @@ HuntressTracker* PlayerModule::GetCurrentLocalTracker() {
 
 void PlayerModule::OnCharacterBodyDestroyed(void* characterBody) {
     std::lock_guard<std::mutex> lock(trackerCacheMutex);
-    CharacterBody* body = (CharacterBody*)characterBody;
+    CharacterBody* body = static_cast<CharacterBody*>(characterBody);
     playerHuntressTrackers.erase(body);
 
     // Reset flight state when local player's body is destroyed

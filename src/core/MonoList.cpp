@@ -1,13 +1,14 @@
 #include "MonoList.h"
 #include "globals/globals.h"
 
-MonoList::MonoList(MonoObject* listObject) : list(listObject), getItemMethod(nullptr),
-                                   addMethod(nullptr), removeMethod(nullptr),
-                                   clearMethod(nullptr), getCountMethod(nullptr), count(0) {
-    if (!list) return;
+MonoList::MonoList(MonoObject* listObject)
+    : list(listObject), getItemMethod(nullptr), addMethod(nullptr), removeMethod(nullptr), clearMethod(nullptr), getCountMethod(nullptr), count(0) {
+    if (!list)
+        return;
 
     MonoClass* listClass = G::g_monoRuntime->GetObjectClass(list);
-    if (!listClass) return;
+    if (!listClass)
+        return;
 
     MonoProperty* countProp = G::g_monoRuntime->GetProperty(listClass, "Count");
     if (countProp) {
@@ -29,30 +30,26 @@ void MonoList::UpdateCount() {
 
     MonoObject* countObj = G::g_monoRuntime->InvokeMethod(getCountMethod, list, nullptr);
     if (countObj) {
-        count = *(int*)G::g_monoRuntime->m_mono_object_unbox(countObj);
+        count = *static_cast<int*>(G::g_monoRuntime->m_mono_object_unbox(countObj));
     }
 }
 
-int MonoList::Count() const {
-    return count;
-}
+int MonoList::Count() const { return count; }
 
-bool MonoList::IsValid() const {
-    return list != nullptr && getItemMethod != nullptr;
-}
+bool MonoList::IsValid() const { return list != nullptr && getItemMethod != nullptr; }
 
 std::string MonoList::GetItem(int index) {
     if (!list || !getItemMethod || index < 0 || index >= count) {
         return "";
     }
 
-    void* args[1] = { &index };
+    void* args[1] = {&index};
     MonoObject* stringObj = G::g_monoRuntime->InvokeMethod(getItemMethod, list, args);
     if (!stringObj) {
         return "";
     }
 
-    return G::g_monoRuntime->StringToUtf8((MonoString*)stringObj);
+    return G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(stringObj));
 }
 
 bool MonoList::AddItem(const std::string& item) {
@@ -65,7 +62,7 @@ bool MonoList::AddItem(const std::string& item) {
         return false;
     }
 
-    void* args[1] = { monoString };
+    void* args[1] = {monoString};
     G::g_monoRuntime->InvokeMethod(addMethod, list, args);
     UpdateCount();
     return true;
@@ -81,10 +78,10 @@ bool MonoList::RemoveItem(const std::string& item) {
         return false;
     }
 
-    void* args[1] = { monoString };
+    void* args[1] = {monoString};
     MonoObject* result = G::g_monoRuntime->InvokeMethod(removeMethod, list, args);
     if (result) {
-        bool removed = *(bool*)G::g_monoRuntime->m_mono_object_unbox(result);
+        bool removed = *static_cast<bool*>(G::g_monoRuntime->m_mono_object_unbox(result));
         if (removed) {
             UpdateCount();
         }
@@ -99,20 +96,22 @@ bool MonoList::Contains(const std::string& item) {
     }
 
     MonoClass* listClass = G::g_monoRuntime->GetObjectClass(list);
-    if (!listClass) return false;
+    if (!listClass)
+        return false;
 
     MonoMethod* containsMethod = G::g_monoRuntime->GetMethod(listClass, "Contains", 1);
-    if (!containsMethod) return false;
+    if (!containsMethod)
+        return false;
 
     MonoString* monoString = G::g_monoRuntime->CreateString(item.c_str());
     if (!monoString) {
         return false;
     }
 
-    void* args[1] = { monoString };
+    void* args[1] = {monoString};
     MonoObject* result = G::g_monoRuntime->InvokeMethod(containsMethod, list, args);
     if (result) {
-        return *(bool*)G::g_monoRuntime->m_mono_object_unbox(result);
+        return *static_cast<bool*>(G::g_monoRuntime->m_mono_object_unbox(result));
     }
     return false;
 }
@@ -128,7 +127,8 @@ void MonoList::Clear() {
 
 std::vector<std::string> MonoList::GetAllItems() {
     std::vector<std::string> result;
-    if (!IsValid()) return result;
+    if (!IsValid())
+        return result;
 
     result.reserve(count);
     for (int i = 0; i < count; i++) {
