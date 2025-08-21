@@ -21,6 +21,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
+        fetch-depth: 0
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -94,6 +95,8 @@ jobs:
     - name: Generate changelog
       id: changelog
       run: |
+        # Get current tag
+        CURRENT_TAG="${{ steps.get_version.outputs.TAG }}"
         # Get previous tag
         PREV_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
 
@@ -101,7 +104,7 @@ jobs:
           echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
           echo "## Changes since $PREV_TAG" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
-          git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" >> $GITHUB_OUTPUT
+          git log $PREV_TAG..$CURRENT_TAG --pretty=format:"- %s (%h)" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         else
