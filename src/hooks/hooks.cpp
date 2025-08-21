@@ -533,6 +533,7 @@ void Hooks::hkRoR2SteamworksServerManagerTagsStringUpdated(void* instance) {
     static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2SteamworksServerManagerTagsStringUpdated"]);
     originalFunc(instance);
 
+    G::logger.LogInfo("ServerManagerTags::StringUpdated - instance=%p", instance);
     ServerManagerBase* serverManager_ptr = (ServerManagerBase*)instance;
     if (serverManager_ptr && serverManager_ptr->tags) {
         MonoList list((MonoObject*)serverManager_ptr->tags);
@@ -548,6 +549,7 @@ void Hooks::hkRoR2TeleporterInteractionAwake(void* instance) {
         return;
     }
 
+    G::logger.LogInfo("TeleporterInteraction::Awake - instance=%p", instance);
     G::espModule->OnTeleporterAwake(instance);
     G::worldModule->OnTeleporterInteractionAwake(instance);
 }
@@ -581,6 +583,7 @@ void Hooks::hkRoR2CharacterBodyStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("CharacterBody::Start - instance=%p", instance);
     G::espModule->OnCharacterBodySpawned(instance);
 }
 
@@ -588,6 +591,7 @@ void Hooks::hkRoR2CharacterBodyOnDestroy(void* instance) {
     static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2CharacterBodyOnDestroy"]);
 
     if (G::hooksInitialized) {
+        G::logger.LogInfo("CharacterBody::OnDestroy - instance=%p", instance);
         G::espModule->OnCharacterBodyDestroyed(instance);
         G::localPlayer->OnCharacterBodyDestroyed(instance);
     }
@@ -636,6 +640,7 @@ void Hooks::hkRoR2HuntressTrackerStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("HuntressTracker::Start - instance=%p", instance);
     G::localPlayer->OnHuntressTrackerStart(instance);
 }
 
@@ -718,6 +723,7 @@ void Hooks::hkRoR2PurchaseInteractionStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("PurchaseInteraction::Start - instance=%p", instance);
     G::espModule->OnPurchaseInteractionSpawned(instance);
 }
 
@@ -728,6 +734,7 @@ void Hooks::hkRoR2BarrelInteractionStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("BarrelInteraction::Start - instance=%p", instance);
     G::espModule->OnBarrelInteractionSpawned(instance);
 }
 
@@ -738,6 +745,7 @@ void Hooks::hkRoR2GenericPickupControllerStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("GenericPickupController::Start - instance=%p", instance);
     G::espModule->OnGenericPickupControllerSpawned(instance);
 }
 
@@ -748,6 +756,7 @@ void Hooks::hkRoR2TimedChestControllerOnEnable(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("TimedChestController::OnEnable - instance=%p", instance);
     G::espModule->OnTimedChestControllerSpawned(instance);
 }
 
@@ -758,6 +767,7 @@ void Hooks::hkRoR2TimedChestControllerOnDisable(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("TimedChestController::OnDisable - instance=%p", instance);
     G::espModule->OnTimedChestControllerDespawned(instance);
 }
 
@@ -768,6 +778,7 @@ void Hooks::hkRoR2TeamManagerOnEnable(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("TeamManager::OnEnable - instance=%p", instance);
     G::gameFunctions->CacheTeamManagerInstance(reinterpret_cast<TeamManager*>(instance));
 }
 
@@ -778,6 +789,7 @@ void Hooks::hkRoR2TeamManagerOnDisable(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("TeamManager::OnDisable - instance=%p", instance);
     G::gameFunctions->ClearTeamManagerInstance();
 }
 
@@ -788,6 +800,7 @@ void Hooks::hkRoR2GenericInteractionOnEnable(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("GenericInteraction::OnEnable - instance=%p", instance);
     G::espModule->OnGenericInteractionSpawned(instance);
 }
 
@@ -798,6 +811,7 @@ void Hooks::hkRoR2PickupPickerControllerAwake(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("PickupPickerController::Awake - instance=%p", instance);
     G::espModule->OnPickupPickerControllerSpawned(instance);
 }
 
@@ -809,7 +823,7 @@ void Hooks::hkRoR2PickupPickerControllerOnDisable(void* instance) {
         return;
     }
 
-    G::logger.LogInfo("PickupPickerController (%p) OnDisable called - marking as unavailable", instance);
+    G::logger.LogInfo("PickupPickerController::OnDisable - instance=%p", instance);
     PickupPickerController* pcc = (PickupPickerController*)instance;
     pcc->available = false;
 
@@ -823,6 +837,7 @@ void Hooks::hkRoR2ScrapperControllerStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("ScrapperController::Start - instance=%p", instance);
     G::espModule->OnScrapperControllerSpawned(instance);
 }
 
@@ -830,6 +845,7 @@ void Hooks::hkRoR2RunAdvanceStage(void* instance, void* nextScene) {
     static auto originalFunc = reinterpret_cast<void (*)(void*, void*)>(hooks["RoR2RunAdvanceStage"]);
 
     if (G::hooksInitialized) {
+        G::logger.LogInfo("Run::AdvanceStage - instance=%p", instance);
         G::espModule->OnStageAdvance(instance);
         G::localPlayer->OnStageAdvance(instance);
     }
@@ -844,6 +860,7 @@ void Hooks::hkRoR2RunAwake(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("Run::Awake - instance=%p", instance);
     G::runInstance = (Run*)instance;
 }
 
@@ -851,7 +868,7 @@ void Hooks::hkRoR2RunOnDisable(void* instance) {
     static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2RunOnDisable"]);
 
     if (G::hooksInitialized && G::runInstance == instance) {
-        G::logger.LogInfo("Run OnDisable called - clearing ESP data and run instance");
+        G::logger.LogInfo("Run::OnDisable - instance=%p");
         G::espModule->OnRunExit();
         G::runInstance = nullptr;
     }
@@ -866,6 +883,7 @@ void Hooks::hkRoR2ChestBehaviorStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("ChestBehavior::Start - instance=%p", instance);
     G::espModule->OnChestBehaviorSpawned(instance);
 }
 
@@ -876,6 +894,7 @@ void Hooks::hkRoR2ShopTerminalBehaviorStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("ShopTerminalBehavior::Start - instance=%p", instance);
     G::espModule->OnShopTerminalBehaviorSpawned(instance);
 }
 
@@ -886,6 +905,7 @@ void Hooks::hkRoR2PressurePlateControllerStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("PressurePlateController::Start - instance=%p", instance);
     G::espModule->OnPressurePlateControllerSpawned(instance);
 }
 
@@ -907,6 +927,7 @@ void Hooks::hkRoR2PortalSpawnerStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
+    G::logger.LogInfo("PortalSpawner::Start - instance=%p", instance);
     PortalSpawner* portalSpawner = (PortalSpawner*)instance;
     if (!portalSpawner)
         return;
