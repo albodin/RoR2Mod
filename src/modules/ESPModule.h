@@ -272,12 +272,7 @@ class ESPModule : public ModuleBase {
 
     void CachePickupName(int32_t pickupIndex, const std::string& name);
 
-    // Hierarchical rendering order management
-    ESPRenderOrderManager& GetRenderOrderManager() { return m_renderOrderManager; }
     void DrawRenderOrderUI();
-
-    // New hierarchical rendering methods
-    void OnFrameRenderHierarchical();
     void CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items);
-    void RenderHierarchicalItem(const ESPHierarchicalRenderItem& item);
+    void RenderESPItem(const ESPHierarchicalRenderItem& item);
 };

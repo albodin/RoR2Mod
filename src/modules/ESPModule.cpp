@@ -536,9 +536,7 @@ void ESPModule::DrawRenderOrderUI() {
     }
 }
 
-void ESPModule::OnFrameRender() { OnFrameRenderHierarchical(); }
-
-void ESPModule::OnFrameRenderHierarchical() {
+void ESPModule::OnFrameRender() {
     // Collect all ESP items with their categories
     std::vector<ESPHierarchicalRenderItem> allItems;
     CollectAllESPItems(allItems);
@@ -568,7 +566,7 @@ void ESPModule::OnFrameRenderHierarchical() {
 
         // Render all items in this category
         for (const auto& item : categoryItems) {
-            RenderHierarchicalItem(item);
+            RenderESPItem(item);
         }
     }
 }
@@ -726,7 +724,7 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
     }
 }
 
-void ESPModule::RenderHierarchicalItem(const ESPHierarchicalRenderItem& item) {
+void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
     // Render based on category type
     if (item.mainCategory == ESPMainCategory::Teleporter) {
         // Render teleporter
