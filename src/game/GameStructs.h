@@ -367,6 +367,13 @@ enum class PickupArtifactFlag_Value : int32_t {
     DELUSION = 2,
 };
 
+enum class ExitState_Value : int32_t {
+    Idle = 0,
+    ExtractExp = 1,
+    TeleportOut = 2,
+    Finished = 3,
+};
+
 /* No Header Structs */
 
 struct Quaternion {
@@ -650,10 +657,6 @@ struct SceneIndex_Value {
 };
 
 struct SceneType_Value {
-    int32_t value__;
-};
-
-struct ExitState_Value {
     int32_t value__;
 };
 

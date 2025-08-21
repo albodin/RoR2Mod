@@ -194,6 +194,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, ScrapperController, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, Run, AdvanceStage, 1, "System.Void", {"RoR2.SceneDef"});
     HOOK(RoR2, RoR2, Run, Awake, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, Run, OnDisable, 0, "System.Void", {});
     HOOK(RoR2, RoR2, ChestBehavior, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, ShopTerminalBehavior, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, PressurePlateController, Start, 0, "System.Void", {});
@@ -802,7 +803,7 @@ void Hooks::hkRoR2PickupPickerControllerAwake(void* instance) {
 
 void Hooks::hkRoR2PickupPickerControllerOnDisable(void* instance) {
     static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2PickupPickerControllerOnDisable"]);
-    
+
     if (!G::hooksInitialized) {
         originalFunc(instance);
         return;
@@ -811,7 +812,7 @@ void Hooks::hkRoR2PickupPickerControllerOnDisable(void* instance) {
     G::logger.LogInfo("PickupPickerController (%p) OnDisable called - marking as unavailable", instance);
     PickupPickerController* pcc = (PickupPickerController*)instance;
     pcc->available = false;
-    
+
     originalFunc(instance);
 }
 
@@ -843,7 +844,19 @@ void Hooks::hkRoR2RunAwake(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::runInstance = instance;
+    G::runInstance = (Run*)instance;
+}
+
+void Hooks::hkRoR2RunOnDisable(void* instance) {
+    static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2RunOnDisable"]);
+
+    if (G::hooksInitialized && G::runInstance == instance) {
+        G::logger.LogInfo("Run OnDisable called - clearing ESP data and run instance");
+        G::espModule->OnRunExit();
+        G::runInstance = nullptr;
+    }
+
+    originalFunc(instance);
 }
 
 void Hooks::hkRoR2ChestBehaviorStart(void* instance) {

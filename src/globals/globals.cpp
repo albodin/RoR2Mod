@@ -43,5 +43,5 @@ std::unique_ptr<EnemySpawningModule> enemySpawningModule = std::make_unique<Enem
 std::unique_ptr<EnemyModule> enemyModule = std::make_unique<EnemyModule>();
 std::unique_ptr<InteractableSpawningModule> interactableSpawningModule = std::make_unique<InteractableSpawningModule>();
 std::unique_ptr<CSharpHelper> csHelper;
-void* runInstance = nullptr;
+Run* runInstance = nullptr;
 } // namespace G

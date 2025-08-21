@@ -81,7 +81,7 @@ struct ESPHierarchicalRenderItem {
     union {
         TrackedEntity* entity;
         TrackedInteractable* interactable;
-        void* teleporterData; // For teleporter ESP
+        void* teleporterData;
     };
 
     ImVec2 screenPos;
@@ -115,35 +115,28 @@ class ESPRenderOrderManager {
   public:
     ESPRenderOrderManager();
 
-    // Get/Set main category order
     const std::vector<ESPMainCategory>& GetMainOrder() const { return m_mainCategoryOrder; }
     void SetMainOrder(const std::vector<ESPMainCategory>& order) { m_mainCategoryOrder = order; }
 
-    // Get/Set sub-category order for a main category
     const std::vector<ESPSubCategory>& GetSubOrder(ESPMainCategory mainCat) const;
     void SetSubOrder(ESPMainCategory mainCat, const std::vector<ESPSubCategory>& order);
 
     // Get all categories in hierarchical render order (reverse of priority for rendering)
     std::vector<ESPCategoryInfo> GetRenderOrder() const;
 
-    // Move categories up/down in priority
     void MoveCategoryUp(ESPMainCategory category);
     void MoveCategoryDown(ESPMainCategory category);
     void MoveSubCategoryUp(ESPMainCategory mainCat, ESPSubCategory subCat);
     void MoveSubCategoryDown(ESPMainCategory mainCat, ESPSubCategory subCat);
 
-    // Reset to default order
     void ResetToDefault();
 
-    // Configuration validation
     bool ValidateConfiguration() const;
     void EnsureValidConfiguration();
 
-    // Get display name for categories
     static std::string GetCategoryDisplayName(ESPMainCategory category);
     static std::string GetSubCategoryDisplayName(ESPSubCategory subCategory);
 
-    // Config persistence
     std::string SerializeToString() const;
     void DeserializeFromString(const std::string& data);
 };
@@ -247,6 +240,7 @@ class ESPModule : public ModuleBase {
     void InitializeCategoryMappings();
     std::string GetPickupName(int32_t pickupIndex);
     std::string GetCostString(CostTypeIndex_Value costType, int cost);
+    void ClearData();
 
   public:
     ESPModule();
@@ -271,6 +265,7 @@ class ESPModule : public ModuleBase {
     void OnPickupPickerControllerSpawned(void* pickupPickerController);
     void OnScrapperControllerSpawned(void* scrapperController);
     void OnStageAdvance(void* stage);
+    void OnRunExit();
     void OnChestBehaviorSpawned(void* chestBehavior);
     void OnShopTerminalBehaviorSpawned(void* shopTerminalBehavior);
     void OnPressurePlateControllerSpawned(void* pressurePlateController);

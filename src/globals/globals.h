@@ -70,5 +70,5 @@ extern std::unique_ptr<EnemyModule> enemyModule;
 extern std::unique_ptr<InteractableSpawningModule> interactableSpawningModule;
 extern std::unique_ptr<CSharpHelper> csHelper;
 
-extern void* runInstance;
+extern Run* runInstance;
 } // namespace G

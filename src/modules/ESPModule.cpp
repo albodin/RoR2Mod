@@ -574,7 +574,7 @@ void ESPModule::OnFrameRenderHierarchical() {
 }
 
 void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items) {
-    if (!mainCamera || !G::localPlayer->GetPlayerPosition()) {
+    if (!G::runInstance || !mainCamera || !G::localPlayer->GetPlayerPosition()) {
         return;
     }
 
@@ -1513,8 +1513,7 @@ void ESPModule::OnScrapperControllerSpawned(void* scrapperController) {
     trackedInteractables.push_back(std::move(trackedInteractable));
 }
 
-void ESPModule::OnStageAdvance(void* stage) {
-    // New stage detected - clear all tracked interactables and entities
+void ESPModule::ClearData() {
     {
         std::lock_guard<std::mutex> lock(interactablesMutex);
         trackedInteractables.clear();
@@ -1526,9 +1525,18 @@ void ESPModule::OnStageAdvance(void* stage) {
         trackedPlayers.clear();
     }
 
-    // Reset teleporter position and display name
     teleporterPosition = Vector3{0, 0, 0};
     teleporterDisplayName = "";
+}
+
+void ESPModule::OnStageAdvance(void* stage) {
+    ClearData();
+    G::logger.LogInfo("ESP data cleared due to stage change");
+}
+
+void ESPModule::OnRunExit() {
+    ClearData();
+    G::logger.LogInfo("ESP data cleared due to run exit");
 }
 
 void ESPModule::UpdateTimedChestDisplayName(TrackedInteractable* interactable, void* timedChestController) {
