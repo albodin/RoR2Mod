@@ -3,6 +3,7 @@
 #include "globals/globals.h"
 #include "hooks/hooks.h"
 #include "imgui.h"
+#include "menu/ItemsUI.h"
 
 PlayerModule::PlayerModule() : ModuleBase(), localUser_cached(nullptr), isProvidingFlight(false), isMoneyConversionActive(false) { Initialize(); }
 
@@ -333,21 +334,7 @@ void PlayerModule::DrawUI() {
         blockPullsControl->Draw();
     }
 
-    if (ImGui::CollapsingHeader("Items")) {
-        std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
-        if (ImGui::CollapsingHeader("Tier1")) {
-            DrawItemInputs(ItemTier_Value::Tier1);
-        }
-        if (ImGui::CollapsingHeader("Tier2")) {
-            DrawItemInputs(ItemTier_Value::Tier2);
-        }
-        if (ImGui::CollapsingHeader("Tier3")) {
-            DrawItemInputs(ItemTier_Value::Tier3);
-        }
-        if (ImGui::CollapsingHeader("Lunar")) {
-            DrawItemInputs(ItemTier_Value::Lunar);
-        }
-    }
+    ItemsUI::DrawItemsSection(items, itemControls, &itemStacks);
 }
 
 void PlayerModule::OnLocalUserUpdate(void* localUser) {
@@ -537,23 +524,6 @@ int PlayerModule::GetItemCount(int itemIndex) {
         return itemControls[itemIndex]->GetValue();
     }
     return 0;
-}
-
-void PlayerModule::DrawItemInputs(ItemTier_Value tier) {
-    std::shared_lock<std::shared_mutex> lock(itemsMutex);
-
-    for (auto& item : items) {
-        if (item.tier != tier)
-            continue;
-        int index = item.index;
-
-        if (itemControls.count(index) > 0) {
-            if (itemControls[index]->GetValue() != itemStacks[index]) {
-                itemControls[index]->SetValue(itemStacks[index]);
-            }
-            itemControls[index]->Draw();
-        }
-    }
 }
 
 void PlayerModule::OnHuntressTrackerStart(void* huntressTracker) {

@@ -115,8 +115,6 @@ class PlayerModule : public ModuleBase {
     void ConvertPlayerMoneyToExperienceUpdate();
     void OnStageAdvance(void* stage);
 
-    void DrawItemInputs(ItemTier_Value tier);
-
     Vector3 GetPlayerPosition() { return playerPosition; }
     Vector3 GetCrosshairPosition() { return crosshairPosition; }
     LocalUser* GetLocalUser() { return localUser_cached; }

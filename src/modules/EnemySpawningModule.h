@@ -44,6 +44,5 @@ class EnemySpawningModule : public ModuleBase {
     void InitializeAllItemControls();
     void SpawnEnemy(int masterIndex, int count = 1, int eliteIndex = 0);
     void PrepareEnemyLists();
-    void DrawItemInputs(ItemTier_Value tier);
     void SortItemsByName();
 };

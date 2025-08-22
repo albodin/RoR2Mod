@@ -584,11 +584,11 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
         for (const auto& teleporter : trackedTeleporters) {
             if (!teleporter)
                 continue;
-                
+
             float distance = teleporter->position.Distance(localPlayerPos);
             if (distance > teleporterESPControl->GetDistance())
                 continue;
-                
+
             ImVec2 screenPos;
             if (RenderUtils::WorldToScreen(mainCamera, teleporter->position, screenPos)) {
                 bool isVisible = IsVisible(teleporter->position);
@@ -791,24 +791,24 @@ void ESPModule::OnTeleporterAwake(void* teleporter) {
 
     Vector3 position = {0, 0, 0};
     Hooks::Transform_get_position_Injected(teleporter_ptr->teleporterPositionIndicator->targetTransform, &position);
-    
+
     std::string displayName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("TELEPORTER_NAME"));
-    
+
     auto trackedTeleporter = std::make_unique<TrackedTeleporter>();
     trackedTeleporter->teleporterInteraction = teleporter;
     trackedTeleporter->position = position;
     trackedTeleporter->displayName = displayName;
-    
+
     std::lock_guard<std::mutex> lock(teleportersMutex);
     trackedTeleporters.push_back(std::move(trackedTeleporter));
-    
+
     G::logger.LogInfo("Tracked new teleporter at position (%.1f, %.1f, %.1f)", position.x, position.y, position.z);
 }
 
 void ESPModule::OnTeleporterDestroyed(void* teleporter) {
     if (!teleporter)
         return;
-    
+
     std::lock_guard<std::mutex> lock(teleportersMutex);
     trackedTeleporters.erase(
         std::remove_if(trackedTeleporters.begin(), trackedTeleporters.end(),
@@ -825,7 +825,7 @@ void ESPModule::OnTeleporterFixedUpdate(void* teleporter) {
         return;
 
     std::lock_guard<std::mutex> lock(teleportersMutex);
-    
+
     // Find the tracked teleporter and update its position
     for (auto& tracked : trackedTeleporters) {
         if (tracked->teleporterInteraction == teleporter) {
@@ -1580,7 +1580,7 @@ void ESPModule::ClearData() {
         trackedEnemies.clear();
         trackedPlayers.clear();
     }
-    
+
     {
         std::lock_guard<std::mutex> lock(teleportersMutex);
         trackedTeleporters.clear();

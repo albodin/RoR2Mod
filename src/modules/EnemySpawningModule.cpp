@@ -3,6 +3,7 @@
 #include "globals/globals.h"
 #include "imgui.h"
 #include "menu/InputControls.h"
+#include "menu/ItemsUI.h"
 
 EnemySpawningModule::EnemySpawningModule() : ModuleBase() {
     // Team names for dropdown
@@ -61,22 +62,7 @@ void EnemySpawningModule::DrawUI() {
         difficultyMatchingControl->Draw();
         eliteSelectControl->Draw();
 
-        // Draw items section
-        if (ImGui::CollapsingHeader("Items")) {
-            std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
-            if (ImGui::CollapsingHeader("Tier1")) {
-                DrawItemInputs(ItemTier_Value::Tier1);
-            }
-            if (ImGui::CollapsingHeader("Tier2")) {
-                DrawItemInputs(ItemTier_Value::Tier2);
-            }
-            if (ImGui::CollapsingHeader("Tier3")) {
-                DrawItemInputs(ItemTier_Value::Tier3);
-            }
-            if (ImGui::CollapsingHeader("Lunar")) {
-                DrawItemInputs(ItemTier_Value::Lunar);
-            }
-        }
+        ItemsUI::DrawItemsSection(items, itemControls);
 
         spawnButtonControl->Draw();
 
@@ -175,20 +161,6 @@ void EnemySpawningModule::InitializeAllItemControls() {
         auto control = std::make_unique<IntControl>(item.displayName, "enemySpawn_item_" + std::to_string(index), 0, 0, INT_MAX, 1, false, false);
         control->SetShowCheckbox(false);
         itemControls[index] = std::move(control);
-    }
-}
-
-void EnemySpawningModule::DrawItemInputs(ItemTier_Value tier) {
-    std::shared_lock<std::shared_mutex> lock(itemsMutex);
-
-    for (const auto& item : items) {
-        if (item.tier != tier)
-            continue;
-        int index = item.index;
-
-        if (itemControls.count(index) > 0) {
-            itemControls[index]->Draw();
-        }
     }
 }
 
