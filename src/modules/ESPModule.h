@@ -16,6 +16,12 @@ struct TrackedEntity {
 
 enum class InteractableCategory { Chest, Shop, Drone, Shrine, Special, Barrel, ItemPickup, Portal, CommandCube, Unknown };
 
+struct TrackedTeleporter {
+    void* teleporterInteraction;
+    Vector3 position;
+    std::string displayName;
+};
+
 struct TrackedInteractable {
     void* gameObject;
     void* purchaseInteraction;
@@ -185,16 +191,16 @@ class ESPModule : public ModuleBase {
     std::unique_ptr<ChestESPControl> itemPickupESPControl;
     std::unique_ptr<ChestESPControl> portalESPControl;
 
-    Vector3 teleporterPosition;
-    std::string teleporterDisplayName;
     Vector3 playerPosition;
     Camera* mainCamera;
 
     std::vector<std::unique_ptr<TrackedEntity>> trackedEnemies;
     std::vector<std::unique_ptr<TrackedEntity>> trackedPlayers;
     std::vector<std::unique_ptr<TrackedInteractable>> trackedInteractables;
+    std::vector<std::unique_ptr<TrackedTeleporter>> trackedTeleporters;
     std::mutex entitiesMutex;
     std::mutex interactablesMutex;
+    std::mutex teleportersMutex;
 
     // Cached cost format strings
     std::string m_moneyFormat;
@@ -253,6 +259,8 @@ class ESPModule : public ModuleBase {
 
     void OnGameUpdate();
     void OnTeleporterAwake(void* teleporter);
+    void OnTeleporterDestroyed(void* teleporter);
+    void OnTeleporterFixedUpdate(void* teleporter);
     void OnCharacterBodySpawned(void* characterBody);
     void OnCharacterBodyDestroyed(void* characterBody);
     void OnPurchaseInteractionSpawned(void* purchaseInteraction);

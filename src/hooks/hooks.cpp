@@ -173,6 +173,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, SteamworksServerManager, TagsStringUpdated, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TeleporterInteraction, Awake, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TeleporterInteraction, FixedUpdate, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, TeleporterInteraction, OnDestroy, 0, "System.Void", {});
     HOOK(RoR2, RoR2, ConvertPlayerMoneyToExperience, FixedUpdate, 0, "System.Void", {});
     HOOK(RoR2, RoR2, CharacterBody, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, CharacterBody, OnDestroy, 0, "System.Void", {});
@@ -563,6 +564,18 @@ void Hooks::hkRoR2TeleporterInteractionFixedUpdate(void* instance) {
     }
 
     G::worldModule->OnTeleporterInteractionFixedUpdate(instance);
+    G::espModule->OnTeleporterFixedUpdate(instance);
+}
+
+void Hooks::hkRoR2TeleporterInteractionOnDestroy(void* instance) {
+    static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2TeleporterInteractionOnDestroy"]);
+
+    if (G::hooksInitialized) {
+        G::logger.LogInfo("TeleporterInteraction::OnDestroy - instance=%p", instance);
+        G::espModule->OnTeleporterDestroyed(instance);
+    }
+
+    originalFunc(instance);
 }
 
 void Hooks::hkRoR2ConvertPlayerMoneyToExperienceFixedUpdate(void* instance) {

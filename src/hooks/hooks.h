@@ -30,6 +30,7 @@ int hkRoR2ItemStealControllerStolenInventoryInfoStealItem(void*, int, int, void*
 void hkRoR2SteamworksServerManagerTagsStringUpdated(void*);
 void hkRoR2TeleporterInteractionAwake(void*);
 void hkRoR2TeleporterInteractionFixedUpdate(void*);
+void hkRoR2TeleporterInteractionOnDestroy(void*);
 void hkRoR2ConvertPlayerMoneyToExperienceFixedUpdate(void*);
 void hkRoR2CharacterBodyStart(void*);
 void hkRoR2CharacterBodyOnDestroy(void*);

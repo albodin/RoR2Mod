@@ -579,14 +579,23 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
     Vector3 localPlayerPos = G::localPlayer->GetPlayerPosition();
 
     // Collect teleporter ESP
-    if (teleporterESPControl->IsEnabled() && teleporterPosition && teleporterPosition.Distance(localPlayerPos) <= teleporterESPControl->GetDistance()) {
-        ImVec2 screenPos;
-        if (RenderUtils::WorldToScreen(mainCamera, teleporterPosition, screenPos)) {
-            float distance = teleporterPosition.Distance(localPlayerPos);
-            bool isVisible = IsVisible(teleporterPosition);
-            bool onScreen = !(screenPos.x == 0.0f && screenPos.y == 0.0f);
+    if (teleporterESPControl->IsEnabled()) {
+        std::lock_guard<std::mutex> lock(teleportersMutex);
+        for (const auto& teleporter : trackedTeleporters) {
+            if (!teleporter)
+                continue;
+                
+            float distance = teleporter->position.Distance(localPlayerPos);
+            if (distance > teleporterESPControl->GetDistance())
+                continue;
+                
+            ImVec2 screenPos;
+            if (RenderUtils::WorldToScreen(mainCamera, teleporter->position, screenPos)) {
+                bool isVisible = IsVisible(teleporter->position);
+                bool onScreen = !(screenPos.x == 0.0f && screenPos.y == 0.0f);
 
-            items.emplace_back(ESPMainCategory::Teleporter, ESPSubCategory::Single, static_cast<void*>(nullptr), distance, screenPos, isVisible, onScreen);
+                items.emplace_back(ESPMainCategory::Teleporter, ESPSubCategory::Single, teleporter.get(), distance, screenPos, isVisible, onScreen);
+            }
         }
     }
 
@@ -728,10 +737,11 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
     // Render based on category type
     if (item.mainCategory == ESPMainCategory::Teleporter) {
         // Render teleporter
-        if (!teleporterPosition || !G::localPlayer->GetPlayerPosition())
+        if (!item.teleporterData || !G::localPlayer->GetPlayerPosition())
             return;
 
-        const char* baseName = teleporterDisplayName.empty() ? "Teleporter" : teleporterDisplayName.c_str();
+        TrackedTeleporter* teleporter = static_cast<TrackedTeleporter*>(item.teleporterData);
+        const char* baseName = teleporter->displayName.empty() ? "Teleporter" : teleporter->displayName.c_str();
 
         char teleporterText[256];
         snprintf(teleporterText, sizeof(teleporterText), "%s (%dm)", baseName, static_cast<int>(item.distance));
@@ -772,10 +782,58 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
 void ESPModule::OnGameUpdate() { mainCamera = Hooks::Camera_get_main(); }
 
 void ESPModule::OnTeleporterAwake(void* teleporter) {
+    if (!teleporter)
+        return;
+
     TeleporterInteraction* teleporter_ptr = static_cast<TeleporterInteraction*>(teleporter);
-    if (teleporter_ptr && teleporter_ptr->teleporterPositionIndicator) {
-        Hooks::Transform_get_position_Injected(teleporter_ptr->teleporterPositionIndicator->targetTransform, &teleporterPosition);
-        teleporterDisplayName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("TELEPORTER_NAME"));
+    if (!teleporter_ptr || !teleporter_ptr->teleporterPositionIndicator)
+        return;
+
+    Vector3 position = {0, 0, 0};
+    Hooks::Transform_get_position_Injected(teleporter_ptr->teleporterPositionIndicator->targetTransform, &position);
+    
+    std::string displayName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("TELEPORTER_NAME"));
+    
+    auto trackedTeleporter = std::make_unique<TrackedTeleporter>();
+    trackedTeleporter->teleporterInteraction = teleporter;
+    trackedTeleporter->position = position;
+    trackedTeleporter->displayName = displayName;
+    
+    std::lock_guard<std::mutex> lock(teleportersMutex);
+    trackedTeleporters.push_back(std::move(trackedTeleporter));
+    
+    G::logger.LogInfo("Tracked new teleporter at position (%.1f, %.1f, %.1f)", position.x, position.y, position.z);
+}
+
+void ESPModule::OnTeleporterDestroyed(void* teleporter) {
+    if (!teleporter)
+        return;
+    
+    std::lock_guard<std::mutex> lock(teleportersMutex);
+    trackedTeleporters.erase(
+        std::remove_if(trackedTeleporters.begin(), trackedTeleporters.end(),
+                       [teleporter](const std::unique_ptr<TrackedTeleporter>& tracked) { return tracked->teleporterInteraction == teleporter; }),
+        trackedTeleporters.end());
+}
+
+void ESPModule::OnTeleporterFixedUpdate(void* teleporter) {
+    if (!teleporter)
+        return;
+
+    TeleporterInteraction* teleporter_ptr = static_cast<TeleporterInteraction*>(teleporter);
+    if (!teleporter_ptr || !teleporter_ptr->teleporterPositionIndicator)
+        return;
+
+    std::lock_guard<std::mutex> lock(teleportersMutex);
+    
+    // Find the tracked teleporter and update its position
+    for (auto& tracked : trackedTeleporters) {
+        if (tracked->teleporterInteraction == teleporter) {
+            Vector3 newPosition = {0, 0, 0};
+            Hooks::Transform_get_position_Injected(teleporter_ptr->teleporterPositionIndicator->targetTransform, &newPosition);
+            tracked->position = newPosition;
+            break;
+        }
     }
 }
 
@@ -1522,9 +1580,11 @@ void ESPModule::ClearData() {
         trackedEnemies.clear();
         trackedPlayers.clear();
     }
-
-    teleporterPosition = Vector3{0, 0, 0};
-    teleporterDisplayName = "";
+    
+    {
+        std::lock_guard<std::mutex> lock(teleportersMutex);
+        trackedTeleporters.clear();
+    }
 }
 
 void ESPModule::OnStageAdvance(void* stage) {
