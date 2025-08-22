@@ -6,8 +6,6 @@
 #include <filesystem>
 #include <fstream>
 
-std::string ConfigManager::configDirectory = "ror2modconfigs";
-std::string ConfigManager::defaultConfigName = "default";
 std::string ConfigManager::currentConfigName = "";
 std::vector<std::string> ConfigManager::availableConfigs;
 std::vector<InputControl*> ConfigManager::registeredControls;
@@ -30,7 +28,7 @@ void ConfigManager::CreateDefaultConfig() {
 void ConfigManager::EnsureConfigDirectoryExists() {
     if (!std::filesystem::exists(configDirectory)) {
         try {
-            std::filesystem::create_directory(configDirectory);
+            std::filesystem::create_directories(configDirectory);
             G::logger.LogInfo("Created config directory: %s", configDirectory.c_str());
         } catch (const std::exception& e) {
             G::logger.LogError("Failed to create config directory: %s", e.what());

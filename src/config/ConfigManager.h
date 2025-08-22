@@ -10,8 +10,8 @@ class InputControl;
 
 class ConfigManager {
   private:
-    static std::string configDirectory;
-    static std::string defaultConfigName;
+    inline static const std::string configDirectory = "ror2mod/configs";
+    inline static const std::string defaultConfigName = "default";
     static std::string currentConfigName;
     static std::vector<std::string> availableConfigs;
     static std::vector<InputControl*> registeredControls;

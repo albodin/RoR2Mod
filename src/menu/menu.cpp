@@ -205,7 +205,7 @@ void DrawConfigTab() {
 
         ImGui::SliderFloat("Font Size", &FontManager::ESPFontSize, 1.0f, 100.0f, "%.1fx");
 
-        ImGui::TextWrapped("Place .ttf or .otf font files in the 'ror2modfonts' folder to add more fonts.");
+        ImGui::TextWrapped("Place .ttf or .otf font files in the 'ror2mod/fonts' folder to add more fonts.");
 
         ImGui::Text("Preview:");
         ImGui::PushFont(FontManager::GetESPFont());

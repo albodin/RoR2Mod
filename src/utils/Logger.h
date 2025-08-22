@@ -9,7 +9,7 @@ private:
     std::mutex logMutex;
     
 public:
-    Logger(const std::string& path);
+    Logger();
     ~Logger();
     
     void Log(const std::string& message);

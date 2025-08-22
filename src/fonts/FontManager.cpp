@@ -53,11 +53,11 @@ void FontManager::InitializeFonts(ImFontAtlas* atlas) {
 }
 
 void FontManager::LoadCustomFonts(ImFontAtlas* atlas) {
-    std::string fontDir = "ror2modfonts";
+    static const std::string fontDir = "ror2mod/fonts";
 
     if (!std::filesystem::exists(fontDir)) {
         try {
-            std::filesystem::create_directory(fontDir);
+            std::filesystem::create_directories(fontDir);
             G::logger.LogInfo("Created fonts directory: %s", fontDir.c_str());
         } catch (const std::exception& e) {
             G::logger.LogError("Failed to create fonts directory: %s", e.what());

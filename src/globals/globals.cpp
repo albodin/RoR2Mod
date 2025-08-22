@@ -13,7 +13,7 @@ ID3D11DeviceContext* pContext = nullptr;
 ID3D11RenderTargetView* mainRenderTargetView = nullptr;
 WNDPROC oWndProc = nullptr;
 HWND windowHwnd = nullptr;
-Logger logger("ror2mod.log");
+Logger logger;
 std::unique_ptr<GameFunctions> gameFunctions = nullptr;
 
 int worldLayer = -1;
