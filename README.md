@@ -1,6 +1,8 @@
 # Risk of Rain 2 Mod
 
 ## Features
+<details>
+<summary>Click to view features</summary>
 
 ### Player Modifications
 **Character Stats**
@@ -97,8 +99,9 @@
 **Configuration Management**
 - Multiple configuration profiles
 
-## Screenshots
+</details>
 
+## Screenshots
 <details>
 <summary>Click to view screenshots</summary>
 
