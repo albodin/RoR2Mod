@@ -415,9 +415,13 @@ void Hooks::hkRoR2RoR2ApplicationUpdate(void* instance) {
         return;
     }
 
-    std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
-    for (; !G::queuedActions.empty(); G::queuedActions.pop()) {
-        auto action = G::queuedActions.front();
+    std::queue<std::function<void()>> localActions;
+    {
+        std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
+        localActions.swap(G::queuedActions);
+    }
+    for (; !localActions.empty(); localActions.pop()) {
+        auto action = localActions.front();
         action();
     }
 
