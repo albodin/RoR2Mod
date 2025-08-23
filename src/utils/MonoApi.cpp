@@ -4,9 +4,7 @@
 #include <map>
 
 MonoAPI::~MonoAPI() {
-    if (monoModule) {
-        FreeLibrary(monoModule);
-    }
+    monoModule = nullptr;
 }
 
 bool MonoAPI::Initialize(const std::string& monoDllPath) {
