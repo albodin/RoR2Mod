@@ -2472,7 +2472,7 @@ struct ItemDef {
     GameObject* pickupModelPrefab;   // Offset: 72
     void* pickupModelReference;      // Offset: 80
     Sprite* pickupIconSprite;        // Offset: 88
-    ItemTag* tags;                   // Offset: 96
+    ItemTag_Value* tags;             // Offset: 96
     ExpansionDef* requiredExpansion; // Offset: 104
     ItemIndex_Value _itemIndex;      // Offset: 112
     ItemTier_Value deprecatedTier;   // Offset: 116

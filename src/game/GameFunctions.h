@@ -37,6 +37,7 @@ class GameFunctions {
     MonoClass* m_buffCatalogClass;
     MonoClass* m_buffDefClass;
     MonoClass* m_networkUserClass;
+    MonoClass* m_unityObjectClass;
 
     TeamManager* m_cachedTeamManager;
 
@@ -77,4 +78,6 @@ class GameFunctions {
 
     void AwardLunarCoins(NetworkUser* networkUser, uint32_t coinsToAdd);
     void DeductLunarCoins(NetworkUser* networkUser, uint32_t coinsToRemove);
+
+    std::string GetUnityObjectName(void* unityObject);
 };

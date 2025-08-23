@@ -1,7 +1,7 @@
 #pragma once
+#include "game/GameStructs.h"
 #include <string>
 #include <vector>
-#include "game/GameStructs.h"
 
 struct RoR2Item {
     int index;
@@ -19,7 +19,7 @@ struct RoR2Item {
     bool canRemove;
     bool isConsumed;
     bool hidden;
-    std::vector<int> tags;
+    std::vector<int32_t> tags;
 };
 
 struct RoR2Enemy {

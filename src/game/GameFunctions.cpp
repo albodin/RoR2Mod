@@ -25,6 +25,7 @@ GameFunctions::GameFunctions(MonoRuntime* runtime) {
     m_buffCatalogClass = runtime->GetClass("Assembly-CSharp", "RoR2", "BuffCatalog");
     m_buffDefClass = runtime->GetClass("Assembly-CSharp", "RoR2", "BuffDef");
     m_networkUserClass = runtime->GetClass("Assembly-CSharp", "RoR2", "NetworkUser");
+    m_unityObjectClass = runtime->GetClass("UnityEngine.CoreModule", "UnityEngine", "Object");
 
     m_cachedTeamManager = nullptr;
 }
@@ -182,159 +183,51 @@ int GameFunctions::LoadItems() {
         return -1;
     }
 
-    int itemCount = m_runtime->GetArrayLength(itemDefsArray);
-    if (itemCount <= 0) {
+    uint32_t itemDefsLen = static_cast<uint32_t>((reinterpret_cast<MonoArray_Internal*>(itemDefsArray))->max_length);
+    if (itemDefsLen <= 0) {
         G::logger.LogError("Item count is zero or negative");
         return -1;
     }
+    G::logger.LogInfo("Found " + std::to_string(itemDefsLen) + " items");
 
-    G::logger.LogInfo("Found " + std::to_string(itemCount) + " items");
-
-    MonoField* nameTokenField = m_runtime->GetField(m_itemDefClass, "nameToken");
-    MonoField* pickupTokenField = m_runtime->GetField(m_itemDefClass, "pickupToken");
-    MonoField* descTokenField = m_runtime->GetField(m_itemDefClass, "descriptionToken");
-    MonoField* loreTokenField = m_runtime->GetField(m_itemDefClass, "loreToken");
-    MonoField* itemTierDefField = m_runtime->GetField(m_itemDefClass, "_itemTierDef");
-    MonoField* itemIndexField = m_runtime->GetField(m_itemDefClass, "_itemIndex");
-    MonoField* canRemoveField = m_runtime->GetField(m_itemDefClass, "canRemove");
-    MonoField* isConsumedField = m_runtime->GetField(m_itemDefClass, "isConsumed");
-    MonoField* hiddenField = m_runtime->GetField(m_itemDefClass, "hidden");
-    MonoField* tagsField = m_runtime->GetField(m_itemDefClass, "tags");
-
-    MonoClass* arrayClass = m_runtime->GetObjectClass(static_cast<MonoObject*>(itemDefsArray));
-    MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
-    if (!getItemMethod) {
-        G::logger.LogError("Failed to get array access method");
-        return -1;
-    }
-
+    ItemDef** itemDefsData = mono_array_addr<ItemDef*>(reinterpret_cast<MonoArray_Internal*>(itemDefsArray));
     std::unique_lock<std::shared_mutex> lock(G::itemsMutex);
     G::items.clear();
-    for (int i = 0; i < itemCount; i++) {
-        void* params[1] = {&i};
-        MonoObject* itemDefObj = m_runtime->InvokeMethod(getItemMethod, itemDefsArray, params);
-        if (!itemDefObj)
-            continue;
-
+    for (uint32_t i = 0; i < itemDefsLen; i++) {
         RoR2Item item;
-        item.index = -1;
-        if (itemIndexField) {
-            item.index = m_runtime->GetFieldValue<int>(itemDefObj, itemIndexField);
-        }
+        ItemDef* itemDef = itemDefsData[i];
+        item.index = itemDef->_itemIndex.value__;
         if (item.index < 0) {
             G::logger.LogError("Item index is negative, failing");
             return -1;
         }
-
-        MonoClass* objClass = m_runtime->GetObjectClass(itemDefObj);
-        MonoProperty* nameProp = m_runtime->GetProperty(objClass, "name");
-        if (nameProp) {
-            MonoMethod* getNameMethod = m_runtime->GetPropertyGetMethod(nameProp);
-            if (getNameMethod) {
-                MonoObject* nameObj = m_runtime->InvokeMethod(getNameMethod, itemDefObj, nullptr);
-                if (nameObj) {
-                    item.name = m_runtime->StringToUtf8(static_cast<MonoString*>(nameObj));
-                }
-            }
+        item.nameToken = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(itemDef->nameToken));
+        item.displayName = Language_GetString(static_cast<MonoString*>(itemDef->nameToken));
+        item.pickupToken = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(itemDef->pickupToken));
+        item.descriptionToken = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(itemDef->descriptionToken));
+        item.loreToken = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(itemDef->loreToken));
+        if (itemDef->_itemTierDef) {
+            item.tier = itemDef->_itemTierDef->_tier;
+            item.isDroppable = itemDef->_itemTierDef->isDroppable;
+            item.canScrap = itemDef->_itemTierDef->canScrap;
+            item.canRestack = itemDef->_itemTierDef->canRestack;
+        } else {
+            item.tier = itemDef->deprecatedTier;
+            G::logger.LogInfo("Item %s has no ItemTierDef, using deprecated tier %i", item.displayName.c_str(), itemDef->deprecatedTier);
         }
 
-        if (nameTokenField) {
-            MonoString* str = m_runtime->GetFieldValue<MonoString*>(itemDefObj, nameTokenField);
-            if (str) {
-                item.nameToken = m_runtime->StringToUtf8(str);
-                item.displayName = Language_GetString(str);
-            }
+        item.canRemove = itemDef->canRemove;
+        item.isConsumed = itemDef->isConsumed;
+        item.hidden = itemDef->hidden;
+
+        uint32_t tagsLen = static_cast<uint32_t>((reinterpret_cast<MonoArray_Internal*>(itemDef->tags))->max_length);
+        ItemTag_Value* tagsData = mono_array_addr<ItemTag_Value>(reinterpret_cast<MonoArray_Internal*>(itemDef->tags));
+        for (uint32_t iTag = 0; iTag < tagsLen; iTag++) {
+            ItemTag_Value tag = tagsData[iTag];
+            item.tags.push_back(static_cast<int>(tag));
         }
 
-        if (pickupTokenField) {
-            MonoString* str = m_runtime->GetFieldValue<MonoString*>(itemDefObj, pickupTokenField);
-            if (str)
-                item.pickupToken = m_runtime->StringToUtf8(str);
-        }
-
-        if (descTokenField) {
-            MonoString* str = m_runtime->GetFieldValue<MonoString*>(itemDefObj, descTokenField);
-            if (str)
-                item.descriptionToken = m_runtime->StringToUtf8(str);
-        }
-
-        if (loreTokenField) {
-            MonoString* str = m_runtime->GetFieldValue<MonoString*>(itemDefObj, loreTokenField);
-            if (str)
-                item.loreToken = m_runtime->StringToUtf8(str);
-        }
-
-        if (itemTierDefField) {
-            MonoObject* tierDefObj = m_runtime->GetFieldValue<MonoObject*>(itemDefObj, itemTierDefField);
-
-            if (tierDefObj) {
-                MonoField* tierField = m_runtime->GetField(m_itemTierDefClass, "_tier");
-                if (tierField) {
-                    int tierValue = m_runtime->GetFieldValue<int>(tierDefObj, tierField);
-                    item.tier = static_cast<ItemTier_Value>(tierValue);
-                    MonoField* isDroppableField = m_runtime->GetField(m_itemTierDefClass, "isDroppable");
-                    MonoField* canScrapField = m_runtime->GetField(m_itemTierDefClass, "canScrap");
-                    MonoField* canRestackField = m_runtime->GetField(m_itemTierDefClass, "canRestack");
-
-                    if (isDroppableField) {
-                        item.isDroppable = m_runtime->GetFieldValue<bool>(tierDefObj, isDroppableField);
-                    }
-
-                    if (canScrapField) {
-                        item.canScrap = m_runtime->GetFieldValue<bool>(tierDefObj, canScrapField);
-                    }
-
-                    if (canRestackField) {
-                        item.canRestack = m_runtime->GetFieldValue<bool>(tierDefObj, canRestackField);
-                    }
-
-                    // Get the tier name
-                    MonoClass* objClass = m_runtime->GetObjectClass(tierDefObj);
-                    MonoProperty* nameProp = m_runtime->GetProperty(objClass, "name");
-                    if (nameProp) {
-                        MonoMethod* getNameMethod = m_runtime->GetPropertyGetMethod(nameProp);
-                        if (getNameMethod) {
-                            MonoObject* nameObj = m_runtime->InvokeMethod(getNameMethod, tierDefObj, nullptr);
-                            if (nameObj) {
-                                item.tierName = m_runtime->StringToUtf8(static_cast<MonoString*>(nameObj));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (canRemoveField) {
-            item.canRemove = m_runtime->GetFieldValue<bool>(itemDefObj, canRemoveField);
-        }
-
-        if (isConsumedField) {
-            item.isConsumed = m_runtime->GetFieldValue<bool>(itemDefObj, isConsumedField);
-        }
-
-        if (hiddenField) {
-            item.hidden = m_runtime->GetFieldValue<bool>(itemDefObj, hiddenField);
-        }
-
-        if (tagsField) {
-            MonoArray* tagsArray = m_runtime->GetFieldValue<MonoArray*>(itemDefObj, tagsField);
-            if (tagsArray) {
-                int tagCount = m_runtime->GetArrayLength(tagsArray);
-
-                MonoClass* tagsArrayClass = m_runtime->GetObjectClass(static_cast<MonoObject*>(tagsArray));
-                MonoMethod* tagsGetItemMethod = m_runtime->GetMethod(tagsArrayClass, "Get", 1);
-                if (tagsGetItemMethod) {
-                    for (int j = 0; j < tagCount; j++) {
-                        void* tagParams[1] = {&j};
-                        MonoObject* tagObj = m_runtime->InvokeMethod(tagsGetItemMethod, tagsArray, tagParams);
-                        if (tagObj) {
-                            int tag = *static_cast<int*>(m_runtime->m_mono_object_unbox(tagObj));
-                            item.tags.push_back(tag);
-                        }
-                    }
-                }
-            }
-        }
+        item.name = GetUnityObjectName(itemDef);
 
         if (item.displayName == item.nameToken && !item.nameToken.empty()) {
             G::logger.LogError("Item displayName '%s' is the same as nameToken '%s', skipping", item.displayName.c_str(), item.nameToken.c_str());
@@ -349,7 +242,7 @@ int GameFunctions::LoadItems() {
         }
     }
 
-    return itemCount;
+    return itemDefsLen;
 }
 
 int GameFunctions::LoadEnemies() {
@@ -1035,4 +928,30 @@ void GameFunctions::DeductLunarCoins(NetworkUser* networkUser, uint32_t coinsToR
     };
     std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
     G::queuedActions.push(task);
+}
+
+std::string GameFunctions::GetUnityObjectName(void* unityObject) {
+    if (!unityObject || !m_unityObjectClass) {
+        return "";
+    }
+
+    MonoProperty* nameProp = m_runtime->GetProperty(m_unityObjectClass, "name");
+    if (!nameProp) {
+        G::logger.LogError("GetUnityObjectName: Failed to find name property");
+        return "";
+    }
+
+    MonoMethod* getNameMethod = m_runtime->GetPropertyGetMethod(nameProp);
+    if (!getNameMethod) {
+        G::logger.LogError("GetUnityObjectName: Failed to find name getter method");
+        return "";
+    }
+
+    MonoObject* nameObj = m_runtime->InvokeMethod(getNameMethod, unityObject, nullptr);
+    if (!nameObj) {
+        G::logger.LogError("GetUnityObjectName: Failed to get name from UnityEngine.Object");
+        return "";
+    }
+
+    return m_runtime->StringToUtf8(static_cast<MonoString*>(nameObj));
 }
