@@ -1,4 +1,5 @@
 # Risk of Rain 2 Mod
+![GitHub Release](https://img.shields.io/github/v/release/albodin/RoR2Mod) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/albodin/RoR2Mod/build.yml) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/albodin/RoR2Mod/total)
 
 ## Features
 <details>
