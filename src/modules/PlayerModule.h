@@ -8,7 +8,32 @@
 #include <mutex>
 #include <queue>
 #include <shared_mutex>
+#include <unordered_map>
 #include <vector>
+
+class BodyTracker {
+  private:
+    std::vector<std::string> names;
+    std::vector<GameObject*> prefabs;
+
+    GameObject* cachedPrefab;
+    int cachedIndex;
+    std::string cachedName;
+
+  public:
+    BodyTracker() : cachedPrefab(nullptr), cachedIndex(-1), cachedName("") {};
+    ~BodyTracker() { Clear(); };
+    void Initialize(const std::vector<std::pair<std::string, GameObject*>>& prefabsWithNames);
+
+    bool HasBodyChanged(GameObject* currentPrefab) const { return currentPrefab != cachedPrefab; }
+    int UpdateBody(GameObject* newPrefab);
+
+    const std::vector<std::string>& GetBodyNames() const { return names; }
+    const std::string& GetCurrentBodyName() const { return cachedName; }
+    int GetCurrentBodyIndex() const { return cachedIndex; }
+    GameObject* GetPrefabByName(const std::string& name) const;
+    void Clear();
+};
 
 class PlayerModule : public ModuleBase {
   private:
@@ -45,6 +70,11 @@ class PlayerModule : public ModuleBase {
 
     std::unique_ptr<FloatControl> healthControl;
     std::unique_ptr<FloatControl> armorControl;
+
+    std::unique_ptr<ToggleControl> lockCharacterModelControl;
+    std::unique_ptr<ComboControl> selectedCharacterIndexControl;
+    char bodySearchFilter[256] = "";
+    BodyTracker bodyTracker;
 
     std::mutex queuedGiveItemsMutex;
     std::queue<std::tuple<int, int>> queuedGiveItems;
@@ -122,4 +152,13 @@ class PlayerModule : public ModuleBase {
 
     void OnHuntressTrackerStart(void* huntressTracker);
     void OnCharacterBodyDestroyed(void* characterBody);
+
+    bool IsCustomModelLocked() { return lockCharacterModelControl ? lockCharacterModelControl->IsEnabled() : false; }
+    GameObject* GetSelectedBodyPrefab();
+    void ApplyModelChange(const std::string& bodyName);
+    bool IsInGame();
+    void SetBodyPrefabsWithNames(const std::vector<std::pair<std::string, GameObject*>>& prefabsWithNames);
+    std::string GetCurrentBodyName();
+    void UpdateCurrentBodyTracking();
+    void RefreshFilteredBodyList();
 };

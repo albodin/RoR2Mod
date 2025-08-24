@@ -1,5 +1,6 @@
 #include "GameFunctions.h"
 #include "globals/globals.h"
+#include "hooks/hooks.h"
 
 GameFunctions::GameFunctions(MonoRuntime* runtime) {
     m_runtime = runtime;
@@ -954,4 +955,86 @@ std::string GameFunctions::GetUnityObjectName(void* unityObject) {
     }
 
     return m_runtime->StringToUtf8(static_cast<MonoString*>(nameObj));
+}
+
+void GameFunctions::TransformCharacterBody(CharacterMaster* master, GameObject* bodyPrefab) {
+    std::function<void()> task = [this, master, bodyPrefab]() {
+        if (!master || !master->resolvedBodyInstance || !m_characterMasterClass || !bodyPrefab) {
+            G::logger.LogWarning("TransformCharacterBody: Invalid parameters");
+            return;
+        }
+
+        void* bodyInstanceTransform = Hooks::GameObject_get_transform(master->resolvedBodyInstance);
+        if (!bodyInstanceTransform) {
+            G::logger.LogError("TransformCharacterBody: Failed to get transform from body");
+            return;
+        }
+
+        Vector3 position;
+        Quaternion rotation;
+        Hooks::Transform_get_position_Injected(bodyInstanceTransform, &position);
+        Hooks::Transform_get_rotation_Injected(bodyInstanceTransform, &rotation);
+
+        master->bodyPrefab = bodyPrefab;
+
+        MonoMethod* destroyBody = m_runtime->GetMethod(m_characterMasterClass, "DestroyBody", 0);
+        MonoMethod* spawnBody = m_runtime->GetMethod(m_characterMasterClass, "SpawnBody", 2);
+        if (!destroyBody || !spawnBody) {
+            G::logger.LogError("TransformCharacterBody: Failed to find DestroyBody or SpawnBody method");
+            return;
+        }
+
+        m_runtime->InvokeMethod(destroyBody, master, nullptr);
+        void* params[2] = {&position, &rotation};
+        m_runtime->InvokeMethod(spawnBody, master, params);
+    };
+    std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
+    G::queuedActions.push(task);
+}
+
+std::vector<std::pair<std::string, GameObject*>> GameFunctions::GetAllBodyPrefabsWithNames() {
+    std::vector<std::pair<std::string, GameObject*>> bodyPrefabsWithNames;
+
+    if (!m_runtime || !m_bodyCatalogClass) {
+        return bodyPrefabsWithNames;
+    }
+
+    MonoField* bodyPrefabsField = m_runtime->GetField(m_bodyCatalogClass, "bodyPrefabs");
+    MonoField* bodyComponentsField = m_runtime->GetField(m_bodyCatalogClass, "bodyPrefabBodyComponents");
+    if (!bodyPrefabsField || !bodyComponentsField) {
+        return bodyPrefabsWithNames;
+    }
+
+    MonoArray* bodyPrefabsArray = m_runtime->GetStaticFieldValue<MonoArray*>(m_bodyCatalogClass, bodyPrefabsField);
+    MonoArray* bodyComponentsArray = m_runtime->GetStaticFieldValue<MonoArray*>(m_bodyCatalogClass, bodyComponentsField);
+    if (!bodyPrefabsArray || !bodyComponentsArray) {
+        return bodyPrefabsWithNames;
+    }
+
+    uint32_t arrayLength = static_cast<uint32_t>((reinterpret_cast<MonoArray_Internal*>(bodyPrefabsArray))->max_length);
+    G::logger.LogInfo("GetAllBodyPrefabsWithNames: Found %d body prefabs", arrayLength);
+
+    GameObject** prefabData = mono_array_addr<GameObject*>(reinterpret_cast<MonoArray_Internal*>(bodyPrefabsArray));
+    CharacterBody** componentData = mono_array_addr<CharacterBody*>(reinterpret_cast<MonoArray_Internal*>(bodyComponentsArray));
+    for (uint32_t i = 0; i < arrayLength; i++) {
+        GameObject* prefab = prefabData[i];
+        CharacterBody* body = componentData[i];
+
+        if (prefab && body) {
+            void* token = body->baseNameToken;
+            std::string tokenStr;
+
+            if (token) {
+                tokenStr = Language_GetString(static_cast<MonoString*>(token));
+            }
+
+            if (tokenStr.empty()) {
+                tokenStr = GetUnityObjectName(prefab);
+            }
+
+            bodyPrefabsWithNames.push_back(std::make_pair(tokenStr, prefab));
+        }
+    }
+
+    return bodyPrefabsWithNames;
 }

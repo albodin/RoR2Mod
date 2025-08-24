@@ -4,6 +4,121 @@
 #include "hooks/hooks.h"
 #include "imgui.h"
 #include "menu/ItemsUI.h"
+#include <algorithm>
+#include <cctype>
+#include <cstring>
+#include <set>
+
+void BodyTracker::Initialize(const std::vector<std::pair<std::string, GameObject*>>& prefabsWithNames) {
+    Clear();
+
+    const std::vector<std::string> blacklist = {
+        "LunarRain_DistanceTest" // Crashes the game when switched to
+    };
+
+    std::map<std::string, int> nameCount;
+    std::map<std::string, int> nameIndex;
+    std::vector<std::pair<std::string, GameObject*>> tempBodies;
+
+    G::logger.LogInfo("BodyTracker::Initialize: Processing %d body prefabs", prefabsWithNames.size());
+
+    // First pass: count duplicates
+    for (const auto& [tokenOrName, prefab] : prefabsWithNames) {
+        if (!prefab || tokenOrName.empty())
+            continue;
+
+        nameCount[tokenOrName]++;
+    }
+
+    // Second pass: add bodies with unique names
+    for (const auto& [tokenOrName, prefab] : prefabsWithNames) {
+        if (!prefab || tokenOrName.empty())
+            continue;
+
+        std::string internalName = G::gameFunctions->GetUnityObjectName(prefab);
+
+        bool isBlacklisted = false;
+        for (const auto& blacklistedName : blacklist) {
+            if (internalName == blacklistedName) {
+                G::logger.LogInfo("Skipping blacklisted body: %s", internalName.c_str());
+                isBlacklisted = true;
+                break;
+            }
+        }
+
+        if (isBlacklisted)
+            continue;
+
+        std::string finalName = tokenOrName;
+
+        if (nameCount[tokenOrName] > 1) {
+            finalName = tokenOrName + " (" + internalName + ")";
+
+            // If this combination is still not unique, add a number
+            auto existingIt = std::find_if(tempBodies.begin(), tempBodies.end(), [&finalName](const auto& pair) { return pair.first == finalName; });
+            if (existingIt != tempBodies.end()) {
+                int index = 2;
+                std::string numberedName;
+                do {
+                    numberedName = finalName + " " + std::to_string(index++);
+                    existingIt = std::find_if(tempBodies.begin(), tempBodies.end(), [&numberedName](const auto& pair) { return pair.first == numberedName; });
+                } while (existingIt != tempBodies.end());
+                finalName = numberedName;
+            }
+        }
+
+        tempBodies.push_back({finalName, prefab});
+    }
+
+    // Sort the bodies alphabetically by display name
+    std::sort(tempBodies.begin(), tempBodies.end(), [](const auto& a, const auto& b) {
+        std::string aLower = a.first;
+        std::string bLower = b.first;
+        std::transform(aLower.begin(), aLower.end(), aLower.begin(), ::tolower);
+        std::transform(bLower.begin(), bLower.end(), bLower.begin(), ::tolower);
+        return aLower < bLower;
+    });
+
+    for (const auto& [name, prefab] : tempBodies) {
+        names.push_back(name);
+        prefabs.push_back(prefab);
+    }
+
+    G::logger.LogInfo("BodyTracker initialized with %d bodies (sorted alphabetically)", names.size());
+}
+
+int BodyTracker::UpdateBody(GameObject* newPrefab) {
+    cachedPrefab = newPrefab;
+    cachedIndex = -1;
+    cachedName = "";
+
+    for (size_t i = 0; i < prefabs.size(); i++) {
+        if (prefabs[i] == newPrefab) {
+            cachedIndex = static_cast<int>(i); // i will always be within int range here
+            cachedName = names[i];
+            break;
+        }
+    }
+
+    return cachedIndex;
+}
+
+void BodyTracker::Clear() {
+    names.clear();
+    prefabs.clear();
+    cachedPrefab = nullptr;
+    cachedIndex = -1;
+    cachedName.clear();
+}
+
+GameObject* BodyTracker::GetPrefabByName(const std::string& name) const {
+    for (size_t i = 0; i < names.size(); i++) {
+        if (names[i] == name) {
+            return prefabs[i];
+        }
+    }
+    return nullptr;
+}
 
 PlayerModule::PlayerModule() : ModuleBase(), localUser_cached(nullptr), isProvidingFlight(false), isMoneyConversionActive(false) { Initialize(); }
 
@@ -251,6 +366,21 @@ void PlayerModule::Initialize() {
             if (localUser_cached && localUser_cached->cachedBody_backing)
                 localUser_cached->cachedBody_backing->baseArmor = value;
         });
+
+    lockCharacterModelControl = std::make_unique<ToggleControl>("Lock Character Model", "lockCharacterModel", false);
+    std::vector<std::string> characterNames = {"Loading..."};
+    selectedCharacterIndexControl = std::make_unique<ComboControl>("Character", "selectedCharacter", characterNames, 0);
+    selectedCharacterIndexControl->SetOnChange([this](int index) {
+        if (!IsInGame()) {
+            return;
+        }
+
+        std::string selectedBody = selectedCharacterIndexControl->GetSelectedItem();
+        G::logger.LogInfo("Selected body: '%s', current body: '%s'", selectedBody.c_str(), bodyTracker.GetCurrentBodyName().c_str());
+        if (!selectedBody.empty() && selectedBody != bodyTracker.GetCurrentBodyName()) {
+            ApplyModelChange(selectedBody);
+        }
+    });
 }
 
 void PlayerModule::Update() {
@@ -283,6 +413,9 @@ void PlayerModule::Update() {
 
     healthControl->Update();
     armorControl->Update();
+
+    lockCharacterModelControl->Update();
+    selectedCharacterIndexControl->Update();
 
     for (const auto& [index, control] : itemControls) {
         control->Update();
@@ -332,6 +465,50 @@ void PlayerModule::DrawUI() {
     if (ImGui::CollapsingHeader("Physics Settings")) {
         blockPhysicsEffectsControl->Draw();
         blockPullsControl->Draw();
+    }
+
+    UpdateCurrentBodyTracking();
+    if (ImGui::CollapsingHeader("Character Model")) {
+        lockCharacterModelControl->Draw();
+        ImGui::Text("Search:");
+        ImGui::SameLine();
+        if (ImGui::InputText("##BodySearch", bodySearchFilter, sizeof(bodySearchFilter))) {
+            if (strlen(bodySearchFilter) > 0) {
+                RefreshFilteredBodyList();
+                // Keep current body selected (always first in filtered list)
+                if (!lockCharacterModelControl->IsEnabled()) {
+                    selectedCharacterIndexControl->SetSelectedIndex(0);
+                }
+            } else {
+                if (selectedCharacterIndexControl && !bodyTracker.GetBodyNames().empty()) {
+                    selectedCharacterIndexControl->SetItems(bodyTracker.GetBodyNames());
+                    // Restore selection to actual body index in full list
+                    if (!lockCharacterModelControl->IsEnabled()) {
+                        int currentIndex = bodyTracker.GetCurrentBodyIndex();
+                        if (currentIndex != -1) {
+                            selectedCharacterIndexControl->SetSelectedIndex(currentIndex);
+                        }
+                    }
+                }
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Clear")) {
+            bodySearchFilter[0] = '\0';
+            if (selectedCharacterIndexControl && !bodyTracker.GetBodyNames().empty()) {
+                selectedCharacterIndexControl->SetItems(bodyTracker.GetBodyNames());
+                // Restore selection to actual body index in full list
+                if (!lockCharacterModelControl->IsEnabled()) {
+                    int currentIndex = bodyTracker.GetCurrentBodyIndex();
+                    if (currentIndex != -1) {
+                        selectedCharacterIndexControl->SetSelectedIndex(currentIndex);
+                    }
+                }
+            }
+        }
+
+        selectedCharacterIndexControl->Draw();
     }
 
     ItemsUI::DrawItemsSection(items, itemControls, &itemStacks);
@@ -526,6 +703,56 @@ int PlayerModule::GetItemCount(int itemIndex) {
     return 0;
 }
 
+std::string PlayerModule::GetCurrentBodyName() { return bodyTracker.GetCurrentBodyName(); }
+
+void PlayerModule::UpdateCurrentBodyTracking() {
+    if (!IsInGame() || !localUser_cached || !localUser_cached->cachedMaster_backing || !localUser_cached->cachedMaster_backing->bodyPrefab) {
+        return;
+    }
+
+    GameObject* currentPrefab = localUser_cached->cachedMaster_backing->bodyPrefab;
+    if (bodyTracker.HasBodyChanged(currentPrefab)) {
+        int newIndex = bodyTracker.UpdateBody(currentPrefab);
+        if (!lockCharacterModelControl->IsEnabled() && selectedCharacterIndexControl && newIndex != -1) {
+            if (strlen(bodySearchFilter) > 0) {
+                RefreshFilteredBodyList();
+                // Current body is always first in filtered list when it exists
+                selectedCharacterIndexControl->SetSelectedIndex(0);
+            } else {
+                selectedCharacterIndexControl->SetSelectedIndex(newIndex);
+            }
+        }
+    }
+}
+
+void PlayerModule::RefreshFilteredBodyList() {
+    if (bodyTracker.GetBodyNames().empty()) {
+        return;
+    }
+
+    std::vector<std::string> filteredNames;
+    std::string searchLower = bodySearchFilter;
+    std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
+
+    std::string currentName = bodyTracker.GetCurrentBodyName();
+    if (!currentName.empty()) {
+        filteredNames.push_back(currentName);
+    }
+
+    for (const auto& name : bodyTracker.GetBodyNames()) {
+        if (name == currentName)
+            continue;
+
+        std::string nameLower = name;
+        std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
+        if (nameLower.find(searchLower) != std::string::npos) {
+            filteredNames.push_back(name);
+        }
+    }
+
+    selectedCharacterIndexControl->SetItems(filteredNames);
+}
+
 void PlayerModule::OnHuntressTrackerStart(void* huntressTracker) {
     if (!huntressTracker)
         return;
@@ -580,5 +807,43 @@ void PlayerModule::OnStageAdvance(void* stage) {
             localUser_cached->cachedMaster_backing->_money = moneyControl->GetFrozenValue();
         }
         isMoneyConversionActive = false;
+    }
+}
+
+void PlayerModule::ApplyModelChange(const std::string& bodyName) {
+    CharacterMaster* master = localUser_cached ? localUser_cached->cachedMaster_backing : nullptr;
+    if (!master) {
+        G::logger.LogError("ApplyModelChange: No master available");
+        return;
+    }
+
+    GameObject* newPrefab = bodyTracker.GetPrefabByName(bodyName);
+    if (!newPrefab) {
+        G::logger.LogError("ApplyModelChange: Could not find prefab for body '%s'", bodyName.c_str());
+        return;
+    }
+    G::logger.LogInfo("Transforming to %s", bodyName.c_str());
+    G::gameFunctions->TransformCharacterBody(master, newPrefab);
+}
+
+bool PlayerModule::IsInGame() {
+    return localUser_cached && localUser_cached->cachedMaster_backing && localUser_cached->cachedMaster_backing->resolvedBodyInstance;
+}
+
+GameObject* PlayerModule::GetSelectedBodyPrefab() {
+    if (!selectedCharacterIndexControl || bodyTracker.GetBodyNames().empty()) {
+        return nullptr;
+    }
+
+    std::string selectedName = selectedCharacterIndexControl->GetSelectedItem();
+    return bodyTracker.GetPrefabByName(selectedName);
+}
+
+void PlayerModule::SetBodyPrefabsWithNames(const std::vector<std::pair<std::string, GameObject*>>& prefabsWithNames) {
+    bodyTracker.Initialize(prefabsWithNames);
+
+    if (selectedCharacterIndexControl && !bodyTracker.GetBodyNames().empty()) {
+        selectedCharacterIndexControl->SetItems(bodyTracker.GetBodyNames());
+        G::logger.LogInfo("SetBodyPrefabsWithNames: Updated dropdown with %zu bodies", bodyTracker.GetBodyNames().size());
     }
 }

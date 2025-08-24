@@ -124,6 +124,7 @@ bool CreateHook(const char* assemblyName, const char* nameSpace, const char* cla
     }()
 
 DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Transform, get_position_Injected, 1, void, void* transform, Vector3* outPosition);
+DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Transform, get_rotation_Injected, 1, void, void* transform, Quaternion* outRotation);
 DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Camera, get_main, 0, Camera*, void);
 DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Camera, WorldToScreenPoint_Injected, 3, void, void* camera, Vector3* position,
                      MonoOrStereoscopicEye eye, Vector3* outPosition);
@@ -131,6 +132,7 @@ DEFINE_INTERNAL_CALL(UnityEngine.PhysicsModule, UnityEngine, Physics, get_defaul
 DEFINE_INTERNAL_CALL(UnityEngine.PhysicsModule, UnityEngine, PhysicsScene, Internal_Raycast_Injected, 6, bool, PhysicsScene_Value*, Ray_Value*, float,
                      RaycastHit_Value*, int32_t, QueryTriggerInteraction_Value);
 DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Component, get_transform, 0, void*, void* component);
+DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, GameObject, get_transform, 0, void*, void* gameObject);
 
 void Hooks::Init() {
     MH_STATUS status = MH_Initialize();
@@ -203,6 +205,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, TimedChestController, GetInteractability, 1, "RoR2.Interactability", {"RoR2.Interactor"});
     HOOK(RoR2, RoR2, PortalSpawner, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, CharacterMaster, GetDeployableSameSlotLimit, 1, "System.Int32", {"RoR2.DeployableSlot"});
+    HOOK(RoR2, RoR2, CharacterMaster, SpawnBody, 2, "RoR2.CharacterBody", {"UnityEngine.Vector3", "UnityEngine.Quaternion"});
 
     for (auto& target : hookTargets) {
         MH_STATUS enable_status = MH_EnableHook(target.second);
@@ -234,6 +237,18 @@ void Hooks::Init() {
         }
     } while (enemyCount == -1);
     G::logger.LogInfo("Enemies loaded successfully");
+
+    // Initialize body catalog
+    std::vector<std::pair<std::string, GameObject*>> bodyPrefabsWithNames;
+    do {
+        bodyPrefabsWithNames = G::gameFunctions->GetAllBodyPrefabsWithNames();
+        if (bodyPrefabsWithNames.empty()) {
+            G::logger.LogInfo("Waiting for BodyCatalog to be initialized...");
+            Sleep(2000);
+        }
+    } while (bodyPrefabsWithNames.empty());
+    G::logger.LogInfo("BodyCatalog loaded with %d body prefabs", bodyPrefabsWithNames.size());
+    G::localPlayer->SetBodyPrefabsWithNames(bodyPrefabsWithNames);
 
     // Initialize elite types
     int eliteCount = -1;
@@ -990,6 +1005,34 @@ int Hooks::hkRoR2CharacterMasterGetDeployableSameSlotLimit(void* instance, int d
     }
 
     return originalFunc(instance, deployableSlot);
+}
+
+void* Hooks::hkRoR2CharacterMasterSpawnBody(void* instance, Vector3 position, Quaternion rotation) {
+    static auto originalFunc = reinterpret_cast<void* (*)(void*, Vector3, Quaternion)>(hooks["RoR2CharacterMasterSpawnBody"]);
+
+    if (!G::hooksInitialized) {
+        return originalFunc(instance, position, rotation);
+    }
+
+    CharacterMaster* master = static_cast<CharacterMaster*>(instance);
+
+    bool isPlayer = (master && master->playerCharacterMasterController_backing != nullptr);
+
+    G::logger.LogInfo("CharacterMaster::SpawnBody - instance=%p, isPlayer=%d, pos=(%.1f,%.1f,%.1f)", instance, isPlayer, position.x, position.y, position.z);
+
+    if (isPlayer) {
+        if (G::localPlayer && G::localPlayer->IsCustomModelLocked()) {
+            GameObject* customBodyPrefab = G::localPlayer->GetSelectedBodyPrefab();
+
+            if (customBodyPrefab) {
+                GameObject* currentPrefab = master->bodyPrefab;
+                G::logger.LogInfo("CharacterMaster::SpawnBody - Player spawn Current prefab=%p, Custom prefab=%p", currentPrefab, customBodyPrefab);
+                master->bodyPrefab = customBodyPrefab;
+            }
+        }
+    }
+
+    return originalFunc(instance, position, rotation);
 }
 
 LRESULT __stdcall WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {

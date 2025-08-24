@@ -80,4 +80,7 @@ class GameFunctions {
     void DeductLunarCoins(NetworkUser* networkUser, uint32_t coinsToRemove);
 
     std::string GetUnityObjectName(void* unityObject);
+
+    void TransformCharacterBody(CharacterMaster* master, GameObject* bodyPrefab);
+    std::vector<std::pair<std::string, GameObject*>> GetAllBodyPrefabsWithNames();
 };

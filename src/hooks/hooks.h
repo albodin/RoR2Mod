@@ -7,12 +7,14 @@
     extern Class##_##Method##_fn Class##_##Method
 namespace Hooks {
 DECLARE_INTERNAL_CALL(void, Transform, get_position_Injected, void* transform, Vector3* outPosition);
+DECLARE_INTERNAL_CALL(void, Transform, get_rotation_Injected, void* transform, Quaternion* outRotation);
 DECLARE_INTERNAL_CALL(Camera*, Camera, get_main);
 DECLARE_INTERNAL_CALL(void, Camera, WorldToScreenPoint_Injected, void* camera, Vector3* position, MonoOrStereoscopicEye eye, Vector3* outPosition);
 DECLARE_INTERNAL_CALL(void, Physics, get_defaultPhysicsScene_Injected, PhysicsScene_Value* outScene);
 DECLARE_INTERNAL_CALL(bool, PhysicsScene, Internal_Raycast_Injected, PhysicsScene_Value* scene, Ray_Value* ray, float maxDistance, RaycastHit_Value* hitInfo,
                       int32_t layerMask, QueryTriggerInteraction_Value queryTriggerInteraction);
 DECLARE_INTERNAL_CALL(void*, Component, get_transform, void* component);
+DECLARE_INTERNAL_CALL(void*, GameObject, get_transform, void* gameObject);
 
 void Init();
 void Unhook();
@@ -60,6 +62,7 @@ void hkRoR2PortalSpawnerStart(void*);
 void hkRoR2TeamManagerOnEnable(void*);
 void hkRoR2TeamManagerOnDisable(void*);
 int hkRoR2CharacterMasterGetDeployableSameSlotLimit(void*, int);
+void* hkRoR2CharacterMasterSpawnBody(void*, Vector3, Quaternion);
 
 long __stdcall hkPresent11(IDXGISwapChain*, UINT, UINT);
 } // namespace Hooks
