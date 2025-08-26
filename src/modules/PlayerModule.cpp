@@ -46,7 +46,7 @@ void BodyTracker::Initialize(const std::vector<std::pair<std::string, GameObject
             }
         }
 
-        if (isBlacklisted)
+        if (isBlacklisted || !G::gameFunctions->GetPlayerHasBodyEntitlement(prefab))
             continue;
 
         std::string finalName = tokenOrName;

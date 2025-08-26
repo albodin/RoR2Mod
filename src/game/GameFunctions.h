@@ -38,6 +38,9 @@ class GameFunctions {
     MonoClass* m_buffDefClass;
     MonoClass* m_networkUserClass;
     MonoClass* m_unityObjectClass;
+    MonoClass* m_gameObjectClass;
+    MonoClass* expansionReqClass;
+    MonoClass* entitlementAbstractionsClass;
 
     TeamManager* m_cachedTeamManager;
 
@@ -83,4 +86,6 @@ class GameFunctions {
 
     void TransformCharacterBody(CharacterMaster* master, GameObject* bodyPrefab);
     std::vector<std::pair<std::string, GameObject*>> GetAllBodyPrefabsWithNames();
+
+    bool GetPlayerHasBodyEntitlement(GameObject* bodyPrefab);
 };

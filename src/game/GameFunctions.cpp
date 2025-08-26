@@ -27,6 +27,9 @@ GameFunctions::GameFunctions(MonoRuntime* runtime) {
     m_buffDefClass = runtime->GetClass("Assembly-CSharp", "RoR2", "BuffDef");
     m_networkUserClass = runtime->GetClass("Assembly-CSharp", "RoR2", "NetworkUser");
     m_unityObjectClass = runtime->GetClass("UnityEngine.CoreModule", "UnityEngine", "Object");
+    m_gameObjectClass = runtime->GetClass("UnityEngine.CoreModule", "UnityEngine", "GameObject");
+    expansionReqClass = m_runtime->GetClass("Assembly-CSharp", "RoR2.ExpansionManagement", "ExpansionRequirementComponent");
+    entitlementAbstractionsClass = m_runtime->GetClass("RoR2", "RoR2.EntitlementManagement", "EntitlementAbstractions");
 
     m_cachedTeamManager = nullptr;
 }
@@ -1037,4 +1040,54 @@ std::vector<std::pair<std::string, GameObject*>> GameFunctions::GetAllBodyPrefab
     }
 
     return bodyPrefabsWithNames;
+}
+
+bool GameFunctions::GetPlayerHasBodyEntitlement(GameObject* bodyPrefab) {
+    if (!bodyPrefab || !expansionReqClass || !entitlementAbstractionsClass) {
+        return true;
+    }
+
+    MonoMethod* getComponentMethod = m_runtime->GetMethod(m_gameObjectClass, "GetComponent", 1);
+    if (!getComponentMethod) {
+        return true;
+    }
+
+    MonoObject* typeObject = m_runtime->GetTypeObject(expansionReqClass);
+    if (!typeObject) {
+        return true;
+    }
+
+    void* args[1] = {typeObject};
+    ExpansionRequirementComponent* expansionReq = (ExpansionRequirementComponent*)m_runtime->InvokeMethod(getComponentMethod, bodyPrefab, args);
+    if (!expansionReq || !expansionReq->requiredExpansion) {
+        return true;
+    }
+
+    EntitlementDef* requiredEntitlement = expansionReq->requiredExpansion->requiredEntitlement;
+    if (!requiredEntitlement) {
+        return true;
+    }
+
+    MonoMethod* verifyLocalSteamUserMethod = m_runtime->GetMethod(entitlementAbstractionsClass, "VerifyLocalSteamUser", 1);
+    if (!verifyLocalSteamUserMethod) {
+        return true;
+    }
+
+    void* verifyArgs[1] = {requiredEntitlement};
+    MonoObject* result = m_runtime->InvokeMethod(verifyLocalSteamUserMethod, nullptr, verifyArgs);
+
+    bool hasEntitlement = true;
+    if (result) {
+        void* unboxedValue = m_runtime->UnboxObject(result);
+        if (unboxedValue) {
+            hasEntitlement = *static_cast<bool*>(unboxedValue);
+        }
+    }
+
+    if (!hasEntitlement) {
+        G::logger.LogWarning("CheckBodyHasEntitlement: Missing entitlement for body prefab %s", GetUnityObjectName(bodyPrefab).c_str());
+        return false;
+    }
+
+    return true;
 }

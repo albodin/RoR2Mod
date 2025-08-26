@@ -1602,6 +1602,13 @@ struct ExpansionDef {
     ExpansionIndex_Value expansionIndex; // Offset: 80
 };
 
+// Generated from RoR2.ExpansionManagement.ExpansionRequirementComponent
+struct ExpansionRequirementComponent {
+    char padding0[24];                         // Padding
+    ExpansionDef* requiredExpansion;           // Offset: 24
+    bool requireEntitlementIfPlayerControlled; // Offset: 32
+};
+
 // Generated from RoR2.UnlockableDef
 struct UnlockableDef {
     char padding0[24];                   // Padding

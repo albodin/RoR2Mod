@@ -45,6 +45,8 @@ class MonoRuntime {
     mono_array_length_t m_mono_array_length;
     mono_lookup_internal_call_t m_mono_lookup_internal_call;
     mono_class_get_nested_types_t m_mono_class_get_nested_types;
+    mono_class_get_type_t m_mono_class_get_type;
+    mono_type_get_object_t m_mono_type_get_object;
     mono_class_get_name_t m_mono_class_get_name;
     mono_object_new_t m_mono_object_new;
     mono_field_set_value_t m_mono_field_set_value;
@@ -97,6 +99,8 @@ class MonoRuntime {
     void* GetInternalCallPointer(MonoMethod* method);
     MonoObject* CreateObject(MonoClass* klass);
     void SetFieldValue(MonoObject* obj, MonoField* field, void* value);
+    MonoObject* GetTypeObject(MonoClass* klass);
+    void* UnboxObject(MonoObject* obj);
 };
 
 // Template method implementations

@@ -48,6 +48,8 @@ typedef MonoType*(__cdecl* mono_signature_get_return_type_t)(MonoMethodSignature
 typedef const char*(__cdecl* mono_type_get_name_t)(MonoType* type);
 typedef MonoType*(__cdecl* mono_signature_get_params_t)(MonoMethodSignature* sig, void** iter);
 typedef void*(__cdecl* mono_object_unbox_t)(MonoObject* obj);
+typedef MonoType*(__cdecl* mono_class_get_type_t)(MonoClass* klass);
+typedef MonoObject*(__cdecl* mono_type_get_object_t)(MonoDomain* domain, MonoType* type);
 typedef int(__cdecl* mono_field_get_offset_t)(MonoField* field);
 typedef MonoField*(__cdecl* mono_class_get_fields_t)(MonoClass* klass, void** iter);
 typedef const char*(__cdecl* mono_field_get_name_t)(MonoField* field);

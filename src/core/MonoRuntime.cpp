@@ -97,6 +97,8 @@ bool MonoRuntime::Initialize(const char* monoDllName) {
     GET_MONO_FUNC(mono_field_get_name);
     GET_MONO_FUNC(mono_array_length);
     GET_MONO_FUNC(mono_lookup_internal_call);
+    GET_MONO_FUNC(mono_class_get_type);
+    GET_MONO_FUNC(mono_type_get_object);
     GET_MONO_FUNC(mono_class_get_nested_types);
     GET_MONO_FUNC(mono_class_get_name);
     GET_MONO_FUNC(mono_object_new);
@@ -441,4 +443,21 @@ void MonoRuntime::SetFieldValue(MonoObject* obj, MonoField* field, void* value) 
     if (!AttachThread() || !obj || !field || !m_mono_field_set_value)
         return;
     m_mono_field_set_value(obj, field, value);
+}
+
+MonoObject* MonoRuntime::GetTypeObject(MonoClass* klass) {
+    if (!AttachThread() || !klass || !m_mono_class_get_type || !m_mono_type_get_object)
+        return nullptr;
+
+    MonoType* type = m_mono_class_get_type(klass);
+    if (!type)
+        return nullptr;
+
+    return m_mono_type_get_object(m_rootDomain, type);
+}
+
+void* MonoRuntime::UnboxObject(MonoObject* obj) {
+    if (!AttachThread() || !obj || !m_mono_object_unbox)
+        return nullptr;
+    return m_mono_object_unbox(obj);
 }
