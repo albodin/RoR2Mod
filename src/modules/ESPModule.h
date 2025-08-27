@@ -15,6 +15,7 @@ struct TrackedEntity {
 };
 
 enum class InteractableCategory { Chest, Shop, Drone, Shrine, Special, Barrel, ItemPickup, Portal, CommandCube, Unknown };
+enum class SpecialInteractableType { PressurePlate, TimedChest, None };
 
 struct TrackedTeleporter {
     void* teleporterInteraction;
@@ -31,6 +32,7 @@ struct TrackedInteractable {
     std::string costString; // Store the localized cost string
     Vector3 position;
     InteractableCategory category;
+    SpecialInteractableType specialType;
     bool consumed;       // For item pickups
     int32_t pickupIndex; // Store the pickup index
 };
@@ -235,8 +237,7 @@ class ESPModule : public ModuleBase {
     ChestESPControl* m_mainCategoryControls[static_cast<int>(ESPMainCategory::COUNT)];
 
     void RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible, bool onScreen);
-    void UpdateTimedChestDisplayName(TrackedInteractable* interactable, void* timedChestController);
-    void UpdatePressurePlateDisplayName(TrackedInteractable* interactable, void* pressurePlateController);
+    std::string GetTimedChestTime(TimedChestController* timedChestController);
     void RenderInteractableESP(TrackedInteractable* interactable, ImVec2 screenPos, float distance, ChestESPSubControl* control, bool isVisible, bool onScreen,
                                bool isAvailable);
     Vector3 GetCameraPosition();

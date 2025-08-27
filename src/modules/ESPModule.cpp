@@ -1242,6 +1242,7 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
         trackedInteractable->nameToken = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(pi->displayNameToken));
     }
     trackedInteractable->category = category;
+    trackedInteractable->specialType = SpecialInteractableType::None;
     trackedInteractable->consumed = false;
     trackedInteractable->pickupIndex = -1;
     trackedInteractable->itemName = "";
@@ -1325,6 +1326,7 @@ void ESPModule::OnBarrelInteractionSpawned(void* barrelInteraction) {
         trackedInteractable->nameToken = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(barrel->displayNameToken));
     }
     trackedInteractable->category = InteractableCategory::Barrel;
+    trackedInteractable->specialType = SpecialInteractableType::None;
     trackedInteractable->consumed = false;
     trackedInteractable->costString = "";
 
@@ -1388,6 +1390,7 @@ void ESPModule::OnGenericInteractionSpawned(void* genericInteraction) {
     trackedInteractable->displayName = displayName;
     trackedInteractable->nameToken = token;
     trackedInteractable->category = category;
+    trackedInteractable->specialType = SpecialInteractableType::None;
     trackedInteractable->consumed = false;
     trackedInteractable->costString = "";
 
@@ -1431,6 +1434,7 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
     trackedInteractable->displayName = displayName;
     trackedInteractable->nameToken = ""; // Item pickups don't have name tokens
     trackedInteractable->category = InteractableCategory::ItemPickup;
+    trackedInteractable->specialType = SpecialInteractableType::None;
     trackedInteractable->consumed = false;
     trackedInteractable->costString = "";
     trackedInteractable->pickupIndex = gpc->pickupIndex;
@@ -1464,6 +1468,7 @@ void ESPModule::OnTimedChestControllerSpawned(void* timedChestController) {
     trackedInteractable->displayName = displayName;
     trackedInteractable->nameToken = "TIMEDCHEST_NAME";
     trackedInteractable->category = InteractableCategory::Chest;
+    trackedInteractable->specialType = SpecialInteractableType::TimedChest;
     trackedInteractable->consumed = false;
     trackedInteractable->costString = "";
 
@@ -1530,6 +1535,7 @@ void ESPModule::OnPickupPickerControllerSpawned(void* pickupPickerController) {
     trackedInteractable->displayName = displayName;
     trackedInteractable->nameToken = contextToken;
     trackedInteractable->category = InteractableCategory::CommandCube;
+    trackedInteractable->specialType = SpecialInteractableType::None;
     trackedInteractable->consumed = false;
     trackedInteractable->pickupIndex = -1;
     trackedInteractable->itemName = "";
@@ -1562,6 +1568,7 @@ void ESPModule::OnScrapperControllerSpawned(void* scrapperController) {
     trackedInteractable->displayName = displayName;
     trackedInteractable->nameToken = "SCRAPPER_NAME";
     trackedInteractable->category = InteractableCategory::Shop;
+    trackedInteractable->specialType = SpecialInteractableType::None;
     trackedInteractable->consumed = false;
     trackedInteractable->costString = "";
 
@@ -1597,24 +1604,15 @@ void ESPModule::OnRunExit() {
     G::logger.LogInfo("ESP data cleared due to run exit");
 }
 
-void ESPModule::UpdateTimedChestDisplayName(TrackedInteractable* interactable, void* timedChestController) {
+std::string ESPModule::GetTimedChestTime(TimedChestController* timedChestController) {
+    std::string nameTime = "";
     if (!timedChestController)
-        return;
-
-    TimedChestController* tcc = static_cast<TimedChestController*>(timedChestController);
-
-    // Use the original display name that was already localized when the interactable was created
-    std::string baseName = interactable->displayName;
-    // Remove any previous status suffixes
-    size_t bracketPos = baseName.find(" [");
-    if (bracketPos != std::string::npos) {
-        baseName = baseName.substr(0, bracketPos);
-    }
+        return nameTime;
 
     // Calculate time remaining
-    if (tcc->lockTime > 0 && !tcc->purchased) {
+    if (timedChestController->lockTime > 0 && !timedChestController->purchased) {
         float currentTime = G::gameFunctions->GetRunStopwatch();
-        float timeRemaining = tcc->lockTime - currentTime;
+        float timeRemaining = timedChestController->lockTime - currentTime;
 
         // Format time as MM:SS (can be negative)
         bool isNegative = timeRemaining < 0;
@@ -1629,38 +1627,15 @@ void ESPModule::UpdateTimedChestDisplayName(TrackedInteractable* interactable, v
         } else {
             snprintf(timeStr, sizeof(timeStr), " [%02d:%02d]", minutes, seconds);
         }
-        baseName += timeStr;
+        nameTime += timeStr;
     }
 
     // Update if purchased
-    if (tcc->purchased) {
-        baseName += " [OPENED]";
+    if (timedChestController->purchased) {
+        nameTime += " [OPENED]";
     }
 
-    interactable->displayName = baseName;
-}
-
-void ESPModule::UpdatePressurePlateDisplayName(TrackedInteractable* interactable, void* pressurePlateController) {
-    if (!pressurePlateController)
-        return;
-
-    PressurePlateController* ppc = static_cast<PressurePlateController*>(pressurePlateController);
-
-    // Use the original display name that was already localized when the interactable was created
-    std::string baseName = interactable->displayName;
-    // Remove any previous status suffixes
-    size_t parenPos = baseName.find(" (");
-    if (parenPos != std::string::npos) {
-        baseName = baseName.substr(0, parenPos);
-    }
-
-    if (ppc->switchDown) {
-        baseName += " (Active)";
-    } else {
-        baseName += " (Inactive)";
-    }
-
-    interactable->displayName = baseName;
+    return nameTime;
 }
 
 void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 screenPos, float distance, ChestESPSubControl* control, bool isVisible,
@@ -1685,19 +1660,31 @@ void ESPModule::RenderInteractableESP(TrackedInteractable* interactable, ImVec2 
     }
 
     float yOffset = 0;
+    std::string displayName = interactable->displayName;
+    if (interactable->category == InteractableCategory::Special && interactable->specialType == SpecialInteractableType::PressurePlate) {
+        PressurePlateController* ppc = static_cast<PressurePlateController*>(interactable->gameObject);
+        if (ppc->switchDown) {
+            displayName += " (Active)";
+        } else {
+            displayName += " (Inactive)";
+        }
+    } else if (interactable->category == InteractableCategory::Chest && interactable->specialType == SpecialInteractableType::TimedChest) {
+        TimedChestController* tcc = static_cast<TimedChestController*>(interactable->gameObject);
+        displayName += GetTimedChestTime(tcc);
+    }
 
     // Draw interactable name with optional distance
     if (control->ShouldShowName()) {
         char nameText[512];
 
         if (control->ShouldShowDistance() && !isAvailable) {
-            snprintf(nameText, sizeof(nameText), "%s (%dm) (Unavailable)", interactable->displayName.c_str(), static_cast<int>(distance));
+            snprintf(nameText, sizeof(nameText), "%s (%dm) (Unavailable)", displayName.c_str(), static_cast<int>(distance));
         } else if (control->ShouldShowDistance()) {
-            snprintf(nameText, sizeof(nameText), "%s (%dm)", interactable->displayName.c_str(), static_cast<int>(distance));
+            snprintf(nameText, sizeof(nameText), "%s (%dm)", displayName.c_str(), static_cast<int>(distance));
         } else if (!isAvailable) {
-            snprintf(nameText, sizeof(nameText), "%s (Unavailable)", interactable->displayName.c_str());
+            snprintf(nameText, sizeof(nameText), "%s (Unavailable)", displayName.c_str());
         } else {
-            snprintf(nameText, sizeof(nameText), "%s", interactable->displayName.c_str());
+            snprintf(nameText, sizeof(nameText), "%s", displayName.c_str());
         }
 
         ImVec2 textPos = RenderUtils::RenderText(ImVec2(screenPos.x, screenPos.y - yOffset), control->GetNameColorU32(), control->GetNameShadowColorU32(),
@@ -1810,12 +1797,6 @@ void ESPModule::OnPressurePlateControllerSpawned(void* pressurePlateController) 
     // Note: Pressure plates don't seem to have standard language tokens, they're dynamic
     std::string displayName = "Pressure Plate"; // TODO: Find proper localization
 
-    if (ppc->switchDown) {
-        displayName += " (Active)";
-    } else {
-        displayName += " (Inactive)";
-    }
-
     // Create tracking info - categorize as special interactable
     auto trackedInteractable = std::make_unique<TrackedInteractable>();
     trackedInteractable->gameObject = pressurePlateController;
@@ -1824,6 +1805,7 @@ void ESPModule::OnPressurePlateControllerSpawned(void* pressurePlateController) 
     trackedInteractable->displayName = displayName;
     trackedInteractable->nameToken = "PRESSURE_PLATE_DYNAMIC"; // Mark as dynamic
     trackedInteractable->category = InteractableCategory::Special;
+    trackedInteractable->specialType = SpecialInteractableType::PressurePlate;
     trackedInteractable->consumed = false;
     trackedInteractable->pickupIndex = -1;
     trackedInteractable->itemName = "";
