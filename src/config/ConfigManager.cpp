@@ -2,6 +2,7 @@
 #include "fonts/FontManager.h"
 #include "globals/globals.h"
 #include "menu/InputControls.h"
+#include "menu/NotificationManager.h"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -79,7 +80,12 @@ bool ConfigManager::SaveConfig(const std::string& configName) {
             }
         }
 
-        config["fontSettings"] = {{"fontIndex", FontManager::CurrentFontIndex}, {"fontSize", FontManager::ESPFontSize}};
+        config["fontSettings"] = {
+            {"fontIndex", FontManager::CurrentFontIndex},
+            {"fontSize", FontManager::ESPFontSize},
+        };
+
+        config["notificationSettings"] = NotificationManager::Serialize();
 
         std::ofstream file(GetConfigPath(configName));
         if (!file.is_open()) {
@@ -138,6 +144,14 @@ bool ConfigManager::LoadConfig(const std::string& configName) {
             }
             if (fontSettings.contains("fontSize")) {
                 FontManager::ESPFontSize = fontSettings["fontSize"];
+            }
+        }
+
+        if (config.contains("notificationSettings")) {
+            try {
+                NotificationManager::Deserialize(config["notificationSettings"]);
+            } catch (const json::exception& e) {
+                G::logger.LogError("Failed to load notification settings: %s", e.what());
             }
         }
 

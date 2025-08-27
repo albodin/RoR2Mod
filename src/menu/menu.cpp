@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "NotificationManager.h"
 #include "config/ConfigManager.h"
 #include "fonts/FontManager.h"
 #include "globals/globals.h"
@@ -214,6 +215,12 @@ void DrawConfigTab() {
         ImGui::Text("This is how ESP text will appear");
         ImGui::SetWindowFontScale(1.0f);
         ImGui::PopFont();
+    }
+
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Notifications", ImGuiTreeNodeFlags_None)) {
+        NotificationManager::DrawControls();
     }
 
     ImGui::Separator();

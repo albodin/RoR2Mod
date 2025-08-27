@@ -8,6 +8,7 @@
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
 #include "kiero.h"
+#include "menu/NotificationManager.h"
 #include "menu/menu.h"
 #include "minhook/include/MinHook.h"
 #include "utils/Math.h"
@@ -1054,6 +1055,7 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
 
             ImGuiIO& io = ImGui::GetIO();
             FontManager::InitializeFonts(io.Fonts);
+            NotificationManager::Initialize();
 
             G::pDevice->GetImmediateContext(&G::pContext);
             DXGI_SWAP_CHAIN_DESC sd;
@@ -1117,6 +1119,7 @@ long __stdcall Hooks::hkPresent11(IDXGISwapChain* pSwapChain, UINT SyncInterval,
     }
 
     G::espModule->OnFrameRender();
+    NotificationManager::Render();
 
     if (G::showMenuControl->IsEnabled()) {
         DrawMenu();

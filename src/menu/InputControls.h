@@ -38,6 +38,8 @@ class InputControl {
     ImGuiKey hotkey;
     bool isCapturingHotkey;
     bool saveEnabledState;
+    std::string notificationBase;
+    bool suppressLabel;
 
   public:
     InputControl(const std::string& label, const std::string& id, bool enabled = false);
@@ -54,6 +56,22 @@ class InputControl {
 
     void SetSaveEnabledState(bool save) { saveEnabledState = save; }
     bool GetSaveEnabledState() const { return saveEnabledState; }
+
+    void SetNotificationBase(const std::string& base, bool suppress = false) {
+        notificationBase = base;
+        suppressLabel = suppress;
+    }
+
+    std::string GetNotificationText() const {
+        if (!notificationBase.empty()) {
+            if (suppressLabel) {
+                return notificationBase;
+            } else {
+                return notificationBase + " " + label;
+            }
+        }
+        return label;
+    }
 
     virtual json Serialize() const;
     virtual void Deserialize(const json& data);

@@ -2,6 +2,7 @@
 #include "config/ConfigManager.h"
 #include "fonts/IconsFontAwesome6.h"
 #include "globals/globals.h"
+#include "menu/NotificationManager.h"
 #include <algorithm>
 
 // Static key state arrays
@@ -172,7 +173,8 @@ bool InputHelper::DrawHotkeyButton(const char* id, ImGuiKey* key) {
 
 // InputControl implementation
 InputControl::InputControl(const std::string& label, const std::string& id, bool enabled)
-    : label(label), id(id), enabled(enabled), hotkey(ImGuiKey_None), isCapturingHotkey(false), saveEnabledState(true) {}
+    : label(label), id(id), enabled(enabled), hotkey(ImGuiKey_None), isCapturingHotkey(false), saveEnabledState(true), notificationBase(""),
+      suppressLabel(false) {}
 
 bool InputControl::DrawHotkeyButton() { return InputHelper::DrawHotkeyButton((id + "_hotkey").c_str(), &hotkey); }
 
@@ -223,6 +225,9 @@ void ToggleControl::Draw() {
 void ToggleControl::Update() {
     if (hotkey != ImGuiKey_None && InputHelper::IsKeyPressed(hotkey)) {
         enabled = !enabled;
+
+        std::string notifText = GetNotificationText() + (enabled ? " Enabled" : " Disabled");
+        NotificationManager::AddNotification(notifText, enabled ? NotificationType::Enable : NotificationType::Disable);
 
         if (onChange) {
             onChange(enabled);
@@ -323,6 +328,8 @@ void IntControl::Update() {
     // Toggle hotkey
     if (hotkey != ImGuiKey_None && InputHelper::IsKeyPressed(hotkey)) {
         enabled = !enabled;
+        std::string notifText = GetNotificationText() + (enabled ? " Enabled" : " Disabled");
+        NotificationManager::AddNotification(notifText, enabled ? NotificationType::Enable : NotificationType::Disable);
         if (onToggle) {
             onToggle(enabled);
         }
@@ -333,11 +340,13 @@ void IntControl::Update() {
         if (incHotkey != ImGuiKey_None && InputHelper::IsKeyPressed(incHotkey)) {
             Increment();
             valueChanged = true;
+            NotificationManager::AddNotification(std::string(label) + ": " + std::to_string(value), NotificationType::Increase);
         }
 
         if (decHotkey != ImGuiKey_None && InputHelper::IsKeyPressed(decHotkey)) {
             Decrement();
             valueChanged = true;
+            NotificationManager::AddNotification(std::string(label) + ": " + std::to_string(value), NotificationType::Decrease);
         }
 
         if (valueChanged && oldValue != value) {
@@ -508,6 +517,8 @@ void FloatControl::Update() {
     // Toggle hotkey
     if (hotkey != ImGuiKey_None && InputHelper::IsKeyPressed(hotkey)) {
         enabled = !enabled;
+        std::string notifText = GetNotificationText() + (enabled ? " Enabled" : " Disabled");
+        NotificationManager::AddNotification(notifText, enabled ? NotificationType::Enable : NotificationType::Disable);
         if (onToggle) {
             onToggle(enabled);
         }
@@ -518,11 +529,17 @@ void FloatControl::Update() {
         if (incHotkey != ImGuiKey_None && InputHelper::IsKeyPressed(incHotkey)) {
             Increment();
             valueChanged = true;
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%.2f", value);
+            NotificationManager::AddNotification(std::string(label) + ": " + buffer, NotificationType::Increase);
         }
 
         if (decHotkey != ImGuiKey_None && InputHelper::IsKeyPressed(decHotkey)) {
             Decrement();
             valueChanged = true;
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%.2f", value);
+            NotificationManager::AddNotification(std::string(label) + ": " + buffer, NotificationType::Decrease);
         }
 
         if (valueChanged && oldValue != value) {
@@ -654,6 +671,7 @@ void ButtonControl::Draw() {
 void ButtonControl::Update() {
     // Check for hotkey trigger
     if (hotkey != ImGuiKey_None && InputHelper::IsKeyPressed(hotkey)) {
+        NotificationManager::AddNotification(label + " Triggered", NotificationType::Action);
         if (onClick) {
             onClick();
             // Visual feedback when triggered by hotkey
@@ -718,6 +736,8 @@ void ESPControl::Draw() {
 void ESPControl::Update() {
     if (hotkey != ImGuiKey_None && InputHelper::IsKeyPressed(hotkey)) {
         enabled = !enabled;
+        NotificationManager::AddNotification(std::string(label) + (enabled ? " Enabled" : " Disabled"),
+                                             enabled ? NotificationType::Enable : NotificationType::Disable);
     }
 }
 
@@ -860,10 +880,13 @@ void ToggleButtonControl::Draw() {
 void ToggleButtonControl::Update() {
     if (hotkey != ImGuiKey_None && InputHelper::IsKeyPressed(hotkey)) {
         enabled = !enabled;
+        NotificationManager::AddNotification(std::string(label) + (enabled ? " Enabled" : " Disabled"),
+                                             enabled ? NotificationType::Enable : NotificationType::Disable);
     }
 
     if (enabled && actionHotkey != ImGuiKey_None && InputHelper::IsKeyPressed(actionHotkey)) {
         ExecuteAction();
+        NotificationManager::AddNotification(label + " Triggered", NotificationType::Action);
     }
 }
 
@@ -894,13 +917,29 @@ EntityESPSubControl::EntityESPSubControl(const std::string& label, const std::st
       maxHealthColor(0.0f, 0.8f, 0.0f, 1.0f), boxColor(1.0f, 0.0f, 0.0f, 1.0f), tracelineColor(1.0f, 1.0f, 0.0f, 1.0f) {
 
     enabled = std::make_unique<ToggleControl>("Enabled", id + "_enabled", false, false);
+    enabled->SetNotificationBase(label, true); // Suppress "Enabled" label
+
     showName = std::make_unique<ToggleControl>("Show Name", id + "_showName", true, false);
+    showName->SetNotificationBase(label);
+
     showDistance = std::make_unique<ToggleControl>("Show Distance", id + "_showDistance", true, false);
+    showDistance->SetNotificationBase(label);
+
     showHealth = std::make_unique<ToggleControl>("Show Health", id + "_showHealth", false, false);
+    showHealth->SetNotificationBase(label);
+
     showMaxHealth = std::make_unique<ToggleControl>("Show Max Health", id + "_showMaxHealth", false, false);
+    showMaxHealth->SetNotificationBase(label);
+
     showHealthbar = std::make_unique<ToggleControl>("Show Healthbar", id + "_showHealthbar", false, false);
+    showHealthbar->SetNotificationBase(label);
+
     showBox = std::make_unique<ToggleControl>("Show Box", id + "_showBox", false, false);
+    showBox->SetNotificationBase(label);
+
     showTraceline = std::make_unique<ToggleControl>("Show Traceline", id + "_showTraceline", false, false);
+    showTraceline->SetNotificationBase(label);
+
     maxDistance = std::make_unique<SliderControl>("Max Distance", id + "_maxDistance", 100.0f, 0.0f, 1000.0f, false);
 }
 
@@ -1016,23 +1055,23 @@ void EntityESPSubControl::Deserialize(const json& data) {
         showTraceline->Deserialize(data["showTraceline"]);
     if (data.contains("maxDistance"))
         maxDistance->Deserialize(data["maxDistance"]);
-    if (data.contains("nameColor") && data["nameColor"].is_array() && data["nameColor"].size() == 4) {
-        nameColor = ImVec4(data["nameColor"][0], data["nameColor"][1], data["nameColor"][2], data["nameColor"][3]);
+    if (data.contains("nameColor")) {
+        nameColor = JsonToVec4(data["nameColor"], nameColor);
     }
-    if (data.contains("distanceColor") && data["distanceColor"].is_array() && data["distanceColor"].size() == 4) {
-        distanceColor = ImVec4(data["distanceColor"][0], data["distanceColor"][1], data["distanceColor"][2], data["distanceColor"][3]);
+    if (data.contains("distanceColor")) {
+        distanceColor = JsonToVec4(data["distanceColor"], distanceColor);
     }
-    if (data.contains("healthColor") && data["healthColor"].is_array() && data["healthColor"].size() == 4) {
-        healthColor = ImVec4(data["healthColor"][0], data["healthColor"][1], data["healthColor"][2], data["healthColor"][3]);
+    if (data.contains("healthColor")) {
+        healthColor = JsonToVec4(data["healthColor"], healthColor);
     }
-    if (data.contains("maxHealthColor") && data["maxHealthColor"].is_array() && data["maxHealthColor"].size() == 4) {
-        maxHealthColor = ImVec4(data["maxHealthColor"][0], data["maxHealthColor"][1], data["maxHealthColor"][2], data["maxHealthColor"][3]);
+    if (data.contains("maxHealthColor")) {
+        maxHealthColor = JsonToVec4(data["maxHealthColor"], maxHealthColor);
     }
-    if (data.contains("boxColor") && data["boxColor"].is_array() && data["boxColor"].size() == 4) {
-        boxColor = ImVec4(data["boxColor"][0], data["boxColor"][1], data["boxColor"][2], data["boxColor"][3]);
+    if (data.contains("boxColor")) {
+        boxColor = JsonToVec4(data["boxColor"], boxColor);
     }
-    if (data.contains("tracelineColor") && data["tracelineColor"].is_array() && data["tracelineColor"].size() == 4) {
-        tracelineColor = ImVec4(data["tracelineColor"][0], data["tracelineColor"][1], data["tracelineColor"][2], data["tracelineColor"][3]);
+    if (data.contains("tracelineColor")) {
+        tracelineColor = JsonToVec4(data["tracelineColor"], tracelineColor);
     }
 }
 
@@ -1040,6 +1079,7 @@ void EntityESPSubControl::Deserialize(const json& data) {
 EntityESPControl::EntityESPControl(const std::string& label, const std::string& id) : InputControl(label, id, false) {
 
     masterEnabled = std::make_unique<ToggleControl>("Master Enabled", id + "_master", false, false);
+    masterEnabled->SetNotificationBase(label, true); // Suppress "Master Enabled" label
     visibleControl = std::make_unique<EntityESPSubControl>("Visible " + label, id + "_visible");
     nonVisibleControl = std::make_unique<EntityESPSubControl>("Non-Visible " + label, id + "_nonvisible");
 
@@ -1092,11 +1132,23 @@ void EntityESPControl::Deserialize(const json& data) {
 ChestESPSubControl::ChestESPSubControl(const std::string& label, const std::string& id) : InputControl(label, id, false) {
 
     enabled = std::make_unique<ToggleControl>("Enabled", id + "_enabled", true, false);
+    enabled->SetNotificationBase(label, true); // Suppress "Enabled" label
+
     showName = std::make_unique<ToggleControl>("Show Name", id + "_showName", true, false);
+    showName->SetNotificationBase(label);
+
     showDistance = std::make_unique<ToggleControl>("Show Distance", id + "_showDistance", true, false);
+    showDistance->SetNotificationBase(label);
+
     showCost = std::make_unique<ToggleControl>("Show Cost", id + "_showCost", true, false);
+    showCost->SetNotificationBase(label);
+
     showUnavailable = std::make_unique<ToggleControl>("Show Unavailable", id + "_showUnavailable", true, false);
+    showUnavailable->SetNotificationBase(label);
+
     showTraceline = std::make_unique<ToggleControl>("Show Traceline", id + "_showTraceline", false, false);
+    showTraceline->SetNotificationBase(label);
+
     enableNameShadow = std::make_unique<ToggleControl>("O", id + "_enableNameShadow", true, false, false);
     enableDistanceShadow = std::make_unique<ToggleControl>("O", id + "_enableDistanceShadow", true, false, false);
     enableCostShadow = std::make_unique<ToggleControl>("O", id + "_enableCostShadow", true, false, false);
@@ -1286,6 +1338,7 @@ void ChestESPSubControl::Deserialize(const json& data) {
 ChestESPControl::ChestESPControl(const std::string& label, const std::string& id) : InputControl(label, id, false) {
 
     masterEnabled = std::make_unique<ToggleControl>("Master Enabled", id + "_master", false, false);
+    masterEnabled->SetNotificationBase(label, true); // Suppress "Master Enabled" label
     subControl = std::make_unique<ChestESPSubControl>(label + " Settings", id + "_settings");
 
     ConfigManager::RegisterControl(this);
@@ -1384,9 +1437,11 @@ void ComboControl::Draw() {
 void ComboControl::Update() {
     if (prevHotkey != ImGuiKey_None && InputHelper::IsKeyPressed(prevHotkey)) {
         SelectPrevious();
+        NotificationManager::AddNotification(label + " Changed to " + GetSelectedItem(), NotificationType::Decrease);
     }
     if (nextHotkey != ImGuiKey_None && InputHelper::IsKeyPressed(nextHotkey)) {
         SelectNext();
+        NotificationManager::AddNotification(label + " Changed to " + GetSelectedItem(), NotificationType::Increase);
     }
 }
 
