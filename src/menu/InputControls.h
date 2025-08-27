@@ -6,6 +6,15 @@
 
 using json = nlohmann::json;
 
+inline json Vec4ToJson(const ImVec4& vec) { return {vec.x, vec.y, vec.z, vec.w}; }
+
+inline ImVec4 JsonToVec4(const json& j, const ImVec4& defaultValue = ImVec4(1.0f, 1.0f, 1.0f, 1.0f)) {
+    if (j.is_array() && j.size() == 4) {
+        return ImVec4(j[0], j[1], j[2], j[3]);
+    }
+    return defaultValue;
+}
+
 // Key state helper functions
 namespace InputHelper {
 bool IsKeyPressed(ImGuiKey key);

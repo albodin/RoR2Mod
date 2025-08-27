@@ -732,8 +732,8 @@ void ESPControl::SetEnableOutline(bool enable) { enableOutline = enable; }
 json ESPControl::Serialize() const {
     json data = InputControl::Serialize();
     data["distance"] = distance;
-    data["color"] = {color.x, color.y, color.z, color.w};
-    data["outlineColor"] = {outlineColor.x, outlineColor.y, outlineColor.z, outlineColor.w};
+    data["color"] = Vec4ToJson(color);
+    data["outlineColor"] = Vec4ToJson(outlineColor);
     data["enableOutline"] = enableOutline;
     return data;
 }
@@ -742,11 +742,11 @@ void ESPControl::Deserialize(const json& data) {
     InputControl::Deserialize(data);
     if (data.contains("distance"))
         distance = data["distance"];
-    if (data.contains("color") && data["color"].is_array() && data["color"].size() == 4) {
-        color = ImVec4(data["color"][0], data["color"][1], data["color"][2], data["color"][3]);
+    if (data.contains("color")) {
+        color = JsonToVec4(data["color"], color);
     }
-    if (data.contains("outlineColor") && data["outlineColor"].is_array() && data["outlineColor"].size() == 4) {
-        outlineColor = ImVec4(data["outlineColor"][0], data["outlineColor"][1], data["outlineColor"][2], data["outlineColor"][3]);
+    if (data.contains("outlineColor")) {
+        outlineColor = JsonToVec4(data["outlineColor"], outlineColor);
     }
     if (data.contains("enableOutline"))
         enableOutline = data["enableOutline"];
@@ -988,12 +988,12 @@ json EntityESPSubControl::Serialize() const {
     data["showBox"] = showBox->Serialize();
     data["showTraceline"] = showTraceline->Serialize();
     data["maxDistance"] = maxDistance->Serialize();
-    data["nameColor"] = {nameColor.x, nameColor.y, nameColor.z, nameColor.w};
-    data["distanceColor"] = {distanceColor.x, distanceColor.y, distanceColor.z, distanceColor.w};
-    data["healthColor"] = {healthColor.x, healthColor.y, healthColor.z, healthColor.w};
-    data["maxHealthColor"] = {maxHealthColor.x, maxHealthColor.y, maxHealthColor.z, maxHealthColor.w};
-    data["boxColor"] = {boxColor.x, boxColor.y, boxColor.z, boxColor.w};
-    data["tracelineColor"] = {tracelineColor.x, tracelineColor.y, tracelineColor.z, tracelineColor.w};
+    data["nameColor"] = Vec4ToJson(nameColor);
+    data["distanceColor"] = Vec4ToJson(distanceColor);
+    data["healthColor"] = Vec4ToJson(healthColor);
+    data["maxHealthColor"] = Vec4ToJson(maxHealthColor);
+    data["boxColor"] = Vec4ToJson(boxColor);
+    data["tracelineColor"] = Vec4ToJson(tracelineColor);
     return data;
 }
 
@@ -1224,13 +1224,13 @@ json ChestESPSubControl::Serialize() const {
     data["enableCostShadow"] = enableCostShadow->Serialize();
     data["maxDistance"] = maxDistance->Serialize();
 
-    data["nameColor"] = {nameColor.x, nameColor.y, nameColor.z, nameColor.w};
-    data["distanceColor"] = {distanceColor.x, distanceColor.y, distanceColor.z, distanceColor.w};
-    data["costColor"] = {costColor.x, costColor.y, costColor.z, costColor.w};
-    data["tracelineColor"] = {tracelineColor.x, tracelineColor.y, tracelineColor.z, tracelineColor.w};
-    data["nameShadowColor"] = {nameShadowColor.x, nameShadowColor.y, nameShadowColor.z, nameShadowColor.w};
-    data["distanceShadowColor"] = {distanceShadowColor.x, distanceShadowColor.y, distanceShadowColor.z, distanceShadowColor.w};
-    data["costShadowColor"] = {costShadowColor.x, costShadowColor.y, costShadowColor.z, costShadowColor.w};
+    data["nameColor"] = Vec4ToJson(nameColor);
+    data["distanceColor"] = Vec4ToJson(distanceColor);
+    data["costColor"] = Vec4ToJson(costColor);
+    data["tracelineColor"] = Vec4ToJson(tracelineColor);
+    data["nameShadowColor"] = Vec4ToJson(nameShadowColor);
+    data["distanceShadowColor"] = Vec4ToJson(distanceShadowColor);
+    data["costShadowColor"] = Vec4ToJson(costShadowColor);
 
     return data;
 }
@@ -1259,27 +1259,26 @@ void ChestESPSubControl::Deserialize(const json& data) {
     if (data.contains("maxDistance"))
         maxDistance->Deserialize(data["maxDistance"]);
 
-    if (data.contains("nameColor") && data["nameColor"].is_array() && data["nameColor"].size() == 4) {
-        nameColor = ImVec4(data["nameColor"][0], data["nameColor"][1], data["nameColor"][2], data["nameColor"][3]);
+    if (data.contains("nameColor")) {
+        nameColor = JsonToVec4(data["nameColor"], nameColor);
     }
-    if (data.contains("distanceColor") && data["distanceColor"].is_array() && data["distanceColor"].size() == 4) {
-        distanceColor = ImVec4(data["distanceColor"][0], data["distanceColor"][1], data["distanceColor"][2], data["distanceColor"][3]);
+    if (data.contains("distanceColor")) {
+        distanceColor = JsonToVec4(data["distanceColor"], distanceColor);
     }
-    if (data.contains("costColor") && data["costColor"].is_array() && data["costColor"].size() == 4) {
-        costColor = ImVec4(data["costColor"][0], data["costColor"][1], data["costColor"][2], data["costColor"][3]);
+    if (data.contains("costColor")) {
+        costColor = JsonToVec4(data["costColor"], costColor);
     }
-    if (data.contains("tracelineColor") && data["tracelineColor"].is_array() && data["tracelineColor"].size() == 4) {
-        tracelineColor = ImVec4(data["tracelineColor"][0], data["tracelineColor"][1], data["tracelineColor"][2], data["tracelineColor"][3]);
+    if (data.contains("tracelineColor")) {
+        tracelineColor = JsonToVec4(data["tracelineColor"], tracelineColor);
     }
-    if (data.contains("nameShadowColor") && data["nameShadowColor"].is_array() && data["nameShadowColor"].size() == 4) {
-        nameShadowColor = ImVec4(data["nameShadowColor"][0], data["nameShadowColor"][1], data["nameShadowColor"][2], data["nameShadowColor"][3]);
+    if (data.contains("nameShadowColor")) {
+        nameShadowColor = JsonToVec4(data["nameShadowColor"], nameShadowColor);
     }
-    if (data.contains("distanceShadowColor") && data["distanceShadowColor"].is_array() && data["distanceShadowColor"].size() == 4) {
-        distanceShadowColor =
-            ImVec4(data["distanceShadowColor"][0], data["distanceShadowColor"][1], data["distanceShadowColor"][2], data["distanceShadowColor"][3]);
+    if (data.contains("distanceShadowColor")) {
+        distanceShadowColor = JsonToVec4(data["distanceShadowColor"], distanceShadowColor);
     }
-    if (data.contains("costShadowColor") && data["costShadowColor"].is_array() && data["costShadowColor"].size() == 4) {
-        costShadowColor = ImVec4(data["costShadowColor"][0], data["costShadowColor"][1], data["costShadowColor"][2], data["costShadowColor"][3]);
+    if (data.contains("costShadowColor")) {
+        costShadowColor = JsonToVec4(data["costShadowColor"], costShadowColor);
     }
 }
 
