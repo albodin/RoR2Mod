@@ -105,13 +105,13 @@ void EnemySpawningModule::OnLocalUserUpdate(void* localUser) {
                 break;
             }
         }
-        G::logger.LogInfo("Spawning %d %s enemies with difficulty matching %s (masterIndex: %d, team: %d)", count, eliteType.c_str(),
-                          matchDifficulty ? "enabled" : "disabled", masterIndex, teamIndex);
+        LOG_INFO("Spawning %d %s enemies with difficulty matching %s (masterIndex: %d, team: %d)", count, eliteType.c_str(),
+                 matchDifficulty ? "enabled" : "disabled", masterIndex, teamIndex);
 
         for (int i = 0; i < count; i++) {
             bool success = G::gameFunctions->SpawnEnemyAtPosition(masterIndex, spawnPosition, teamIndex, matchDifficulty, eliteBuffIndex, items);
             if (!success) {
-                G::logger.LogError("Failed to spawn enemy %d of %d (masterIndex: %d)", i + 1, count, masterIndex);
+                LOG_ERROR("Failed to spawn enemy %d of %d (masterIndex: %d)", i + 1, count, masterIndex);
             }
         }
     }
@@ -128,7 +128,7 @@ void EnemySpawningModule::InitializeEnemies() {
         eliteSelectControl->SetItems(G::eliteNames);
     }
 
-    G::logger.LogInfo("Enemy spawning module initialized with %zu enemies", enemies.size());
+    LOG_INFO("Enemy spawning module initialized with %zu enemies", enemies.size());
 }
 
 void EnemySpawningModule::InitializeItems() {
@@ -138,7 +138,7 @@ void EnemySpawningModule::InitializeItems() {
     SortItemsByName();
     InitializeAllItemControls();
 
-    G::logger.LogInfo("Enemy spawning module initialized with %zu items", items.size());
+    LOG_INFO("Enemy spawning module initialized with %zu items", items.size());
 }
 
 void EnemySpawningModule::SortItemsByName() {

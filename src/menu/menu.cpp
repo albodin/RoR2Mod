@@ -27,11 +27,11 @@ void DumpGameToDirectory(std::string directoryName) {
     static MonoAPI g_mono;
     if (!initialized) {
         if (g_mono.Initialize()) {
-            G::logger.LogInfo("Mono runtime initialized successfully");
+            LOG_INFO("Mono runtime initialized successfully");
             initialized = true;
 
         } else {
-            G::logger.LogError("Failed to initialize Mono API");
+            LOG_ERROR("Failed to initialize Mono API");
         }
     }
     if (initialized) {

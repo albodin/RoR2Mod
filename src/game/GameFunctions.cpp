@@ -41,7 +41,7 @@ void GameFunctions::Cursor_SetLockState(int lockState) {
 
         MonoMethod* method = m_runtime->GetMethod(m_cursorClass, "set_lockState", 1);
         if (!method) {
-            G::logger.LogError("Failed to find set_lockState method");
+            LOG_ERROR("Failed to find set_lockState method");
             return;
         }
 
@@ -62,7 +62,7 @@ void GameFunctions::Cursor_SetVisible(bool visible) {
 
         MonoMethod* method = m_runtime->GetMethod(m_cursorClass, "set_visible", 1);
         if (!method) {
-            G::logger.LogError("Failed to find set_visible method");
+            LOG_ERROR("Failed to find set_visible method");
             return;
         }
 
@@ -82,7 +82,7 @@ std::string GameFunctions::Language_GetString(MonoString* token) {
 
     MonoMethod* method = m_runtime->GetMethod(m_languageClass, "GetString", 1);
     if (!method) {
-        G::logger.LogError("Failed to find GetString method");
+        LOG_ERROR("Failed to find GetString method");
         return "";
     }
 
@@ -91,7 +91,7 @@ std::string GameFunctions::Language_GetString(MonoString* token) {
 
     MonoObject* result = m_runtime->InvokeMethod(method, nullptr, args);
     if (!result) {
-        G::logger.LogError("Failed to get string from token");
+        LOG_ERROR("Failed to get string from token");
         return "";
     }
     return m_runtime->StringToUtf8(static_cast<MonoString*>(result));
@@ -103,33 +103,33 @@ PickupDef* GameFunctions::GetPickupDef(int pickupIndex) {
 
     MonoField* entriesField = m_runtime->GetField(m_pickupCatalogClass, "entries");
     if (!entriesField) {
-        G::logger.LogError("Failed to find PickupCatalog.entries field");
+        LOG_ERROR("Failed to find PickupCatalog.entries field");
         return nullptr;
     }
 
     MonoArray* entriesArray = m_runtime->GetStaticFieldValue<MonoArray*>(m_pickupCatalogClass, entriesField);
     if (!entriesArray) {
-        G::logger.LogError("Failed to get PickupCatalog.entries array");
+        LOG_ERROR("Failed to get PickupCatalog.entries array");
         return nullptr;
     }
 
     int arrayLength = m_runtime->GetArrayLength(entriesArray);
     if (pickupIndex < 0 || pickupIndex >= arrayLength) {
-        G::logger.LogError("PickupIndex %d out of bounds (array length: %d)", pickupIndex, arrayLength);
+        LOG_ERROR("PickupIndex %d out of bounds (array length: %d)", pickupIndex, arrayLength);
         return nullptr;
     }
 
     MonoClass* arrayClass = m_runtime->GetObjectClass(static_cast<MonoObject*>(entriesArray));
     MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
     if (!getItemMethod) {
-        G::logger.LogError("Failed to get array access method");
+        LOG_ERROR("Failed to get array access method");
         return nullptr;
     }
 
     void* params[1] = {&pickupIndex};
     MonoObject* pickupDefObj = m_runtime->InvokeMethod(getItemMethod, entriesArray, params);
     if (!pickupDefObj) {
-        G::logger.LogError("Failed to get PickupDef at index %d", pickupIndex);
+        LOG_ERROR("Failed to get PickupDef at index %d", pickupIndex);
         return nullptr;
     }
 
@@ -142,13 +142,13 @@ int GameFunctions::LoadPickupNames() {
 
     MonoField* entriesField = m_runtime->GetField(m_pickupCatalogClass, "entries");
     if (!entriesField) {
-        G::logger.LogError("Failed to find PickupCatalog.entries field");
+        LOG_ERROR("Failed to find PickupCatalog.entries field");
         return -1;
     }
 
     MonoArray* entriesArray = m_runtime->GetStaticFieldValue<MonoArray*>(m_pickupCatalogClass, entriesField);
     if (!entriesArray) {
-        G::logger.LogError("Failed to get PickupCatalog.entries array");
+        LOG_ERROR("Failed to get PickupCatalog.entries array");
         return -1;
     }
 
@@ -161,7 +161,7 @@ int GameFunctions::LoadPickupNames() {
             if (!name.empty()) {
                 G::espModule->CachePickupName(i, name);
             }
-            G::logger.LogInfo("Loaded pickup %d: %s", i, name.c_str());
+            LOG_INFO("Loaded pickup %d: %s", i, name.c_str());
         }
     }
 
@@ -171,28 +171,28 @@ int GameFunctions::LoadPickupNames() {
 // Function should only be called from safe threads so queue is not needed
 int GameFunctions::LoadItems() {
     if (!m_contentManagerClass || !m_itemDefClass) {
-        G::logger.LogError("Failed to load item definitions, classes not found");
+        LOG_ERROR("Failed to load item definitions, classes not found");
         return -1;
     }
 
     MonoField* itemDefsField = m_runtime->GetField(m_contentManagerClass, "_itemDefs");
     if (!itemDefsField) {
-        G::logger.LogError("Failed to find _itemDefs field");
+        LOG_ERROR("Failed to find _itemDefs field");
         return -1;
     }
 
     MonoArray* itemDefsArray = m_runtime->GetStaticFieldValue<MonoArray*>(m_contentManagerClass, itemDefsField);
     if (!itemDefsArray) {
-        G::logger.LogError("Failed to get _itemDefs array");
+        LOG_ERROR("Failed to get _itemDefs array");
         return -1;
     }
 
     uint32_t itemDefsLen = static_cast<uint32_t>((reinterpret_cast<MonoArray_Internal*>(itemDefsArray))->max_length);
     if (itemDefsLen <= 0) {
-        G::logger.LogError("Item count is zero or negative");
+        LOG_ERROR("Item count is zero or negative");
         return -1;
     }
-    G::logger.LogInfo("Found " + std::to_string(itemDefsLen) + " items");
+    LOG_INFO("Found %u items", itemDefsLen);
 
     ItemDef** itemDefsData = mono_array_addr<ItemDef*>(reinterpret_cast<MonoArray_Internal*>(itemDefsArray));
     std::unique_lock<std::shared_mutex> lock(G::itemsMutex);
@@ -202,7 +202,7 @@ int GameFunctions::LoadItems() {
         ItemDef* itemDef = itemDefsData[i];
         item.index = itemDef->_itemIndex.value__;
         if (item.index < 0) {
-            G::logger.LogError("Item index is negative, failing");
+            LOG_ERROR("Item index is negative, failing");
             return -1;
         }
         item.nameToken = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(itemDef->nameToken));
@@ -217,7 +217,7 @@ int GameFunctions::LoadItems() {
             item.canRestack = itemDef->_itemTierDef->canRestack;
         } else {
             item.tier = itemDef->deprecatedTier;
-            G::logger.LogInfo("Item %s has no ItemTierDef, using deprecated tier %i", item.displayName.c_str(), itemDef->deprecatedTier);
+            LOG_INFO("Item %s has no ItemTierDef, using deprecated tier %i", item.displayName.c_str(), itemDef->deprecatedTier);
         }
 
         item.canRemove = itemDef->canRemove;
@@ -234,13 +234,13 @@ int GameFunctions::LoadItems() {
         item.name = GetUnityObjectName(itemDef);
 
         if (item.displayName == item.nameToken && !item.nameToken.empty()) {
-            G::logger.LogError("Item displayName '%s' is the same as nameToken '%s', skipping", item.displayName.c_str(), item.nameToken.c_str());
+            LOG_ERROR("Item displayName '%s' is the same as nameToken '%s', skipping", item.displayName.c_str(), item.nameToken.c_str());
         } else if (item.displayName.empty()) {
             // Store special items with empty display names in separate map
             G::specialItems[item.name] = item.index;
-            G::logger.LogInfo("Stored special item '%s' at index %d", item.name.c_str(), item.index);
+            LOG_INFO("Stored special item '%s' at index %d", item.name.c_str(), item.index);
         } else if (item.displayName.find("(Consumed)") != std::string::npos) {
-            G::logger.LogError("Item displayName '%s' contains '(Consumed)', skipping", item.displayName.c_str());
+            LOG_ERROR("Item displayName '%s' contains '(Consumed)', skipping", item.displayName.c_str());
         } else {
             G::items.push_back(item);
         }
@@ -251,34 +251,34 @@ int GameFunctions::LoadItems() {
 
 int GameFunctions::LoadEnemies() {
     if (!m_masterCatalogClass) {
-        G::logger.LogError("Failed to load enemy definitions, MasterCatalog class not found");
+        LOG_ERROR("Failed to load enemy definitions, MasterCatalog class not found");
         return -1;
     }
 
     MonoField* masterPrefabsField = m_runtime->GetField(m_masterCatalogClass, "masterPrefabs");
     if (!masterPrefabsField) {
-        G::logger.LogError("Failed to find masterPrefabs field");
+        LOG_ERROR("Failed to find masterPrefabs field");
         return -1;
     }
 
     MonoArray* masterPrefabsArray = m_runtime->GetStaticFieldValue<MonoArray*>(m_masterCatalogClass, masterPrefabsField);
     if (!masterPrefabsArray) {
-        G::logger.LogError("Failed to get masterPrefabs array");
+        LOG_ERROR("Failed to get masterPrefabs array");
         return -1;
     }
 
     int masterCount = m_runtime->GetArrayLength(masterPrefabsArray);
     if (masterCount <= 0) {
-        G::logger.LogError("Master count is zero or negative");
+        LOG_ERROR("Master count is zero or negative");
         return -1;
     }
 
-    G::logger.LogInfo("Found " + std::to_string(masterCount) + " masters");
+    LOG_INFO("Found %d masters", masterCount);
 
     MonoClass* arrayClass = m_runtime->GetObjectClass(static_cast<MonoObject*>(masterPrefabsArray));
     MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
     if (!getItemMethod) {
-        G::logger.LogError("Failed to get array access method");
+        LOG_ERROR("Failed to get array access method");
         return -1;
     }
 
@@ -323,13 +323,14 @@ int GameFunctions::LoadEnemies() {
         G::enemies.push_back(enemy);
     }
 
-    G::logger.LogInfo("Loaded " + std::to_string(G::enemies.size()) + " enemies");
-    return static_cast<int>(G::enemies.size());
+    int enemyCount = static_cast<int>(G::enemies.size());
+    LOG_INFO("Loaded %d enemies", enemyCount);
+    return enemyCount;
 }
 
 int GameFunctions::LoadElites() {
     if (!m_buffCatalogClass) {
-        G::logger.LogError("Failed to load elite definitions, BuffCatalog class not found");
+        LOG_ERROR("Failed to load elite definitions, BuffCatalog class not found");
         return -1;
     }
 
@@ -342,34 +343,34 @@ int GameFunctions::LoadElites() {
     // Get the buff definitions array from BuffCatalog
     MonoField* buffDefsField = m_runtime->GetField(m_buffCatalogClass, "buffDefs");
     if (!buffDefsField) {
-        G::logger.LogError("Failed to find BuffCatalog.buffDefs field");
+        LOG_ERROR("Failed to find BuffCatalog.buffDefs field");
         return -1;
     }
 
     MonoArray* buffDefsArray = m_runtime->GetStaticFieldValue<MonoArray*>(m_buffCatalogClass, buffDefsField);
     if (!buffDefsArray) {
-        G::logger.LogError("Failed to get BuffCatalog.buffDefs array");
+        LOG_ERROR("Failed to get BuffCatalog.buffDefs array");
         return -1;
     }
 
     int buffCount = m_runtime->GetArrayLength(buffDefsArray);
-    G::logger.LogInfo("Found %d buffs in BuffCatalog", buffCount);
+    LOG_INFO("Found %d buffs in BuffCatalog", buffCount);
 
     if (!m_buffDefClass) {
-        G::logger.LogError("BuffDef class not available");
+        LOG_ERROR("BuffDef class not available");
         return -1;
     }
 
     MonoField* eliteDefField = m_runtime->GetField(m_buffDefClass, "eliteDef");
     if (!eliteDefField) {
-        G::logger.LogError("Failed to find BuffDef.eliteDef field");
+        LOG_ERROR("Failed to find BuffDef.eliteDef field");
         return -1;
     }
 
     MonoClass* arrayClass = m_runtime->GetObjectClass(static_cast<MonoObject*>(buffDefsArray));
     MonoMethod* getItemMethod = m_runtime->GetMethod(arrayClass, "Get", 1);
     if (!getItemMethod) {
-        G::logger.LogError("Failed to get array access method");
+        LOG_ERROR("Failed to get array access method");
         return -1;
     }
 
@@ -406,10 +407,10 @@ int GameFunctions::LoadElites() {
         G::eliteNames.push_back(eliteName);
         G::eliteBuffIndices[eliteName] = i;
 
-        G::logger.LogInfo("Found elite buff: %s at index %d", eliteName.c_str(), i);
+        LOG_INFO("Found elite buff: %s at index %d", eliteName.c_str(), i);
     }
 
-    G::logger.LogInfo("Loaded %zu elite types", G::eliteNames.size() - 1); // -1 for "None"
+    LOG_INFO("Loaded %zu elite types", G::eliteNames.size() - 1); // -1 for "None"
     return static_cast<int>(G::eliteNames.size() - 1);
 }
 
@@ -421,46 +422,46 @@ bool GameFunctions::ApplyEliteToMaster(void* characterMaster, int eliteBuffIndex
     // Get the inventory from the CharacterMaster
     MonoProperty* inventoryProp = m_runtime->GetProperty(m_characterMasterClass, "inventory");
     if (!inventoryProp) {
-        G::logger.LogError("Failed to find CharacterMaster.inventory property");
+        LOG_ERROR("Failed to find CharacterMaster.inventory property");
         return false;
     }
 
     MonoMethod* getInventoryMethod = m_runtime->GetPropertyGetMethod(inventoryProp);
     if (!getInventoryMethod) {
-        G::logger.LogError("Failed to find inventory getter method");
+        LOG_ERROR("Failed to find inventory getter method");
         return false;
     }
 
     MonoObject* inventory = m_runtime->InvokeMethod(getInventoryMethod, characterMaster, nullptr);
     if (!inventory) {
-        G::logger.LogError("Failed to get inventory from CharacterMaster");
+        LOG_ERROR("Failed to get inventory from CharacterMaster");
         return false;
     }
 
     // Get the BuffDef for the elite using cached BuffCatalog class
     MonoMethod* getBuffDefMethod = m_runtime->GetMethod(m_buffCatalogClass, "GetBuffDef", 1);
     if (!getBuffDefMethod) {
-        G::logger.LogError("Failed to find BuffCatalog.GetBuffDef method");
+        LOG_ERROR("Failed to find BuffCatalog.GetBuffDef method");
         return false;
     }
 
     void* buffIndexParams[1] = {&eliteBuffIndex};
     MonoObject* buffDef = m_runtime->InvokeMethod(getBuffDefMethod, nullptr, buffIndexParams);
     if (!buffDef) {
-        G::logger.LogError("Failed to get BuffDef for elite index %d", eliteBuffIndex);
+        LOG_ERROR("Failed to get BuffDef for elite index %d", eliteBuffIndex);
         return false;
     }
 
     // Get the eliteDef from the BuffDef using cached class
     MonoField* eliteDefField = m_runtime->GetField(m_buffDefClass, "eliteDef");
     if (!eliteDefField) {
-        G::logger.LogError("Failed to find BuffDef.eliteDef field");
+        LOG_ERROR("Failed to find BuffDef.eliteDef field");
         return false;
     }
 
     MonoObject* eliteDef = m_runtime->GetFieldValue<MonoObject*>(buffDef, eliteDefField);
     if (!eliteDef) {
-        G::logger.LogError("BuffDef at index %d does not have an eliteDef", eliteBuffIndex);
+        LOG_ERROR("BuffDef at index %d does not have an eliteDef", eliteBuffIndex);
         return false;
     }
 
@@ -468,13 +469,13 @@ bool GameFunctions::ApplyEliteToMaster(void* characterMaster, int eliteBuffIndex
     MonoClass* eliteDefClass = m_runtime->GetObjectClass(eliteDef);
     MonoField* eliteEquipmentDefField = m_runtime->GetField(eliteDefClass, "eliteEquipmentDef");
     if (!eliteEquipmentDefField) {
-        G::logger.LogError("Failed to find EliteDef.eliteEquipmentDef field");
+        LOG_ERROR("Failed to find EliteDef.eliteEquipmentDef field");
         return false;
     }
 
     MonoObject* equipmentDef = m_runtime->GetFieldValue<MonoObject*>(eliteDef, eliteEquipmentDefField);
     if (!equipmentDef) {
-        G::logger.LogWarning("Elite at index %d has no equipment", eliteBuffIndex);
+        LOG_WARNING("Elite at index %d has no equipment", eliteBuffIndex);
         return false;
     }
 
@@ -482,19 +483,19 @@ bool GameFunctions::ApplyEliteToMaster(void* characterMaster, int eliteBuffIndex
     MonoClass* equipmentDefClass = m_runtime->GetObjectClass(equipmentDef);
     MonoProperty* equipmentIndexProp = m_runtime->GetProperty(equipmentDefClass, "equipmentIndex");
     if (!equipmentIndexProp) {
-        G::logger.LogError("Failed to find EquipmentDef.equipmentIndex property");
+        LOG_ERROR("Failed to find EquipmentDef.equipmentIndex property");
         return false;
     }
 
     MonoMethod* getEquipmentIndexMethod = m_runtime->GetPropertyGetMethod(equipmentIndexProp);
     if (!getEquipmentIndexMethod) {
-        G::logger.LogError("Failed to find equipmentIndex getter method");
+        LOG_ERROR("Failed to find equipmentIndex getter method");
         return false;
     }
 
     MonoObject* equipmentIndexObj = m_runtime->InvokeMethod(getEquipmentIndexMethod, equipmentDef, nullptr);
     if (!equipmentIndexObj) {
-        G::logger.LogError("Failed to get equipment index");
+        LOG_ERROR("Failed to get equipment index");
         return false;
     }
 
@@ -503,14 +504,14 @@ bool GameFunctions::ApplyEliteToMaster(void* characterMaster, int eliteBuffIndex
     // Set the equipment on the inventory
     MonoMethod* setEquipmentIndexMethod = m_runtime->GetMethod(m_inventoryClass, "SetEquipmentIndex", 1);
     if (!setEquipmentIndexMethod) {
-        G::logger.LogError("Failed to find Inventory.SetEquipmentIndex method");
+        LOG_ERROR("Failed to find Inventory.SetEquipmentIndex method");
         return false;
     }
 
     void* equipParams[1] = {&equipmentIndex};
     m_runtime->InvokeMethod(setEquipmentIndexMethod, inventory, equipParams);
 
-    G::logger.LogInfo("Applied elite equipment index %d (from buff index %d) to spawned enemy", equipmentIndex, eliteBuffIndex);
+    LOG_INFO("Applied elite equipment index %d (from buff index %d) to spawned enemy", equipmentIndex, eliteBuffIndex);
     return true;
 }
 
@@ -521,7 +522,7 @@ void GameFunctions::Inventory_GiveItem(void* m_inventory, int itemIndex, int cou
 
         MonoMethod* method = m_runtime->GetMethod(m_inventoryClass, "GiveItem", 2);
         if (!method) {
-            G::logger.LogError("Failed to find GiveItem method");
+            LOG_ERROR("Failed to find GiveItem method");
             return;
         }
 
@@ -540,13 +541,13 @@ bool GameFunctions::RoR2Application_IsLoading() {
 
     MonoMethod* method = m_runtime->GetMethod(m_RoR2ApplicationClass, "get_isLoading", 0);
     if (!method) {
-        G::logger.LogError("Failed to find get_isLoading method");
+        LOG_ERROR("Failed to find get_isLoading method");
         return false;
     }
 
     MonoObject* result = m_runtime->InvokeMethod(method, nullptr, nullptr);
     if (!result) {
-        G::logger.LogError("Failed to get loading state");
+        LOG_ERROR("Failed to get loading state");
         return false;
     }
 
@@ -559,13 +560,13 @@ bool GameFunctions::RoR2Application_IsLoadFinished() {
 
     MonoMethod* method = m_runtime->GetMethod(m_RoR2ApplicationClass, "get_loadFinished", 0);
     if (!method) {
-        G::logger.LogError("Failed to find get_loadFinished method");
+        LOG_ERROR("Failed to find get_loadFinished method");
         return false;
     }
 
     MonoObject* result = m_runtime->InvokeMethod(method, nullptr, nullptr);
     if (!result) {
-        G::logger.LogError("Failed to get load finished state");
+        LOG_ERROR("Failed to get load finished state");
         return false;
     }
 
@@ -578,7 +579,7 @@ bool GameFunctions::RoR2Application_IsModded() {
 
     MonoField* field = m_runtime->GetField(m_RoR2ApplicationClass, "isModded");
     if (!field) {
-        G::logger.LogError("Failed to find isModded field");
+        LOG_ERROR("Failed to find isModded field");
         return false;
     }
     bool isModded = m_runtime->GetStaticFieldValue<bool>(m_RoR2ApplicationClass, field);
@@ -591,7 +592,7 @@ void GameFunctions::RoR2Application_SetModded(bool modded) {
 
     MonoField* field = m_runtime->GetField(m_RoR2ApplicationClass, "isModded");
     if (!field) {
-        G::logger.LogError("Failed to find isModded field");
+        LOG_ERROR("Failed to find isModded field");
         return;
     }
     m_runtime->SetStaticFieldValue<bool>(m_RoR2ApplicationClass, field, modded);
@@ -603,25 +604,25 @@ int GameFunctions::RoR2Application_GetLoadGameContentPercentage() {
 
     MonoProperty* instanceProperty = m_runtime->GetProperty(m_RoR2ApplicationClass, "instance");
     if (!instanceProperty) {
-        G::logger.LogError("Failed to find instance property in RoR2Application");
+        LOG_ERROR("Failed to find instance property in RoR2Application");
         return 0;
     }
 
     MonoMethod* getInstanceMethod = m_runtime->GetPropertyGetMethod(instanceProperty);
     if (!getInstanceMethod) {
-        G::logger.LogError("Failed to get instance getter method");
+        LOG_ERROR("Failed to get instance getter method");
         return 0;
     }
 
     MonoObject* instance = m_runtime->InvokeMethod(getInstanceMethod, nullptr, nullptr);
     if (!instance) {
-        G::logger.LogError("Failed to get RoR2Application instance");
+        LOG_ERROR("Failed to get RoR2Application instance");
         return 0;
     }
 
     MonoField* percentageField = m_runtime->GetField(m_RoR2ApplicationClass, "loadGameContentPercentage");
     if (!percentageField) {
-        G::logger.LogError("Failed to find loadGameContentPercentage field");
+        LOG_ERROR("Failed to find loadGameContentPercentage field");
         return 0;
     }
 
@@ -635,7 +636,7 @@ void GameFunctions::TeleportHelper_TeleportBody(void* m_characterBody, Vector3 p
 
         MonoMethod* method = m_runtime->GetMethod(m_teleportHelperClass, "TeleportBody", 3);
         if (!method) {
-            G::logger.LogError("Failed to find TeleportBody method");
+            LOG_ERROR("Failed to find TeleportBody method");
             return;
         }
 
@@ -768,14 +769,14 @@ bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int 
                                 auto it = G::specialItems.find("UseAmbientLevel");
                                 if (it != G::specialItems.end()) {
                                     useAmbientLevelIndex = it->second;
-                                    G::logger.LogInfo("Found UseAmbientLevel item at index %d", useAmbientLevelIndex);
+                                    LOG_INFO("Found UseAmbientLevel item at index %d", useAmbientLevelIndex);
                                 }
                             }
 
                             if (useAmbientLevelIndex >= 0) {
                                 Inventory_GiveItem(inventory, useAmbientLevelIndex, 1);
                             } else {
-                                G::logger.LogError("Could not find UseAmbientLevel item in items list");
+                                LOG_ERROR("Could not find UseAmbientLevel item in items list");
                             }
                         }
 
@@ -783,17 +784,17 @@ bool GameFunctions::SpawnEnemyAtPosition(int masterIndex, Vector3 position, int 
                         for (const auto& [itemIndex, count] : items) {
                             if (count > 0) {
                                 Inventory_GiveItem(inventory, itemIndex, count);
-                                G::logger.LogInfo("Gave %d of item %d to spawned enemy", count, itemIndex);
+                                LOG_INFO("Gave %d of item %d to spawned enemy", count, itemIndex);
                             }
                         }
                     } else {
-                        G::logger.LogWarning("Could not get inventory from spawned master");
+                        LOG_WARNING("Could not get inventory from spawned master");
                     }
                 } else {
-                    G::logger.LogError("Failed to find inventory getter method");
+                    LOG_ERROR("Failed to find inventory getter method");
                 }
             } else {
-                G::logger.LogError("Failed to find inventory property on CharacterMaster");
+                LOG_ERROR("Failed to find inventory property on CharacterMaster");
             }
         }
 
@@ -835,13 +836,13 @@ void GameFunctions::SetTeamLevel(TeamIndex_Value teamIndex, uint32_t level) {
     std::function<void()> task = [this, teamIndex, level]() {
         TeamManager* teamManager = GetTeamManagerInstance();
         if (!teamManager) {
-            G::logger.LogWarning("SetTeamLevel: TeamManager instance not available");
+            LOG_WARNING("SetTeamLevel: TeamManager instance not available");
             return;
         }
 
         MonoMethod* method = m_runtime->GetMethod(m_teamManagerClass, "SetTeamLevel", 2);
         if (!method) {
-            G::logger.LogError("SetTeamLevel: Failed to find SetTeamLevel method");
+            LOG_ERROR("SetTeamLevel: Failed to find SetTeamLevel method");
             return;
         }
 
@@ -850,7 +851,7 @@ void GameFunctions::SetTeamLevel(TeamIndex_Value teamIndex, uint32_t level) {
         void* params[2] = {&localTeamIndex, &localLevel};
         m_runtime->InvokeMethod(method, teamManager, params);
 
-        G::logger.LogInfo("SetTeamLevel: Called method for team %d level %u", static_cast<int>(teamIndex), level);
+        LOG_INFO("SetTeamLevel: Called method for team %d level %u", static_cast<int>(teamIndex), level);
     };
     std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
     G::queuedActions.push(task);
@@ -891,13 +892,13 @@ void GameFunctions::SetFixedTime(float time) {
 void GameFunctions::AwardLunarCoins(NetworkUser* networkUser, uint32_t coinsToAdd) {
     std::function<void()> task = [this, networkUser, coinsToAdd]() {
         if (!networkUser || !m_networkUserClass) {
-            G::logger.LogWarning("AwardLunarCoins: NetworkUser or class not available");
+            LOG_WARNING("AwardLunarCoins: NetworkUser or class not available");
             return;
         }
 
         MonoMethod* method = m_runtime->GetMethod(m_networkUserClass, "RpcAwardLunarCoins", 1);
         if (!method) {
-            G::logger.LogError("AwardLunarCoins: Failed to find RpcAwardLunarCoins method");
+            LOG_ERROR("AwardLunarCoins: Failed to find RpcAwardLunarCoins method");
             return;
         }
 
@@ -905,7 +906,7 @@ void GameFunctions::AwardLunarCoins(NetworkUser* networkUser, uint32_t coinsToAd
         void* params[1] = {&localCoinsToAdd};
         m_runtime->InvokeMethod(method, networkUser, params);
 
-        G::logger.LogInfo("AwardLunarCoins: Called RpcAwardLunarCoins with %u coins", coinsToAdd);
+        LOG_INFO("AwardLunarCoins: Called RpcAwardLunarCoins with %u coins", coinsToAdd);
     };
     std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
     G::queuedActions.push(task);
@@ -914,13 +915,13 @@ void GameFunctions::AwardLunarCoins(NetworkUser* networkUser, uint32_t coinsToAd
 void GameFunctions::DeductLunarCoins(NetworkUser* networkUser, uint32_t coinsToRemove) {
     std::function<void()> task = [this, networkUser, coinsToRemove]() {
         if (!networkUser || !m_networkUserClass) {
-            G::logger.LogWarning("DeductLunarCoins: NetworkUser or class not available");
+            LOG_WARNING("DeductLunarCoins: NetworkUser or class not available");
             return;
         }
 
         MonoMethod* method = m_runtime->GetMethod(m_networkUserClass, "RpcDeductLunarCoins", 1);
         if (!method) {
-            G::logger.LogError("DeductLunarCoins: Failed to find RpcDeductLunarCoins method");
+            LOG_ERROR("DeductLunarCoins: Failed to find RpcDeductLunarCoins method");
             return;
         }
 
@@ -928,7 +929,7 @@ void GameFunctions::DeductLunarCoins(NetworkUser* networkUser, uint32_t coinsToR
         void* params[1] = {&localCoinsToRemove};
         m_runtime->InvokeMethod(method, networkUser, params);
 
-        G::logger.LogInfo("DeductLunarCoins: Called RpcDeductLunarCoins with %u coins", coinsToRemove);
+        LOG_INFO("DeductLunarCoins: Called RpcDeductLunarCoins with %u coins", coinsToRemove);
     };
     std::unique_lock<std::mutex> lock(G::queuedActionsMutex);
     G::queuedActions.push(task);
@@ -941,19 +942,19 @@ std::string GameFunctions::GetUnityObjectName(void* unityObject) {
 
     MonoProperty* nameProp = m_runtime->GetProperty(m_unityObjectClass, "name");
     if (!nameProp) {
-        G::logger.LogError("GetUnityObjectName: Failed to find name property");
+        LOG_ERROR("GetUnityObjectName: Failed to find name property");
         return "";
     }
 
     MonoMethod* getNameMethod = m_runtime->GetPropertyGetMethod(nameProp);
     if (!getNameMethod) {
-        G::logger.LogError("GetUnityObjectName: Failed to find name getter method");
+        LOG_ERROR("GetUnityObjectName: Failed to find name getter method");
         return "";
     }
 
     MonoObject* nameObj = m_runtime->InvokeMethod(getNameMethod, unityObject, nullptr);
     if (!nameObj) {
-        G::logger.LogError("GetUnityObjectName: Failed to get name from UnityEngine.Object");
+        LOG_ERROR("GetUnityObjectName: Failed to get name from UnityEngine.Object");
         return "";
     }
 
@@ -963,13 +964,13 @@ std::string GameFunctions::GetUnityObjectName(void* unityObject) {
 void GameFunctions::TransformCharacterBody(CharacterMaster* master, GameObject* bodyPrefab) {
     std::function<void()> task = [this, master, bodyPrefab]() {
         if (!master || !master->resolvedBodyInstance || !m_characterMasterClass || !bodyPrefab) {
-            G::logger.LogWarning("TransformCharacterBody: Invalid parameters");
+            LOG_WARNING("TransformCharacterBody: Invalid parameters");
             return;
         }
 
         void* bodyInstanceTransform = Hooks::GameObject_get_transform(master->resolvedBodyInstance);
         if (!bodyInstanceTransform) {
-            G::logger.LogError("TransformCharacterBody: Failed to get transform from body");
+            LOG_ERROR("TransformCharacterBody: Failed to get transform from body");
             return;
         }
 
@@ -983,7 +984,7 @@ void GameFunctions::TransformCharacterBody(CharacterMaster* master, GameObject* 
         MonoMethod* destroyBody = m_runtime->GetMethod(m_characterMasterClass, "DestroyBody", 0);
         MonoMethod* spawnBody = m_runtime->GetMethod(m_characterMasterClass, "SpawnBody", 2);
         if (!destroyBody || !spawnBody) {
-            G::logger.LogError("TransformCharacterBody: Failed to find DestroyBody or SpawnBody method");
+            LOG_ERROR("TransformCharacterBody: Failed to find DestroyBody or SpawnBody method");
             return;
         }
 
@@ -1015,7 +1016,7 @@ std::vector<std::pair<std::string, GameObject*>> GameFunctions::GetAllBodyPrefab
     }
 
     uint32_t arrayLength = static_cast<uint32_t>((reinterpret_cast<MonoArray_Internal*>(bodyPrefabsArray))->max_length);
-    G::logger.LogInfo("GetAllBodyPrefabsWithNames: Found %d body prefabs", arrayLength);
+    LOG_INFO("GetAllBodyPrefabsWithNames: Found %d body prefabs", arrayLength);
 
     GameObject** prefabData = mono_array_addr<GameObject*>(reinterpret_cast<MonoArray_Internal*>(bodyPrefabsArray));
     CharacterBody** componentData = mono_array_addr<CharacterBody*>(reinterpret_cast<MonoArray_Internal*>(bodyComponentsArray));
@@ -1085,7 +1086,7 @@ bool GameFunctions::GetPlayerHasBodyEntitlement(GameObject* bodyPrefab) {
     }
 
     if (!hasEntitlement) {
-        G::logger.LogWarning("CheckBodyHasEntitlement: Missing entitlement for body prefab %s", GetUnityObjectName(bodyPrefab).c_str());
+        LOG_WARNING("CheckBodyHasEntitlement: Missing entitlement for body prefab %s", GetUnityObjectName(bodyPrefab).c_str());
         return false;
     }
 

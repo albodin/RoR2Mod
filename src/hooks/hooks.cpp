@@ -36,8 +36,7 @@ bool CreateHook(const char* assemblyName, const char* nameSpace, const char* cla
         LPVOID pTarget = G::g_monoRuntime->GetMethodAddress(assemblyName, nameSpace, className, methodName, paramCount, returnType, paramTypes);
 
         if (!pTarget) {
-            G::logger.LogError("Failed to get method address for " + std::string(assemblyName) + "::" + std::string(nameSpace) + "::" + std::string(className) +
-                               "::" + std::string(methodName));
+            LOG_ERROR("Failed to get method address for %s::%s::%s::%s", assemblyName, nameSpace, className, methodName);
             return false;
         }
 
@@ -49,13 +48,13 @@ bool CreateHook(const char* assemblyName, const char* nameSpace, const char* cla
         }
 
         if (attempt < maxRetries - 1) {
-            G::logger.LogWarning("Hook creation attempt %d failed for %s::%s::%s (Status: %d), retrying...", attempt + 1, nameSpace, className, methodName,
-                                 create_status);
+            LOG_WARNING("Hook creation attempt %d failed for %s::%s::%s (Status: %d), retrying...", attempt + 1, nameSpace, className, methodName,
+                        create_status);
             Sleep(retryDelay);
         }
     }
 
-    G::logger.LogError("Hook creation failed after %d attempts for %s::%s::%s", maxRetries, nameSpace, className, methodName);
+    LOG_ERROR("Hook creation failed after %d attempts for %s::%s::%s", maxRetries, nameSpace, className, methodName);
     return false;
 }
 
@@ -66,9 +65,9 @@ bool CreateHook(const char* assemblyName, const char* nameSpace, const char* cla
         void (*fp##ns##class##method)(void);                                                                                                                   \
         if (CreateHook(#assembly, #ns, #class, #method, paramcount, returntype, paramTypes, reinterpret_cast<LPVOID>(&Hooks::hk##ns##class##method),           \
                        reinterpret_cast<LPVOID*>(&fp##ns##class##method))) {                                                                                   \
-            G::logger.LogInfo(STRINGIFY(Hooked ns##class##method));                                                                                            \
+            LOG_INFO(STRINGIFY(Hooked ns##class##method));                                                                                                     \
         } else {                                                                                                                                               \
-            G::logger.LogError(STRINGIFY(Failed to hook ns##class##method));                                                                                   \
+            LOG_ERROR(STRINGIFY(Failed to hook ns##class##method));                                                                                            \
             G::running = false;                                                                                                                                \
         }                                                                                                                                                      \
     }
@@ -80,9 +79,9 @@ bool CreateHook(const char* assemblyName, const char* nameSpace, const char* cla
         if (CreateHook(#assembly, #ns, #parentclass "+" #nestedclass, #method, paramcount, returntype, paramTypes,                                             \
                        reinterpret_cast<LPVOID>(&Hooks::hk##ns##parentclass##nestedclass##method),                                                             \
                        reinterpret_cast<LPVOID*>(&fp##ns##parentclass##nestedclass##method))) {                                                                \
-            G::logger.LogInfo(STRINGIFY(Hooked ns##parentclass##nestedclass##method));                                                                         \
+            LOG_INFO(STRINGIFY(Hooked ns##parentclass##nestedclass##method));                                                                                  \
         } else {                                                                                                                                               \
-            G::logger.LogError(STRINGIFY(Failed to hook ns##parentclass##nestedclass##method));                                                                \
+            LOG_ERROR(STRINGIFY(Failed to hook ns##parentclass##nestedclass##method));                                                                         \
             G::running = false;                                                                                                                                \
         }                                                                                                                                                      \
     }
@@ -97,27 +96,27 @@ bool CreateHook(const char* assemblyName, const char* nameSpace, const char* cla
                                                                                                                                                                \
         MonoClass* klass = G::g_monoRuntime->GetClass(#Assembly, #Namespace, #Class);                                                                          \
         if (!klass) {                                                                                                                                          \
-            G::logger.LogError("Failed to find class " #Namespace "." #Class);                                                                                 \
+            LOG_ERROR("Failed to find class " #Namespace "." #Class);                                                                                          \
             G::running = false;                                                                                                                                \
             return;                                                                                                                                            \
         }                                                                                                                                                      \
                                                                                                                                                                \
         MonoMethod* method = G::g_monoRuntime->GetMethod(klass, #Method, ParamCount);                                                                          \
         if (!method) {                                                                                                                                         \
-            G::logger.LogError("Failed to find method " #Namespace "." #Class "::" #Method);                                                                   \
+            LOG_ERROR("Failed to find method " #Namespace "." #Class "::" #Method);                                                                            \
             G::running = false;                                                                                                                                \
             return;                                                                                                                                            \
         }                                                                                                                                                      \
                                                                                                                                                                \
         void* funcPtr = G::g_monoRuntime->GetInternalCallPointer(method);                                                                                      \
         if (!funcPtr) {                                                                                                                                        \
-            G::logger.LogError("Failed to get internal call pointer for " #Namespace "." #Class "::" #Method);                                                 \
+            LOG_ERROR("Failed to get internal call pointer for " #Namespace "." #Class "::" #Method);                                                          \
             G::running = false;                                                                                                                                \
             return;                                                                                                                                            \
         }                                                                                                                                                      \
                                                                                                                                                                \
         Hooks::Class##_##Method = (Class##_##Method##_fn)funcPtr;                                                                                              \
-        G::logger.LogInfo("Successfully initialized " #Namespace "." #Class "::" #Method " at %p", funcPtr);                                                   \
+        LOG_INFO("Successfully initialized " #Namespace "." #Class "::" #Method " at %p", funcPtr);                                                            \
     }                                                                                                                                                          \
     static const bool Class##_##Method##_registered = []() {                                                                                                   \
         internalCallInitQueue.push(std::make_pair(#Namespace "." #Class "::" #Method, Init##Class##_##Method));                                                \
@@ -138,7 +137,7 @@ DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, GameObject, get_transf
 void Hooks::Init() {
     MH_STATUS status = MH_Initialize();
     if (status != MH_OK) {
-        G::logger.LogError("Failed to initialize MinHook: %s", MH_StatusToString(status));
+        LOG_ERROR("Failed to initialize MinHook: %s", MH_StatusToString(status));
         G::running = false;
         return;
     }
@@ -150,7 +149,7 @@ void Hooks::Init() {
     G::gameFunctions = std::make_unique<GameFunctions>(G::g_monoRuntime.get());
     while (G::gameFunctions->RoR2Application_IsLoading() && !G::gameFunctions->RoR2Application_IsLoadFinished() &&
            G::gameFunctions->RoR2Application_GetLoadGameContentPercentage() < 10) {
-        G::logger.LogInfo("Waiting for RoR2 to load...");
+        LOG_INFO("Waiting for RoR2 to load...");
         Sleep(1000);
     }
 
@@ -211,19 +210,18 @@ void Hooks::Init() {
     for (auto& target : hookTargets) {
         MH_STATUS enable_status = MH_EnableHook(target.second);
         if (enable_status == MH_OK) {
-            G::logger.LogInfo("Hook successfully enabled for " + target.first);
+            LOG_INFO("Hook successfully enabled for %s", target.first.c_str());
         } else {
-            G::logger.LogError("Hook enabling failed for " + target.first + ", error: " + MH_StatusToString(enable_status) +
-                               " (code: " + MH_StatusToString(enable_status) + ")");
+            LOG_ERROR("Hook enabling failed for %s, error: %s (code: %d)", target.first.c_str(), MH_StatusToString(enable_status), enable_status);
         }
     }
 
-    G::logger.LogInfo("Initializing %zu internal calls", internalCallInitQueue.size());
+    LOG_INFO("Initializing %zu internal calls", internalCallInitQueue.size());
     while (!internalCallInitQueue.empty()) {
         auto [name, func] = internalCallInitQueue.front();
         internalCallInitQueue.pop();
 
-        G::logger.LogInfo("Initializing internal call: %s", name.c_str());
+        LOG_INFO("Initializing internal call: %s", name.c_str());
         func();
     }
 
@@ -237,18 +235,18 @@ void Hooks::Init() {
             Sleep(2000);
         }
     } while (enemyCount == -1);
-    G::logger.LogInfo("Enemies loaded successfully");
+    LOG_INFO("Enemies loaded successfully");
 
     // Initialize body catalog
     std::vector<std::pair<std::string, GameObject*>> bodyPrefabsWithNames;
     do {
         bodyPrefabsWithNames = G::gameFunctions->GetAllBodyPrefabsWithNames();
         if (bodyPrefabsWithNames.empty()) {
-            G::logger.LogInfo("Waiting for BodyCatalog to be initialized...");
+            LOG_INFO("Waiting for BodyCatalog to be initialized...");
             Sleep(2000);
         }
     } while (bodyPrefabsWithNames.empty());
-    G::logger.LogInfo("BodyCatalog loaded with %d body prefabs", bodyPrefabsWithNames.size());
+    LOG_INFO("BodyCatalog loaded with %d body prefabs", bodyPrefabsWithNames.size());
     G::localPlayer->SetBodyPrefabsWithNames(bodyPrefabsWithNames);
 
     // Initialize elite types
@@ -259,7 +257,7 @@ void Hooks::Init() {
             Sleep(1000);
         }
     } while (eliteCount == -1);
-    G::logger.LogInfo("Elites loaded successfully");
+    LOG_INFO("Elites loaded successfully");
 
     // Initialize enemy spawning module
     G::enemySpawningModule->InitializeEnemies();
@@ -268,37 +266,37 @@ void Hooks::Init() {
 #ifdef DEBUG_PRINT
     std::shared_lock<std::shared_mutex> enemyLock(G::enemiesMutex);
     for (auto& enemy : G::enemies) {
-        G::logger.LogInfo("Enemy: " + enemy.displayName + ", name: " + enemy.masterName + ", index: " + std::to_string(enemy.masterIndex));
+        LOG_INFO("Enemy: %s, name: %s, index: %d", enemy.displayName.c_str(), enemy.masterName.c_str(), enemy.masterIndex);
     }
 #endif
 
 #ifdef DEBUG_PRINT
     std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
     for (auto& item : G::items) {
-        G::logger.LogInfo("Item: " + item.displayName + ", name: " + item.name + ", index: " + std::to_string(item.index) +
-                          ", tier: " + std::to_string(static_cast<int>(item.tier)) + ", nameToken: " + item.nameToken + ", pickupToken: " + item.pickupToken +
-                          ", descriptionToken: " + item.descriptionToken + ", loreToken: " + item.loreToken + ", tierName: " + item.tierName +
-                          ", isDroppable: " + std::to_string(item.isDroppable) + ", canScrap: " + std::to_string(item.canScrap) +
-                          ", canRestack: " + std::to_string(item.canRestack) + ", canRemove: " + std::to_string(item.canRemove) + ", isConsumed: " +
-                          std::to_string(item.isConsumed) + ", hidden: " + std::to_string(item.hidden) + ", tags: " + std::to_string(item.tags.size()));
+        LOG_INFO("Item: %s, name: %s, index: %d, tier: %d, nameToken: %s, pickupToken: %s, "
+                 "descriptionToken: %s, loreToken: %s, tierName: %s, isDroppable: %d, canScrap: %d, "
+                 "canRestack: %d, canRemove: %d, isConsumed: %d, hidden: %d, tags: %zu",
+                 item.displayName.c_str(), item.name.c_str(), item.index, static_cast<int>(item.tier), item.nameToken.c_str(), item.pickupToken.c_str(),
+                 item.descriptionToken.c_str(), item.loreToken.c_str(), item.tierName.c_str(), item.isDroppable, item.canScrap, item.canRestack, item.canRemove,
+                 item.isConsumed, item.hidden, item.tags.size());
         for (auto& tag : item.tags) {
-            G::logger.LogInfo("Tag: " + std::to_string(tag));
+            LOG_INFO("Tag: %d", tag);
         }
-        G::logger.LogInfo("-----------------------------------------------------");
+        LOG_INFO("-----------------------------------------------------");
     }
 #endif // DEBUG_PRINT
 
     // Load and cache all pickup names
     int pickupCount = G::gameFunctions->LoadPickupNames();
     if (pickupCount > 0) {
-        G::logger.LogInfo("Loaded %d pickup names", pickupCount);
+        LOG_INFO("Loaded %d pickup names", pickupCount);
     } else {
-        G::logger.LogError("Failed to load pickup names");
+        LOG_ERROR("Failed to load pickup names");
     }
 
     MonoClass* layerMaskClass = G::g_monoRuntime->GetClass("UnityEngine.CoreModule", "UnityEngine", "LayerMask");
     if (layerMaskClass) {
-        G::logger.LogInfo("Getting layer indices using LayerMask.NameToLayer...");
+        LOG_INFO("Getting layer indices using LayerMask.NameToLayer...");
 
         MonoMethod* nameToLayerMethod = G::g_monoRuntime->GetMethod(layerMaskClass, "NameToLayer", 1);
         if (nameToLayerMethod) {
@@ -317,13 +315,13 @@ void Hooks::Init() {
             G::entityPreciseLayer = getLayerByName("EntityPrecise");
             G::ignoreRaycastLayer = getLayerByName("Ignore Raycast");
 
-            G::logger.LogInfo("RoR2 Layers - World: %d, PlayerBody: %d, EnemyBody: %d, EntityPrecise: %d, IgnoreRaycast: %d", G::worldLayer, G::playerBodyLayer,
-                              G::enemyBodyLayer, G::entityPreciseLayer, G::ignoreRaycastLayer);
+            LOG_INFO("RoR2 Layers - World: %d, PlayerBody: %d, EnemyBody: %d, EntityPrecise: %d, IgnoreRaycast: %d", G::worldLayer, G::playerBodyLayer,
+                     G::enemyBodyLayer, G::entityPreciseLayer, G::ignoreRaycastLayer);
         } else {
-            G::logger.LogError("Failed to find LayerMask.NameToLayer method");
+            LOG_ERROR("Failed to find LayerMask.NameToLayer method");
         }
     } else {
-        G::logger.LogError("Failed to find LayerMask class");
+        LOG_ERROR("Failed to find LayerMask class");
     }
 
     G::showMenuControl->SetOnChange([](bool enabled) {
@@ -342,26 +340,26 @@ void Hooks::Init() {
 
     G::csHelper = std::make_unique<CSharpHelper>(G::g_monoRuntime.get());
     if (G::csHelper->Initialize()) {
-        G::logger.LogInfo("CSharpHelper: initialized successfully");
+        LOG_INFO("CSharpHelper: initialized successfully");
         G::interactableSpawningModule->Initialize();
     } else {
-        G::logger.LogError("Failed to initialize CSharpHelper");
+        LOG_ERROR("Failed to initialize CSharpHelper");
     }
 
     G::gameFunctions->RoR2Application_SetModded(true);
-    G::logger.LogInfo("Modded: " + std::to_string(G::gameFunctions->RoR2Application_IsModded()));
+    LOG_INFO("Modded: %d", G::gameFunctions->RoR2Application_IsModded());
 }
 
 void Hooks::Unhook() {
-    G::logger.LogInfo("Starting unhook process...");
+    LOG_INFO("Starting unhook process...");
 
     if (G::oWndProc && G::windowHwnd) {
-        G::logger.LogInfo("Restoring window procedure...");
+        LOG_INFO("Restoring window procedure...");
         G::oWndProc = reinterpret_cast<WNDPROC>(SetWindowLongPtr(G::windowHwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(G::oWndProc)));
     }
 
     if (G::initialized) {
-        G::logger.LogInfo("Shutting down ImGui...");
+        LOG_INFO("Shutting down ImGui...");
         ImGui_ImplDX11_Shutdown();
         ImGui_ImplWin32_Shutdown();
         ImGui::DestroyContext();
@@ -380,39 +378,36 @@ void Hooks::Unhook() {
         G::pDevice = nullptr;
     }
 
-    G::logger.LogInfo("Disabling all hooks...");
+    LOG_INFO("Disabling all hooks...");
     for (auto& target : hookTargets) {
         MH_STATUS disable_status = MH_DisableHook(target.second);
         if (disable_status == MH_OK) {
-            G::logger.LogInfo("Hook successfully disabled for " + target.first);
+            LOG_INFO("Hook successfully disabled for %s", target.first.c_str());
         } else {
-            G::logger.LogError("Hook disabling failed for " + target.first + ", error: " + MH_StatusToString(disable_status) +
-                               " (code: " + MH_StatusToString(disable_status) + ")");
+            LOG_ERROR("Hook disabling failed for %s, error: %s (code: %d)", target.first.c_str(), MH_StatusToString(disable_status), disable_status);
         }
     }
-    G::logger.LogInfo("All hooks disabled");
+    LOG_INFO("All hooks disabled");
 
-    G::logger.LogInfo("Removing all hooks...");
+    LOG_INFO("Removing all hooks...");
     for (auto& target : hookTargets) {
         MH_STATUS remove_status = MH_RemoveHook(target.second);
         if (remove_status == MH_OK) {
-            G::logger.LogInfo("Hook successfully removed for " + target.first);
+            LOG_INFO("Hook successfully removed for %s", target.first.c_str());
         } else {
-            G::logger.LogError("Hook removal failed for " + target.first + ", error: " + MH_StatusToString(remove_status) +
-                               " (code: " + MH_StatusToString(remove_status) + ")");
+            LOG_ERROR("Hook removal failed for %s, error: %s (code: %d)", target.first.c_str(), MH_StatusToString(remove_status), remove_status);
         }
     }
-    G::logger.LogInfo("All hooks removed");
+    LOG_INFO("All hooks removed");
 
     kiero::shutdown();
-    G::logger.LogInfo("Kiero successfully shut down");
+    LOG_INFO("Kiero successfully shut down");
 
     MH_STATUS uninit_status = MH_Uninitialize();
     if (uninit_status == MH_OK) {
-        G::logger.LogInfo("MinHook successfully uninitialized");
+        LOG_INFO("MinHook successfully uninitialized");
     } else {
-        G::logger.LogError(std::string("MinHook uninitialization failed, error: ") + MH_StatusToString(uninit_status) +
-                           " (code: " + MH_StatusToString(uninit_status) + ")");
+        LOG_ERROR("MinHook uninitialization failed, error: %s (code: %d)", MH_StatusToString(uninit_status), uninit_status);
     }
 
     G::g_monoRuntime = nullptr;
@@ -554,7 +549,7 @@ void Hooks::hkRoR2SteamworksServerManagerTagsStringUpdated(void* instance) {
     static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2SteamworksServerManagerTagsStringUpdated"]);
     originalFunc(instance);
 
-    G::logger.LogInfo("ServerManagerTags::StringUpdated - instance=%p", instance);
+    LOG_INFO("ServerManagerTags::StringUpdated - instance=%p", instance);
     ServerManagerBase* serverManager_ptr = static_cast<ServerManagerBase*>(instance);
     if (serverManager_ptr && serverManager_ptr->tags) {
         MonoList list(static_cast<MonoObject*>(serverManager_ptr->tags));
@@ -570,7 +565,7 @@ void Hooks::hkRoR2TeleporterInteractionAwake(void* instance) {
         return;
     }
 
-    G::logger.LogInfo("TeleporterInteraction::Awake - instance=%p", instance);
+    LOG_INFO("TeleporterInteraction::Awake - instance=%p", instance);
     G::espModule->OnTeleporterAwake(instance);
     G::worldModule->OnTeleporterInteractionAwake(instance);
 }
@@ -591,7 +586,7 @@ void Hooks::hkRoR2TeleporterInteractionOnDestroy(void* instance) {
     static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2TeleporterInteractionOnDestroy"]);
 
     if (G::hooksInitialized) {
-        G::logger.LogInfo("TeleporterInteraction::OnDestroy - instance=%p", instance);
+        LOG_INFO("TeleporterInteraction::OnDestroy - instance=%p", instance);
         G::espModule->OnTeleporterDestroyed(instance);
     }
 
@@ -616,7 +611,7 @@ void Hooks::hkRoR2CharacterBodyStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("CharacterBody::Start - instance=%p", instance);
+    LOG_INFO("CharacterBody::Start - instance=%p", instance);
     G::espModule->OnCharacterBodySpawned(instance);
 }
 
@@ -624,7 +619,7 @@ void Hooks::hkRoR2CharacterBodyOnDestroy(void* instance) {
     static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2CharacterBodyOnDestroy"]);
 
     if (G::hooksInitialized) {
-        G::logger.LogInfo("CharacterBody::OnDestroy - instance=%p", instance);
+        LOG_INFO("CharacterBody::OnDestroy - instance=%p", instance);
         G::espModule->OnCharacterBodyDestroyed(instance);
         G::localPlayer->OnCharacterBodyDestroyed(instance);
     }
@@ -673,7 +668,7 @@ void Hooks::hkRoR2HuntressTrackerStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("HuntressTracker::Start - instance=%p", instance);
+    LOG_INFO("HuntressTracker::Start - instance=%p", instance);
     G::localPlayer->OnHuntressTrackerStart(instance);
 }
 
@@ -756,7 +751,7 @@ void Hooks::hkRoR2PurchaseInteractionStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("PurchaseInteraction::Start - instance=%p", instance);
+    LOG_INFO("PurchaseInteraction::Start - instance=%p", instance);
     G::espModule->OnPurchaseInteractionSpawned(instance);
 }
 
@@ -767,7 +762,7 @@ void Hooks::hkRoR2BarrelInteractionStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("BarrelInteraction::Start - instance=%p", instance);
+    LOG_INFO("BarrelInteraction::Start - instance=%p", instance);
     G::espModule->OnBarrelInteractionSpawned(instance);
 }
 
@@ -778,7 +773,7 @@ void Hooks::hkRoR2GenericPickupControllerStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("GenericPickupController::Start - instance=%p", instance);
+    LOG_INFO("GenericPickupController::Start - instance=%p", instance);
     G::espModule->OnGenericPickupControllerSpawned(instance);
 }
 
@@ -789,7 +784,7 @@ void Hooks::hkRoR2TimedChestControllerOnEnable(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("TimedChestController::OnEnable - instance=%p", instance);
+    LOG_INFO("TimedChestController::OnEnable - instance=%p", instance);
     G::espModule->OnTimedChestControllerSpawned(instance);
 }
 
@@ -800,7 +795,7 @@ void Hooks::hkRoR2TimedChestControllerOnDisable(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("TimedChestController::OnDisable - instance=%p", instance);
+    LOG_INFO("TimedChestController::OnDisable - instance=%p", instance);
     G::espModule->OnTimedChestControllerDespawned(instance);
 }
 
@@ -811,7 +806,7 @@ void Hooks::hkRoR2TeamManagerOnEnable(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("TeamManager::OnEnable - instance=%p", instance);
+    LOG_INFO("TeamManager::OnEnable - instance=%p", instance);
     G::gameFunctions->CacheTeamManagerInstance(reinterpret_cast<TeamManager*>(instance));
 }
 
@@ -822,7 +817,7 @@ void Hooks::hkRoR2TeamManagerOnDisable(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("TeamManager::OnDisable - instance=%p", instance);
+    LOG_INFO("TeamManager::OnDisable - instance=%p", instance);
     G::gameFunctions->ClearTeamManagerInstance();
 }
 
@@ -833,7 +828,7 @@ void Hooks::hkRoR2GenericInteractionOnEnable(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("GenericInteraction::OnEnable - instance=%p", instance);
+    LOG_INFO("GenericInteraction::OnEnable - instance=%p", instance);
     G::espModule->OnGenericInteractionSpawned(instance);
 }
 
@@ -844,7 +839,7 @@ void Hooks::hkRoR2PickupPickerControllerAwake(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("PickupPickerController::Awake - instance=%p", instance);
+    LOG_INFO("PickupPickerController::Awake - instance=%p", instance);
     G::espModule->OnPickupPickerControllerSpawned(instance);
 }
 
@@ -856,7 +851,7 @@ void Hooks::hkRoR2PickupPickerControllerOnDisable(void* instance) {
         return;
     }
 
-    G::logger.LogInfo("PickupPickerController::OnDisable - instance=%p", instance);
+    LOG_INFO("PickupPickerController::OnDisable - instance=%p", instance);
     PickupPickerController* pcc = static_cast<PickupPickerController*>(instance);
     pcc->available = false;
 
@@ -870,7 +865,7 @@ void Hooks::hkRoR2ScrapperControllerStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("ScrapperController::Start - instance=%p", instance);
+    LOG_INFO("ScrapperController::Start - instance=%p", instance);
     G::espModule->OnScrapperControllerSpawned(instance);
 }
 
@@ -878,7 +873,7 @@ void Hooks::hkRoR2RunAdvanceStage(void* instance, void* nextScene) {
     static auto originalFunc = reinterpret_cast<void (*)(void*, void*)>(hooks["RoR2RunAdvanceStage"]);
 
     if (G::hooksInitialized) {
-        G::logger.LogInfo("Run::AdvanceStage - instance=%p", instance);
+        LOG_INFO("Run::AdvanceStage - instance=%p", instance);
         G::espModule->OnStageAdvance(instance);
         G::localPlayer->OnStageAdvance(instance);
     }
@@ -893,7 +888,7 @@ void Hooks::hkRoR2RunAwake(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("Run::Awake - instance=%p", instance);
+    LOG_INFO("Run::Awake - instance=%p", instance);
     G::runInstance = static_cast<Run*>(instance);
 }
 
@@ -901,7 +896,7 @@ void Hooks::hkRoR2RunOnDisable(void* instance) {
     static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2RunOnDisable"]);
 
     if (G::hooksInitialized && G::runInstance == instance) {
-        G::logger.LogInfo("Run::OnDisable - instance=%p");
+        LOG_INFO("Run::OnDisable - instance=%p");
         G::espModule->OnRunExit();
         G::runInstance = nullptr;
     }
@@ -916,7 +911,7 @@ void Hooks::hkRoR2ChestBehaviorStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("ChestBehavior::Start - instance=%p", instance);
+    LOG_INFO("ChestBehavior::Start - instance=%p", instance);
     G::espModule->OnChestBehaviorSpawned(instance);
 }
 
@@ -927,7 +922,7 @@ void Hooks::hkRoR2ShopTerminalBehaviorStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("ShopTerminalBehavior::Start - instance=%p", instance);
+    LOG_INFO("ShopTerminalBehavior::Start - instance=%p", instance);
     G::espModule->OnShopTerminalBehaviorSpawned(instance);
 }
 
@@ -938,7 +933,7 @@ void Hooks::hkRoR2PressurePlateControllerStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("PressurePlateController::Start - instance=%p", instance);
+    LOG_INFO("PressurePlateController::Start - instance=%p", instance);
     G::espModule->OnPressurePlateControllerSpawned(instance);
 }
 
@@ -960,7 +955,7 @@ void Hooks::hkRoR2PortalSpawnerStart(void* instance) {
     if (!G::hooksInitialized)
         return;
 
-    G::logger.LogInfo("PortalSpawner::Start - instance=%p", instance);
+    LOG_INFO("PortalSpawner::Start - instance=%p", instance);
     PortalSpawner* portalSpawner = static_cast<PortalSpawner*>(instance);
     if (!portalSpawner)
         return;
@@ -1019,7 +1014,7 @@ void* Hooks::hkRoR2CharacterMasterSpawnBody(void* instance, Vector3 position, Qu
 
     bool isPlayer = (master && master->playerCharacterMasterController_backing != nullptr);
 
-    G::logger.LogInfo("CharacterMaster::SpawnBody - instance=%p, isPlayer=%d, pos=(%.1f,%.1f,%.1f)", instance, isPlayer, position.x, position.y, position.z);
+    LOG_INFO("CharacterMaster::SpawnBody - instance=%p, isPlayer=%d, pos=(%.1f,%.1f,%.1f)", instance, isPlayer, position.x, position.y, position.z);
 
     if (isPlayer) {
         if (G::localPlayer && G::localPlayer->IsCustomModelLocked()) {
@@ -1027,7 +1022,7 @@ void* Hooks::hkRoR2CharacterMasterSpawnBody(void* instance, Vector3 position, Qu
 
             if (customBodyPrefab) {
                 GameObject* currentPrefab = master->bodyPrefab;
-                G::logger.LogInfo("CharacterMaster::SpawnBody - Player spawn Current prefab=%p, Custom prefab=%p", currentPrefab, customBodyPrefab);
+                LOG_INFO("CharacterMaster::SpawnBody - Player spawn Current prefab=%p, Custom prefab=%p", currentPrefab, customBodyPrefab);
                 master->bodyPrefab = customBodyPrefab;
             }
         }

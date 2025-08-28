@@ -17,9 +17,9 @@ InteractableSpawningModule::InteractableSpawningModule() {
 InteractableSpawningModule::~InteractableSpawningModule() {}
 
 void InteractableSpawningModule::Initialize() {
-    G::logger.LogInfo("Initializing InteractableSpawningModule...");
+    LOG_INFO("Initializing InteractableSpawningModule...");
     SetupInteractables();
-    G::logger.LogInfo("InteractableSpawningModule initialized with %zu interactables", interactableNames.size());
+    LOG_INFO("InteractableSpawningModule initialized with %zu interactables", interactableNames.size());
 }
 
 void InteractableSpawningModule::Update() {
@@ -68,18 +68,18 @@ void InteractableSpawningModule::SetupInteractables() {
 
     interactableSelectControl->SetItems(interactableNames);
 
-    G::logger.LogInfo("Loaded %zu interactables with addressable paths", interactableNames.size());
+    LOG_INFO("Loaded %zu interactables with addressable paths", interactableNames.size());
 }
 
 void InteractableSpawningModule::SpawnSelectedInteractable(bool playerPosition) {
     if (!G::csHelper || !G::csHelper->IsLoaded()) {
-        G::logger.LogError("C# Helper not available for spawning");
+        LOG_ERROR("C# Helper not available for spawning");
         return;
     }
 
     int selectedIndex = interactableSelectControl->GetSelectedIndex();
     if (selectedIndex < 0 || selectedIndex >= static_cast<int>(interactablePaths.size())) {
-        G::logger.LogError("Invalid interactable selection index: %d", selectedIndex);
+        LOG_ERROR("Invalid interactable selection index: %d", selectedIndex);
         return;
     }
 
@@ -93,18 +93,18 @@ void InteractableSpawningModule::SpawnSelectedInteractable(bool playerPosition) 
         spawnPos = G::localPlayer->GetPlayerPosition();
         locationDesc = "near player";
         if (spawnPos.x == 0.0f && spawnPos.y == 0.0f && spawnPos.z == 0.0f) {
-            G::logger.LogError("Could not get player position");
+            LOG_ERROR("Could not get player position");
             return;
         }
     } else {
         spawnPos = G::localPlayer->GetCrosshairPosition();
         locationDesc = "at crosshair";
         if (spawnPos.x == 0.0f && spawnPos.y == 0.0f && spawnPos.z == 0.0f) {
-            G::logger.LogError("Could not get crosshair position");
+            LOG_ERROR("Could not get crosshair position");
             return;
         }
     }
 
-    G::logger.LogInfo("Spawning %s %s (%.2f, %.2f, %.2f)", selectedName.c_str(), locationDesc, spawnPos.x, spawnPos.y, spawnPos.z);
+    LOG_INFO("Spawning %s %s (%.2f, %.2f, %.2f)", selectedName.c_str(), locationDesc, spawnPos.x, spawnPos.y, spawnPos.z);
     G::csHelper->SpawnInteractable(selectedPath, spawnPos.x, spawnPos.y, spawnPos.z);
 }

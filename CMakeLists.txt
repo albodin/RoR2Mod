@@ -89,6 +89,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/generated
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
+    ${CMAKE_CURRENT_SOURCE_DIR}/plog/include
 )
 
 # Find all source files

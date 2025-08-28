@@ -58,9 +58,9 @@ void FontManager::LoadCustomFonts(ImFontAtlas* atlas) {
     if (!std::filesystem::exists(fontDir)) {
         try {
             std::filesystem::create_directories(fontDir);
-            G::logger.LogInfo("Created fonts directory: %s", fontDir.c_str());
+            LOG_INFO("Created fonts directory: %s", fontDir.c_str());
         } catch (const std::exception& e) {
-            G::logger.LogError("Failed to create fonts directory: %s", e.what());
+            LOG_ERROR("Failed to create fonts directory: %s", e.what());
             return;
         }
     }
@@ -96,17 +96,17 @@ void FontManager::LoadCustomFonts(ImFontAtlas* atlas) {
                 if (font) {
                     FontInfo fontInfo = {fontName, fontPath, font};
                     AvailableFonts.push_back(fontInfo);
-                    G::logger.LogInfo("Loaded font: %s", fontName.c_str());
+                    LOG_INFO("Loaded font: %s", fontName.c_str());
                 } else {
-                    G::logger.LogError("Failed to load font: %s", fontPath.c_str());
+                    LOG_ERROR("Failed to load font: %s", fontPath.c_str());
                 }
             }
         }
     } catch (const std::exception& e) {
-        G::logger.LogError("Error scanning font directory: %s", e.what());
+        LOG_ERROR("Error scanning font directory: %s", e.what());
     }
 
-    G::logger.LogInfo("Loaded %zu fonts total", AvailableFonts.size());
+    LOG_INFO("Loaded %zu fonts total", AvailableFonts.size());
 }
 
 ImFont* FontManager::GetESPFont() {

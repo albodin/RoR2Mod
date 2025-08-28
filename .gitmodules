@@ -4,3 +4,6 @@
 [submodule "imgui"]
 	path = imgui
 	url = git@github.com:ocornut/imgui.git
+[submodule "plog"]
+	path = plog
+	url = https://github.com/SergiusTheBest/plog.git

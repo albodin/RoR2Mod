@@ -802,7 +802,7 @@ void ESPModule::OnTeleporterAwake(void* teleporter) {
     std::lock_guard<std::mutex> lock(teleportersMutex);
     trackedTeleporters.push_back(std::move(trackedTeleporter));
 
-    G::logger.LogInfo("Tracked new teleporter at position (%.1f, %.1f, %.1f)", position.x, position.y, position.z);
+    LOG_INFO("Tracked new teleporter at position (%.1f, %.1f, %.1f)", position.x, position.y, position.z);
 }
 
 void ESPModule::OnTeleporterDestroyed(void* teleporter) {
@@ -1226,8 +1226,8 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
         if (pi->displayNameToken) {
             token = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(pi->displayNameToken));
         }
-        G::logger.LogError("Unknown PurchaseInteraction detected: token=\"" + token + "\" display=\"" + displayName + "\" cost=" + std::to_string(pi->cost) +
-                           " isShrine=" + std::to_string(pi->isShrine) + " - Please report this to the developers!");
+        LOG_ERROR("Unknown PurchaseInteraction detected: token=\"%s\" display=\"%s\" cost=%d isShrine=%d - Please report this to the developers!", token,
+                  displayName, pi->cost, pi->isShrine);
         displayName += " (UNKNOWN)";
     }
 
@@ -1417,14 +1417,14 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
 
     // Don't track pickups with invalid pickup index
     if (gpc->pickupIndex <= 0) {
-        G::logger.LogInfo("GenericPickupController spawned with invalid pickup index: %d", gpc->pickupIndex);
+        LOG_INFO("GenericPickupController spawned with invalid pickup index: %d", gpc->pickupIndex);
         return;
     }
 
     std::string displayName = GetPickupName(gpc->pickupIndex);
 
-    G::logger.LogInfo("GenericPickupController (%p) spawned: pickupIndex=%d, name='%s', consumed=%d, recycled=%d", genericPickupController, gpc->pickupIndex,
-                      displayName.c_str(), gpc->consumed, gpc->Recycled);
+    LOG_INFO("GenericPickupController (%p) spawned: pickupIndex=%d, name='%s', consumed=%d, recycled=%d", genericPickupController, gpc->pickupIndex,
+             displayName.c_str(), gpc->consumed, gpc->Recycled);
 
     // Create tracking info - categorize as item pickup
     auto trackedInteractable = std::make_unique<TrackedInteractable>();
@@ -1493,7 +1493,7 @@ void ESPModule::OnPickupPickerControllerSpawned(void* pickupPickerController) {
     PickupPickerController* pcc = static_cast<PickupPickerController*>(pickupPickerController);
     std::string contextToken = pcc->contextString ? G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(pcc->contextString)) : "null";
 
-    G::logger.LogInfo("PickupPickerController (%p) Spawned: contextToken='%s'", pcc, contextToken.c_str());
+    LOG_INFO("PickupPickerController (%p) Spawned: contextToken='%s'", pcc, contextToken.c_str());
 
     static const std::unordered_map<std::string, std::string> tokenTransformMap = {{"ARTIFACT_COMMAND_CUBE_INTERACTION_PROMPT", "ARTIFACT_COMMAND_NAME"},
                                                                                    {"AURELIONITE_FRAGMENT_PICKUP_PROMPT", "AURELIONITE_FRAGMENT_PICKUP_NAME"}};
@@ -1514,7 +1514,7 @@ void ESPModule::OnPickupPickerControllerSpawned(void* pickupPickerController) {
 
     if (!inMap) {
         nameToken = contextToken;
-        G::logger.LogWarning("PickupPickerController spawned with unknown contextToken: '%s' - Please report this!", contextToken.c_str());
+        LOG_WARNING("PickupPickerController spawned with unknown contextToken: '%s' - Please report this!", contextToken.c_str());
     }
 
     Vector3 position = {0, 0, 0};
@@ -1596,12 +1596,12 @@ void ESPModule::ClearData() {
 
 void ESPModule::OnStageAdvance(void* stage) {
     ClearData();
-    G::logger.LogInfo("ESP data cleared due to stage change");
+    LOG_INFO("ESP data cleared due to stage change");
 }
 
 void ESPModule::OnRunExit() {
     ClearData();
-    G::logger.LogInfo("ESP data cleared due to run exit");
+    LOG_INFO("ESP data cleared due to run exit");
 }
 
 std::string ESPModule::GetTimedChestTime(TimedChestController* timedChestController) {
@@ -1819,7 +1819,7 @@ void ESPModule::InitializeCostFormats() {
     if (m_costFormatsInitialized)
         return;
 
-    G::logger.LogInfo("Initializing cost formats...");
+    LOG_INFO("Initializing cost formats...");
 
     m_moneyFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_MONEY_FORMAT"));
     m_percentHealthFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_PERCENTHEALTH_FORMAT"));
@@ -1835,7 +1835,7 @@ void ESPModule::InitializeCostFormats() {
     m_soulCostFormat = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("COST_SOULCOST_FORMAT"));
 
     m_costFormatsInitialized = true;
-    G::logger.LogInfo("Cost formats initialized successfully");
+    LOG_INFO("Cost formats initialized successfully");
 }
 
 std::string ESPModule::GetPickupName(int32_t pickupIndex) {
@@ -1911,7 +1911,7 @@ std::string ESPModule::GetCostString(CostTypeIndex_Value costType, int cost) {
         break;
 
     default:
-        G::logger.LogWarning("Unknown cost type: %d", static_cast<int>(costType));
+        LOG_WARNING("Unknown cost type: %d", static_cast<int>(costType));
         return std::to_string(cost) + " Unknown";
     }
 

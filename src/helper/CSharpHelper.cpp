@@ -34,9 +34,9 @@ CSharpHelper::~CSharpHelper() {
     }
 
     if (m_spawnHelperClass && m_runtime) {
-        G::logger.LogInfo("CSharpHelper: Calling C# cleanup method");
-        G::logger.LogInfo("CSharpHelper: Before cleanup - Assembly=%p, Image=%p, Class=%p, Method=%p", m_helperAssembly, m_helperImage, m_spawnHelperClass,
-                          m_spawnInteractableMethod);
+        LOG_INFO("CSharpHelper: Calling C# cleanup method");
+        LOG_INFO("CSharpHelper: Before cleanup - Assembly=%p, Image=%p, Class=%p, Method=%p", m_helperAssembly, m_helperImage, m_spawnHelperClass,
+                 m_spawnInteractableMethod);
 
         MonoMethod* cleanupMethod = m_runtime->GetMethod(m_spawnHelperClass, "Cleanup", 0);
         if (cleanupMethod) {
@@ -44,15 +44,15 @@ CSharpHelper::~CSharpHelper() {
             if (result) {
                 bool success = *static_cast<bool*>(m_runtime->m_mono_object_unbox(result));
                 if (success) {
-                    G::logger.LogInfo("CSharpHelper: C# cleanup completed successfully");
+                    LOG_INFO("CSharpHelper: C# cleanup completed successfully");
                 } else {
-                    G::logger.LogWarning("CSharpHelper: C# cleanup method returned false (cleanup failed)");
+                    LOG_WARNING("CSharpHelper: C# cleanup method returned false (cleanup failed)");
                 }
             } else {
-                G::logger.LogError("CSharpHelper: C# cleanup method returned null (invocation failed)");
+                LOG_ERROR("CSharpHelper: C# cleanup method returned null (invocation failed)");
             }
         } else {
-            G::logger.LogError("CSharpHelper: Failed to find Cleanup method in SpawnHelper class");
+            LOG_ERROR("CSharpHelper: Failed to find Cleanup method in SpawnHelper class");
         }
     }
 
@@ -60,11 +60,11 @@ CSharpHelper::~CSharpHelper() {
     m_spawnHelperClass = nullptr;
 
 #ifdef _DEBUG
-    G::logger.LogInfo("CSharpHelper: Debug mode - skipping assembly unload");
+    LOG_INFO("CSharpHelper: Debug mode - skipping assembly unload");
     m_helperAssembly = nullptr;
 #else
     if (m_helperAssembly && m_runtime) {
-        G::logger.LogInfo("CSharpHelper: Unloading assembly '%s' from Mono runtime", m_assemblyName.c_str());
+        LOG_INFO("CSharpHelper: Unloading assembly '%s' from Mono runtime", m_assemblyName.c_str());
         m_runtime->UnloadAssembly(m_helperAssembly);
         m_helperAssembly = nullptr;
     }
@@ -74,8 +74,8 @@ CSharpHelper::~CSharpHelper() {
     m_helperAssembly = nullptr;
 
     m_isLoaded = false;
-    G::logger.LogInfo("CSharpHelper: After cleanup - Assembly=%p, Image=%p, Class=%p, Method=%p", m_helperAssembly, m_helperImage, m_spawnHelperClass,
-                      m_spawnInteractableMethod);
+    LOG_INFO("CSharpHelper: After cleanup - Assembly=%p, Image=%p, Class=%p, Method=%p", m_helperAssembly, m_helperImage, m_spawnHelperClass,
+             m_spawnInteractableMethod);
 }
 
 bool CSharpHelper::Initialize() {
@@ -84,24 +84,23 @@ bool CSharpHelper::Initialize() {
     }
 
     if (!LoadAssembly()) {
-        G::logger.LogError("CSharpHelper: Failed to load assembly");
+        LOG_ERROR("CSharpHelper: Failed to load assembly");
         return false;
     }
 
     if (!ResolveClasses()) {
-        G::logger.LogError("CSharpHelper: Failed to resolve classes");
+        LOG_ERROR("CSharpHelper: Failed to resolve classes");
         return false;
     }
 
     if (!ResolveMethods()) {
-        G::logger.LogError("CSharpHelper: Failed to resolve methods");
+        LOG_ERROR("CSharpHelper: Failed to resolve methods");
         return false;
     }
 
     m_isLoaded = true;
 
-    G::logger.LogInfo("CSharpHelper: Assembly=%p, Image=%p, Class=%p, Method=%p", m_helperAssembly, m_helperImage, m_spawnHelperClass,
-                      m_spawnInteractableMethod);
+    LOG_INFO("CSharpHelper: Assembly=%p, Image=%p, Class=%p, Method=%p", m_helperAssembly, m_helperImage, m_spawnHelperClass, m_spawnInteractableMethod);
 
     return true;
 }
@@ -112,18 +111,19 @@ bool CSharpHelper::LoadAssembly() {
     }
 
 #ifdef _DEBUG
-    G::logger.LogInfo("CSharpHelper: Debug mode - loading assembly without patching");
-    m_helperAssembly = m_runtime->LoadAssemblyFromMemory(reinterpret_cast<const char*>(RoR2ModHelper_dll_bytes), RoR2ModHelper_dll_size, m_assemblyName.c_str());
+    LOG_INFO("CSharpHelper: Debug mode - loading assembly without patching");
+    m_helperAssembly =
+        m_runtime->LoadAssemblyFromMemory(reinterpret_cast<const char*>(RoR2ModHelper_dll_bytes), RoR2ModHelper_dll_size, m_assemblyName.c_str());
 #else
     std::vector<unsigned char> patchedData(RoR2ModHelper_dll_bytes, RoR2ModHelper_dll_bytes + RoR2ModHelper_dll_size);
 
-    G::logger.LogInfo("CSharpHelper: Patching assembly name to '%s'", m_assemblyName.c_str());
+    LOG_INFO("CSharpHelper: Patching assembly name to '%s'", m_assemblyName.c_str());
 
     for (size_t i = 0; i < RoR2ModHelper_string_offset_count; i++) {
         size_t offset = RoR2ModHelper_string_offsets[i];
         if (offset + RoR2ModHelper_string_length <= patchedData.size()) {
             memcpy(&patchedData[offset], m_assemblyName.c_str(), RoR2ModHelper_string_length);
-            G::logger.LogInfo("CSharpHelper: Patched offset %zu with '%s'", offset, m_assemblyName.c_str());
+            LOG_INFO("CSharpHelper: Patched offset %zu with '%s'", offset, m_assemblyName.c_str());
         }
     }
 
@@ -160,19 +160,19 @@ bool CSharpHelper::ResolveMethods() {
 
 void CSharpHelper::SpawnInteractable(const std::string& resourcePath, float x, float y, float z) {
     if (!m_isLoaded || !m_spawnInteractableMethod) {
-        G::logger.LogError("CSharpHelper: Not initialized");
+        LOG_ERROR("CSharpHelper: Not initialized");
         return;
     }
 
     auto task = [this, resourcePath, x, y, z]() {
         if (!m_runtime->AttachThread()) {
-            G::logger.LogError("CSharpHelper: Failed to attach thread");
+            LOG_ERROR("CSharpHelper: Failed to attach thread");
             return;
         }
 
         MonoString* pathString = m_runtime->CreateString(resourcePath.c_str());
         if (!pathString) {
-            G::logger.LogError("CSharpHelper: Failed to create path string");
+            LOG_ERROR("CSharpHelper: Failed to create path string");
             return;
         }
 

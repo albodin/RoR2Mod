@@ -1,116 +1,55 @@
 #include "Logger.h"
-#include <cstdarg>
-#include <cstdio>
-#include <ctime>
 #include <filesystem>
-#include <iomanip>
-#include <sstream>
+#include <plog/Appenders/RollingFileAppender.h>
+#include <plog/Formatters/TxtFormatter.h>
+#include <plog/Initializers/RollingFileInitializer.h>
 
 static const std::string logsDir = "ror2mod/logs/";
-static const std::string logPath = "ror2mod/ror2mod.log";
+static const std::string logPath = "ror2mod/logs/ror2mod.log";
+static const int MAX_BACKUP_FILES = 10;
+
+static void rotateExistingLogs() {
+    namespace fs = std::filesystem;
+
+    if (!fs::exists(logPath)) {
+        return;
+    }
+
+    std::string baseName = logsDir + "ror2mod";
+    std::string extension = ".log";
+
+    std::string oldestLog = baseName + "." + std::to_string(MAX_BACKUP_FILES) + extension;
+    if (fs::exists(oldestLog)) {
+        fs::remove(oldestLog);
+    }
+
+    // Rotate all existing backups
+    for (int i = MAX_BACKUP_FILES - 1; i >= 1; i--) {
+        std::string currentFile = baseName + "." + std::to_string(i) + extension;
+
+        if (fs::exists(currentFile)) {
+            std::string nextFile = baseName + "." + std::to_string(i + 1) + extension;
+            fs::rename(currentFile, nextFile);
+        }
+    }
+
+    // Move current log to .1
+    fs::rename(logPath, baseName + ".1" + extension);
+}
 
 Logger::Logger() {
-    bool logsDirFailed = false;
-    std::string logsDirError;
-
-    // Ensure logs directory exists
-    if (!std::filesystem::exists(logsDir) || !std::filesystem::is_directory(logsDir)) {
-        try {
-            if (!std::filesystem::create_directories(logsDir)) {
-                logsDirFailed = true;
-                logsDirError = "Failed to create logs directory";
-            }
-        } catch (const std::exception& e) {
-            logsDirFailed = true;
-            logsDirError = e.what();
-        }
+    if (plog::get() != nullptr) {
+        return;
     }
 
-    // Rotate existing log to logs subdirectory
-    if (std::filesystem::exists(logPath)) {
-        try {
-            auto lastWriteTime = std::filesystem::last_write_time(logPath);
-            auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(lastWriteTime - std::filesystem::file_time_type::clock::now() +
-                                                                                          std::chrono::system_clock::now());
-            auto time_t_value = std::chrono::system_clock::to_time_t(sctp);
+    try {
+        std::filesystem::create_directories(logsDir);
 
-            std::stringstream ss;
-            ss << logsDir << "/ror2mod_" << std::put_time(std::localtime(&time_t_value), "%Y-%m-%dT%H:%M:%S") << ".log";
-            std::string rotatedName = ss.str();
+        rotateExistingLogs();
 
-            std::filesystem::rename(logPath, rotatedName);
-        } catch (const std::exception&) {
-            // If rotation fails, just truncate the existing file
-        }
+        static plog::RollingFileAppender<plog::TxtFormatter> fileAppender(logPath.c_str(), 0, 0);
+        plog::init(plog::verbose, &fileAppender);
+    } catch (...) {
+        // Logging system failed to initialize, but we can continue
     }
-
-    logFile.open(logPath, std::ios::trunc);
-
-    if (logsDirFailed) {
-        this->LogError("Failed to create logs directory '%s': %s", logsDir.c_str(), logsDirError.c_str());
-        this->LogWarning("Log rotation disabled - old logs will not be archived");
-    }
-}
-
-Logger::~Logger() {
-    if (logFile.is_open()) {
-        logFile.close();
-    }
-}
-
-void Logger::Log(const std::string& message) {
-    std::lock_guard<std::mutex> lock(logMutex);
-    if (logFile.is_open()) {
-        time_t now = time(0);
-        std::stringstream ss;
-        ss << std::put_time(std::localtime(&now), "%Y-%m-%dT%H:%M:%S");
-        logFile << "[" << ss.str() << "] " << message << std::endl;
-        logFile.flush();
-    }
-}
-
-void Logger::Log(const char* format, ...) {
-    char buffer[4096];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(buffer, sizeof(buffer), format, args);
-    va_end(args);
-
-    Log(std::string(buffer));
-}
-
-void Logger::LogError(const std::string& message) { Log("[ERROR] " + message); }
-
-void Logger::LogError(const char* format, ...) {
-    char buffer[4096];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(buffer, sizeof(buffer), format, args);
-    va_end(args);
-
-    Log("[ERROR] " + std::string(buffer));
-}
-
-void Logger::LogWarning(const std::string& message) { Log("[WARNING] " + message); }
-
-void Logger::LogWarning(const char* format, ...) {
-    char buffer[4096];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(buffer, sizeof(buffer), format, args);
-    va_end(args);
-
-    Log("[WARNING] " + std::string(buffer));
-}
-
-void Logger::LogInfo(const std::string& message) { Log("[INFO] " + message); }
-
-void Logger::LogInfo(const char* format, ...) {
-    char buffer[4096];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(buffer, sizeof(buffer), format, args);
-    va_end(args);
-
-    Log("[INFO] " + std::string(buffer));
 }

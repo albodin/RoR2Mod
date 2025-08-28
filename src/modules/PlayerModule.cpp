@@ -20,7 +20,7 @@ void BodyTracker::Initialize(const std::vector<std::pair<std::string, GameObject
     std::map<std::string, int> nameIndex;
     std::vector<std::pair<std::string, GameObject*>> tempBodies;
 
-    G::logger.LogInfo("BodyTracker::Initialize: Processing %d body prefabs", prefabsWithNames.size());
+    LOG_INFO("BodyTracker::Initialize: Processing %d body prefabs", prefabsWithNames.size());
 
     // First pass: count duplicates
     for (const auto& [tokenOrName, prefab] : prefabsWithNames) {
@@ -40,7 +40,7 @@ void BodyTracker::Initialize(const std::vector<std::pair<std::string, GameObject
         bool isBlacklisted = false;
         for (const auto& blacklistedName : blacklist) {
             if (internalName == blacklistedName) {
-                G::logger.LogInfo("Skipping blacklisted body: %s", internalName.c_str());
+                LOG_INFO("Skipping blacklisted body: %s", internalName.c_str());
                 isBlacklisted = true;
                 break;
             }
@@ -84,7 +84,7 @@ void BodyTracker::Initialize(const std::vector<std::pair<std::string, GameObject
         prefabs.push_back(prefab);
     }
 
-    G::logger.LogInfo("BodyTracker initialized with %d bodies (sorted alphabetically)", names.size());
+    LOG_INFO("BodyTracker initialized with %d bodies (sorted alphabetically)", names.size());
 }
 
 int BodyTracker::UpdateBody(GameObject* newPrefab) {
@@ -337,11 +337,11 @@ void PlayerModule::Initialize() {
         TeamManager* teamManager = G::gameFunctions->GetTeamManagerInstance();
         if (teamManager) {
             uint32_t level = static_cast<uint32_t>(newValue);
-            G::logger.LogInfo("Setting team level to %u", level);
+            LOG_INFO("Setting team level to %u", level);
 
             G::gameFunctions->SetTeamLevel(TeamIndex_Value::Player, level);
         } else {
-            G::logger.LogWarning("TeamManager instance not available in level control callback");
+            LOG_WARNING("TeamManager instance not available in level control callback");
         }
     });
     levelControl->SetGameValueFunctions(
@@ -376,7 +376,7 @@ void PlayerModule::Initialize() {
         }
 
         std::string selectedBody = selectedCharacterIndexControl->GetSelectedItem();
-        G::logger.LogInfo("Selected body: '%s', current body: '%s'", selectedBody.c_str(), bodyTracker.GetCurrentBodyName().c_str());
+        LOG_INFO("Selected body: '%s', current body: '%s'", selectedBody.c_str(), bodyTracker.GetCurrentBodyName().c_str());
         if (!selectedBody.empty() && selectedBody != bodyTracker.GetCurrentBodyName()) {
             ApplyModelChange(selectedBody);
         }
@@ -655,7 +655,7 @@ void PlayerModule::InitializeItems() {
             Sleep(2000);
         }
     } while (itemCount == -1);
-    G::logger.LogInfo("Items loaded successfully");
+    LOG_INFO("Items loaded successfully");
 
     {
         std::unique_lock<std::shared_mutex> lock(itemsMutex);
@@ -668,7 +668,7 @@ void PlayerModule::InitializeItems() {
 }
 
 void PlayerModule::InitializeAllItemControls() {
-    G::logger.LogInfo("Initializing controls for all %zu items", items.size());
+    LOG_INFO("Initializing controls for all %zu items", items.size());
 
     for (const auto& item : items) {
         int index = item.index;
@@ -687,7 +687,7 @@ void PlayerModule::InitializeAllItemControls() {
         itemControls[index] = std::move(control);
     }
 
-    G::logger.LogInfo("Initialized %zu item controls", itemControls.size());
+    LOG_INFO("Initialized %zu item controls", itemControls.size());
 }
 
 void PlayerModule::SetItemCount(int itemIndex, int count) {
@@ -813,16 +813,16 @@ void PlayerModule::OnStageAdvance(void* stage) {
 void PlayerModule::ApplyModelChange(const std::string& bodyName) {
     CharacterMaster* master = localUser_cached ? localUser_cached->cachedMaster_backing : nullptr;
     if (!master) {
-        G::logger.LogError("ApplyModelChange: No master available");
+        LOG_ERROR("ApplyModelChange: No master available");
         return;
     }
 
     GameObject* newPrefab = bodyTracker.GetPrefabByName(bodyName);
     if (!newPrefab) {
-        G::logger.LogError("ApplyModelChange: Could not find prefab for body '%s'", bodyName.c_str());
+        LOG_ERROR("ApplyModelChange: Could not find prefab for body '%s'", bodyName.c_str());
         return;
     }
-    G::logger.LogInfo("Transforming to %s", bodyName.c_str());
+    LOG_INFO("Transforming to %s", bodyName.c_str());
     G::gameFunctions->TransformCharacterBody(master, newPrefab);
 }
 
@@ -844,6 +844,6 @@ void PlayerModule::SetBodyPrefabsWithNames(const std::vector<std::pair<std::stri
 
     if (selectedCharacterIndexControl && !bodyTracker.GetBodyNames().empty()) {
         selectedCharacterIndexControl->SetItems(bodyTracker.GetBodyNames());
-        G::logger.LogInfo("SetBodyPrefabsWithNames: Updated dropdown with %zu bodies", bodyTracker.GetBodyNames().size());
+        LOG_INFO("SetBodyPrefabsWithNames: Updated dropdown with %zu bodies", bodyTracker.GetBodyNames().size());
     }
 }

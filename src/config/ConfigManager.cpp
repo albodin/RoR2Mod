@@ -22,7 +22,7 @@ void ConfigManager::Initialize() {
 }
 
 void ConfigManager::CreateDefaultConfig() {
-    G::logger.LogInfo("Creating default config...");
+    LOG_INFO("Creating default config...");
     SaveConfig(defaultConfigName);
 }
 
@@ -30,9 +30,9 @@ void ConfigManager::EnsureConfigDirectoryExists() {
     if (!std::filesystem::exists(configDirectory)) {
         try {
             std::filesystem::create_directories(configDirectory);
-            G::logger.LogInfo("Created config directory: %s", configDirectory.c_str());
+            LOG_INFO("Created config directory: %s", configDirectory.c_str());
         } catch (const std::exception& e) {
-            G::logger.LogError("Failed to create config directory: %s", e.what());
+            LOG_ERROR("Failed to create config directory: %s", e.what());
         }
     }
 }
@@ -50,7 +50,7 @@ void ConfigManager::RefreshConfigList() {
             }
         }
     } catch (const std::exception& e) {
-        G::logger.LogError("Error scanning config directory: %s", e.what());
+        LOG_ERROR("Error scanning config directory: %s", e.what());
     }
 
     // Sort configs alphabetically, but keep "default" first
@@ -75,7 +75,7 @@ bool ConfigManager::SaveConfig(const std::string& configName) {
                         config[control->GetId()] = controlData;
                     }
                 } catch (const json::exception& e) {
-                    G::logger.LogError("Error serializing control '%s': %s", control->GetId().c_str(), e.what());
+                    LOG_ERROR("Error serializing control '%s': %s", control->GetId().c_str(), e.what());
                 }
             }
         }
@@ -89,7 +89,7 @@ bool ConfigManager::SaveConfig(const std::string& configName) {
 
         std::ofstream file(GetConfigPath(configName));
         if (!file.is_open()) {
-            G::logger.LogError("Failed to open config file for writing: %s", configName.c_str());
+            LOG_ERROR("Failed to open config file for writing: %s", configName.c_str());
             return false;
         }
 
@@ -99,11 +99,11 @@ bool ConfigManager::SaveConfig(const std::string& configName) {
         currentConfigName = configName;
         RefreshConfigList();
 
-        G::logger.LogInfo("Saved config: %s", configName.c_str());
+        LOG_INFO("Saved config: %s", configName.c_str());
         return true;
 
     } catch (const std::exception& e) {
-        G::logger.LogError("Error saving config: %s", e.what());
+        LOG_ERROR("Error saving config: %s", e.what());
         return false;
     }
 }
@@ -112,7 +112,7 @@ bool ConfigManager::LoadConfig(const std::string& configName) {
     try {
         std::ifstream file(GetConfigPath(configName));
         if (!file.is_open()) {
-            G::logger.LogError("Failed to open config file: %s", configName.c_str());
+            LOG_ERROR("Failed to open config file: %s", configName.c_str());
             return false;
         }
 
@@ -127,9 +127,9 @@ bool ConfigManager::LoadConfig(const std::string& configName) {
                     control->Deserialize(config[control->GetId()]);
                 } catch (const json::exception& e) {
                     errorCount++;
-                    G::logger.LogError("Failed to load settings for '%s'", control->GetId().c_str());
-                    G::logger.LogError("Error details: %s", e.what());
-                    G::logger.LogError("Problematic data: %s", config[control->GetId()].dump().c_str());
+                    LOG_ERROR("Failed to load settings for '%s'", control->GetId().c_str());
+                    LOG_ERROR("Error details: %s", e.what());
+                    LOG_ERROR("Problematic data: %s", config[control->GetId()].dump().c_str());
                 }
             }
         }
@@ -151,30 +151,30 @@ bool ConfigManager::LoadConfig(const std::string& configName) {
             try {
                 NotificationManager::Deserialize(config["notificationSettings"]);
             } catch (const json::exception& e) {
-                G::logger.LogError("Failed to load notification settings: %s", e.what());
+                LOG_ERROR("Failed to load notification settings: %s", e.what());
             }
         }
 
         currentConfigName = configName;
 
         if (errorCount > 0) {
-            G::logger.LogWarning("Loaded config '%s' with %d errors. Settings with errors will use default values.", configName.c_str(), errorCount);
-            G::logger.LogInfo("The config will be automatically updated to the new format when saved.");
+            LOG_WARNING("Loaded config '%s' with %d errors. Settings with errors will use default values.", configName.c_str(), errorCount);
+            LOG_INFO("The config will be automatically updated to the new format when saved.");
         } else {
-            G::logger.LogInfo("Successfully loaded config: %s", configName.c_str());
+            LOG_INFO("Successfully loaded config: %s", configName.c_str());
         }
 
         return true;
 
     } catch (const std::exception& e) {
-        G::logger.LogError("Error loading config: %s", e.what());
+        LOG_ERROR("Error loading config: %s", e.what());
         return false;
     }
 }
 
 bool ConfigManager::DeleteConfig(const std::string& configName) {
     if (configName == defaultConfigName) {
-        G::logger.LogWarning("Cannot delete default config");
+        LOG_WARNING("Cannot delete default config");
         return false;
     }
 
@@ -186,11 +186,11 @@ bool ConfigManager::DeleteConfig(const std::string& configName) {
             currentConfigName = "";
         }
 
-        G::logger.LogInfo("Deleted config: %s", configName.c_str());
+        LOG_INFO("Deleted config: %s", configName.c_str());
         return true;
 
     } catch (const std::exception& e) {
-        G::logger.LogError("Error deleting config: %s", e.what());
+        LOG_ERROR("Error deleting config: %s", e.what());
         return false;
     }
 }

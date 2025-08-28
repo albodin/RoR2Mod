@@ -3,17 +3,15 @@
 #include <iostream>
 #include <map>
 
-MonoAPI::~MonoAPI() {
-    monoModule = nullptr;
-}
+MonoAPI::~MonoAPI() { monoModule = nullptr; }
 
 bool MonoAPI::Initialize(const std::string& monoDllPath) {
     monoModule = GetModuleHandleA(monoDllPath.c_str());
     if (!monoModule) {
-        G::logger.LogError("Failed to get %s handle", monoDllPath.c_str());
+        LOG_ERROR("Failed to get %s handle", monoDllPath.c_str());
         return false;
     } else {
-        G::logger.LogInfo("%s base address: 0x%p", monoDllPath.c_str(), monoModule);
+        LOG_INFO("%s base address: 0x%p", monoDllPath.c_str(), monoModule);
     }
 
     // Load all function pointers
@@ -45,33 +43,33 @@ bool MonoAPI::Initialize(const std::string& monoDllPath) {
     m_mono_signature_get_params = reinterpret_cast<mono_signature_get_params_fn>(GetProcAddress(monoModule, "mono_signature_get_params"));
     m_mono_method_get_flags = reinterpret_cast<mono_method_get_flags_fn>(GetProcAddress(monoModule, "mono_method_get_flags"));
 
-    G::logger.LogInfo("mono_get_root_domain: 0x%p", m_mono_get_root_domain);
-    G::logger.LogInfo("mono_domain_assembly_open: 0x%p", m_mono_domain_assembly_open);
-    G::logger.LogInfo("mono_assembly_get_image: 0x%p", m_mono_assembly_get_image);
-    G::logger.LogInfo("mono_class_from_name: 0x%p", m_mono_class_from_name);
-    G::logger.LogInfo("mono_class_get_fields: 0x%p", m_mono_class_get_fields);
-    G::logger.LogInfo("mono_field_get_name: 0x%p", m_mono_field_get_name);
-    G::logger.LogInfo("mono_field_get_type: 0x%p", m_mono_field_get_type);
-    G::logger.LogInfo("mono_field_get_offset: 0x%p", m_mono_field_get_offset);
-    G::logger.LogInfo("mono_type_get_type: 0x%p", m_mono_type_get_type);
-    G::logger.LogInfo("mono_domain_assembly_foreach: 0x%p", m_mono_domain_assembly_foreach);
-    G::logger.LogInfo("mono_image_get_name: 0x%p", m_mono_image_get_name);
-    G::logger.LogInfo("mono_image_get_table_info: 0x%p", m_mono_image_get_table_info);
-    G::logger.LogInfo("mono_table_info_get_rows: 0x%p", m_mono_table_info_get_rows);
-    G::logger.LogInfo("mono_class_get: 0x%p", m_mono_class_get);
-    G::logger.LogInfo("mono_class_get_name: 0x%p", m_mono_class_get_name);
-    G::logger.LogInfo("mono_class_get_namespace: 0x%p", m_mono_class_get_namespace);
-    G::logger.LogInfo("mono_type_get_class: 0x%p", m_mono_type_get_class);
-    G::logger.LogInfo("mono_class_get_image: 0x%p", m_mono_class_get_image);
-    G::logger.LogInfo("mono_field_get_flags: 0x%p", m_mono_field_get_flags);
-    G::logger.LogInfo("mono_thread_attach: 0x%p", m_mono_thread_attach);
-    G::logger.LogInfo("mono_class_get_methods: 0x%p", m_mono_class_get_methods);
-    G::logger.LogInfo("mono_method_get_name: 0x%p", m_mono_method_get_name);
-    G::logger.LogInfo("mono_method_signature: 0x%p", m_mono_method_signature);
-    G::logger.LogInfo("mono_signature_get_param_count: 0x%p", m_mono_signature_get_param_count);
-    G::logger.LogInfo("mono_signature_get_return_type: 0x%p", m_mono_signature_get_return_type);
-    G::logger.LogInfo("mono_signature_get_params: 0x%p", m_mono_signature_get_params);
-    G::logger.LogInfo("mono_method_get_flags: 0x%p", m_mono_method_get_flags);
+    LOG_INFO("mono_get_root_domain: 0x%p", m_mono_get_root_domain);
+    LOG_INFO("mono_domain_assembly_open: 0x%p", m_mono_domain_assembly_open);
+    LOG_INFO("mono_assembly_get_image: 0x%p", m_mono_assembly_get_image);
+    LOG_INFO("mono_class_from_name: 0x%p", m_mono_class_from_name);
+    LOG_INFO("mono_class_get_fields: 0x%p", m_mono_class_get_fields);
+    LOG_INFO("mono_field_get_name: 0x%p", m_mono_field_get_name);
+    LOG_INFO("mono_field_get_type: 0x%p", m_mono_field_get_type);
+    LOG_INFO("mono_field_get_offset: 0x%p", m_mono_field_get_offset);
+    LOG_INFO("mono_type_get_type: 0x%p", m_mono_type_get_type);
+    LOG_INFO("mono_domain_assembly_foreach: 0x%p", m_mono_domain_assembly_foreach);
+    LOG_INFO("mono_image_get_name: 0x%p", m_mono_image_get_name);
+    LOG_INFO("mono_image_get_table_info: 0x%p", m_mono_image_get_table_info);
+    LOG_INFO("mono_table_info_get_rows: 0x%p", m_mono_table_info_get_rows);
+    LOG_INFO("mono_class_get: 0x%p", m_mono_class_get);
+    LOG_INFO("mono_class_get_name: 0x%p", m_mono_class_get_name);
+    LOG_INFO("mono_class_get_namespace: 0x%p", m_mono_class_get_namespace);
+    LOG_INFO("mono_type_get_class: 0x%p", m_mono_type_get_class);
+    LOG_INFO("mono_class_get_image: 0x%p", m_mono_class_get_image);
+    LOG_INFO("mono_field_get_flags: 0x%p", m_mono_field_get_flags);
+    LOG_INFO("mono_thread_attach: 0x%p", m_mono_thread_attach);
+    LOG_INFO("mono_class_get_methods: 0x%p", m_mono_class_get_methods);
+    LOG_INFO("mono_method_get_name: 0x%p", m_mono_method_get_name);
+    LOG_INFO("mono_method_signature: 0x%p", m_mono_method_signature);
+    LOG_INFO("mono_signature_get_param_count: 0x%p", m_mono_signature_get_param_count);
+    LOG_INFO("mono_signature_get_return_type: 0x%p", m_mono_signature_get_return_type);
+    LOG_INFO("mono_signature_get_params: 0x%p", m_mono_signature_get_params);
+    LOG_INFO("mono_method_get_flags: 0x%p", m_mono_method_get_flags);
 
     // Check if all required functions were loaded
     return m_mono_get_root_domain && m_mono_domain_assembly_open && m_mono_assembly_get_image && m_mono_class_from_name && m_mono_class_get_fields &&
@@ -88,7 +86,7 @@ void __cdecl MonoAPI::AssemblyIterationCallback(void* assembly, void* user_data)
     self->m_assemblies.push_back(image);
 
     const char* imageName = self->m_mono_image_get_name(image);
-    G::logger.LogInfo("Found assembly: " + std::string(imageName));
+    LOG_INFO("Found assembly: %s", imageName);
 }
 
 std::string MonoAPI::GetCppTypeFromMonoType(void* type) {
@@ -137,7 +135,7 @@ std::string MonoAPI::GetCppTypeFromMonoType(void* type) {
             if (className) {
                 const char* nsName = m_mono_class_get_namespace(klass);
                 std::string fullName = std::string(nsName ? nsName : "") + "." + className;
-                G::logger.LogInfo("Using value type: %s", fullName.c_str());
+                LOG_INFO("Using value type: %s", fullName.c_str());
 
                 return std::string(className) + "_Value";
             }
@@ -267,7 +265,7 @@ size_t MonoAPI::CalculateClassSize(void* klass) {
     } else {
         fullClassName = std::string("<global>.") + className;
     }
-    G::logger.LogInfo("Calculating size for class: %s", fullClassName.c_str());
+    LOG_INFO("Calculating size for class: %s", fullClassName.c_str());
 
     void* iter = NULL;
     void* field;
@@ -296,7 +294,7 @@ size_t MonoAPI::CalculateClassSize(void* klass) {
         if (namespaceName && className) {
             namespaceClassToSize[namespaceName][className] = totalSize;
         }
-        G::logger.LogInfo("Class %s has no fields, size: %zu bytes", fullClassName.c_str(), totalSize);
+        LOG_INFO("Class %s has no fields, size: %zu bytes", fullClassName.c_str(), totalSize);
         return totalSize;
     }
 
@@ -304,7 +302,7 @@ size_t MonoAPI::CalculateClassSize(void* klass) {
         minOffset = 0;
     }
 
-    G::logger.LogInfo("Class %s minimum field offset: %zu", fullClassName.c_str(), minOffset);
+    LOG_INFO("Class %s minimum field offset: %zu", fullClassName.c_str(), minOffset);
 
     iter = NULL;
     while ((field = m_mono_class_get_fields(klass, &iter))) {
@@ -320,7 +318,7 @@ size_t MonoAPI::CalculateClassSize(void* klass) {
         void* fieldType = m_mono_field_get_type(field);
         int typeEnum = m_mono_type_get_type(fieldType);
 
-        G::logger.LogInfo("Field: %s, Raw offset: %d, Normalized offset: %d", originalFieldName, rawOffset, offset);
+        LOG_INFO("Field: %s, Raw offset: %d, Normalized offset: %d", originalFieldName, rawOffset, offset);
 
         size_t fieldSize = 8;
         if (typeEnum == MONO_TYPE_BOOLEAN || typeEnum == MONO_TYPE_I1 || typeEnum == MONO_TYPE_U1) {
@@ -335,7 +333,7 @@ size_t MonoAPI::CalculateClassSize(void* klass) {
                 const char* fieldClassName = m_mono_class_get_name(fieldClass);
                 const char* fieldNamespace = m_mono_class_get_namespace(fieldClass);
                 std::string fieldFullName = std::string(fieldNamespace ? fieldNamespace : "") + "." + fieldClassName;
-                G::logger.LogInfo("Value type field: %s, class: %s", originalFieldName, fieldFullName.c_str());
+                LOG_INFO("Value type field: %s, class: %s", originalFieldName, fieldFullName.c_str());
 
                 // Recursive calculation of field size
                 fieldSize = CalculateClassSize(fieldClass);
@@ -360,12 +358,12 @@ size_t MonoAPI::CalculateClassSize(void* klass) {
     std::string nsKey = (namespaceName && namespaceName[0] != '\0') ? namespaceName : "";
     namespaceClassToSize[nsKey][className] = totalSize;
 
-    G::logger.LogInfo("Class %s size: %zu bytes", fullClassName.c_str(), totalSize);
+    LOG_INFO("Class %s size: %zu bytes", fullClassName.c_str(), totalSize);
     return totalSize;
 }
 
 void MonoAPI::BuildClassSizeMap() {
-    G::logger.LogInfo("Building class size map...");
+    LOG_INFO("Building class size map...");
 
     classSizes.clear();
     fullNameToSize.clear();
@@ -383,7 +381,7 @@ void MonoAPI::BuildClassSizeMap() {
         }
     }
 
-    G::logger.LogInfo("Built size map for %zu classes", classSizes.size());
+    LOG_INFO("Built size map for %zu classes", classSizes.size());
 }
 
 size_t MonoAPI::GetClassSizeByName(const std::string& className, const std::string& namespaceName) {
@@ -403,13 +401,13 @@ size_t MonoAPI::GetClassSizeByName(const std::string& className, const std::stri
     if (namespaceClassToSize.find("UnityEngine") != namespaceClassToSize.end()) {
         auto& unityClasses = namespaceClassToSize["UnityEngine"];
         if (unityClasses.find(className) != unityClasses.end()) {
-            G::logger.LogInfo("Prioritizing UnityEngine.%s over other namespaces", className.c_str());
+            LOG_INFO("Prioritizing UnityEngine.%s over other namespaces", className.c_str());
             return unityClasses[className];
         }
     } else if (namespaceClassToSize.find("System.Numerics") != namespaceClassToSize.end()) {
         auto& numericsClasses = namespaceClassToSize["System.Numerics"];
         if (numericsClasses.find(className) != numericsClasses.end()) {
-            G::logger.LogInfo("Using System.Numerics.%s", className.c_str());
+            LOG_INFO("Using System.Numerics.%s", className.c_str());
             return numericsClasses[className];
         }
     }
@@ -424,8 +422,8 @@ size_t MonoAPI::GetClassSizeByName(const std::string& className, const std::stri
                 foundSize = classMap.at(className);
                 foundNamespace = ns;
             } else {
-                G::logger.LogWarning("Class %s found in multiple namespaces (%s, %s)", className.c_str(),
-                                     foundNamespace.empty() ? "<global>" : foundNamespace.c_str(), ns.empty() ? "<global>" : ns.c_str());
+                LOG_WARNING("Class %s found in multiple namespaces (%s, %s)", className.c_str(), foundNamespace.empty() ? "<global>" : foundNamespace.c_str(),
+                            ns.empty() ? "<global>" : ns.c_str());
                 foundMultiple = true;
             }
         }
@@ -433,14 +431,14 @@ size_t MonoAPI::GetClassSizeByName(const std::string& className, const std::stri
 
     if (foundSize > 0) {
         if (foundMultiple) {
-            G::logger.LogInfo("Using size %zu from namespace %s for ambiguous class %s", foundSize,
-                              foundNamespace.empty() ? "<global>" : foundNamespace.c_str(), className.c_str());
+            LOG_INFO("Using size %zu from namespace %s for ambiguous class %s", foundSize, foundNamespace.empty() ? "<global>" : foundNamespace.c_str(),
+                     className.c_str());
         }
         return foundSize;
     }
 
-    G::logger.LogWarning("Class %s%s%s not found or ambiguous, using default size", namespaceName.empty() ? "" : namespaceName.c_str(),
-                         namespaceName.empty() ? "" : ".", className.c_str());
+    LOG_WARNING("Class %s%s%s not found or ambiguous, using default size", namespaceName.empty() ? "" : namespaceName.c_str(), namespaceName.empty() ? "" : ".",
+                className.c_str());
     return 8;
 }
 
@@ -455,7 +453,7 @@ bool MonoAPI::IsInternalOrExternalMethod(void* method) {
     try {
         flags = m_mono_method_get_flags(method, &iflags);
     } catch (...) {
-        G::logger.LogError("Exception getting method flags");
+        LOG_ERROR("Exception getting method flags");
         return false;
     }
 
@@ -513,11 +511,11 @@ void MonoAPI::ExtractMethodInformation(void* klass, std::ofstream& file) {
         if (!className)
             className = "UnknownClass";
     } catch (...) {
-        G::logger.LogError("Exception getting class name");
+        LOG_ERROR("Exception getting class name");
         return;
     }
 
-    G::logger.LogInfo("Extracting methods for class: %s", className);
+    LOG_INFO("Extracting methods for class: %s", className);
 
     file << "// Method signatures for " << className << std::endl;
     file << "/*" << std::endl;
@@ -541,12 +539,12 @@ void MonoAPI::ExtractMethodInformation(void* klass, std::ofstream& file) {
                 }
                 file << std::endl;
             } catch (...) {
-                G::logger.LogError("Exception processing method");
+                LOG_ERROR("Exception processing method");
                 file << "    // Error processing method" << std::endl;
             }
         }
     } catch (...) {
-        G::logger.LogError("Exception in method extraction for %s", className);
+        LOG_ERROR("Exception in method extraction for %s", className);
         file << "    // Fatal error in method extraction" << std::endl;
     }
 
@@ -567,7 +565,7 @@ void MonoAPI::GenerateStructFromClass(void* klass, std::ofstream& file, std::set
     } else {
         fullClassName = std::string("<global>.") + className; // For logging
     }
-    G::logger.LogInfo("Generating struct for class: %s", fullClassName.c_str());
+    LOG_INFO("Generating struct for class: %s", fullClassName.c_str());
 
     std::vector<std::pair<std::string, std::string>> constants;            // type, name
     std::vector<std::pair<std::string, std::string>> staticFields;         // type, name
@@ -587,7 +585,7 @@ void MonoAPI::GenerateStructFromClass(void* klass, std::ofstream& file, std::set
         bool isReferenceType = (typeEnum == MONO_TYPE_CLASS || typeEnum == MONO_TYPE_STRING || typeEnum == MONO_TYPE_OBJECT || typeEnum == MONO_TYPE_ARRAY ||
                                 typeEnum == MONO_TYPE_SZARRAY || typeEnum == MONO_TYPE_GENERICINST);
         bool isValueType = (typeEnum == MONO_TYPE_VALUETYPE);
-        G::logger.LogInfo("Field typeEnum: %d, Reference: %d, ValueType: %d", typeEnum, isReferenceType, isValueType);
+        LOG_INFO("Field typeEnum: %d, Reference: %d, ValueType: %d", typeEnum, isReferenceType, isValueType);
 
         int flags = m_mono_field_get_flags(field);
         bool isStatic = (flags & 0x0010) != 0; // FIELD_ATTRIBUTE_STATIC = 0x0010
@@ -615,7 +613,7 @@ void MonoAPI::GenerateStructFromClass(void* klass, std::ofstream& file, std::set
                         typeName = std::string(typeClassName) + "_Value";
 
                         const char* typeNamespace = m_mono_class_get_namespace(typeClass);
-                        G::logger.LogInfo("Field %s is value type: %s.%s", fieldName.c_str(), typeNamespace ? typeNamespace : "", typeClassName);
+                        LOG_INFO("Field %s is value type: %s.%s", fieldName.c_str(), typeNamespace ? typeNamespace : "", typeClassName);
                     } else if (isReferenceType) {
                         typeName = std::string(typeClassName) + "*";
                     } else {
@@ -632,7 +630,7 @@ void MonoAPI::GenerateStructFromClass(void* klass, std::ofstream& file, std::set
                     typeName = typeEnum == MONO_TYPE_VALUETYPE ? "/* Unknown value type */" : (isReferenceType ? "void*" : GetCppTypeFromMonoType(fieldType));
                 }
             } catch (...) {
-                G::logger.LogInfo("Error getting type information for field %s", fieldName.c_str());
+                LOG_INFO("Error getting type information for field %s", fieldName.c_str());
                 typeName = typeEnum == MONO_TYPE_VALUETYPE ? "/* Unknown value type */" : (isReferenceType ? "void*" : GetCppTypeFromMonoType(fieldType));
             }
         } else {
@@ -728,16 +726,16 @@ void MonoAPI::GenerateStructFromClass(void* klass, std::ofstream& file, std::set
 void MonoAPI::DumpAllClassesToStructs(const std::string& outputDir) {
     void* domain = m_mono_get_root_domain();
     if (!domain) {
-        G::logger.LogError("Failed to get mono domain");
+        LOG_ERROR("Failed to get mono domain");
         return;
     }
     if (!monoThread) {
         monoThread = m_mono_thread_attach(domain);
         if (!monoThread) {
-            G::logger.LogError("Failed to attach thread to mono domain");
+            LOG_ERROR("Failed to attach thread to mono domain");
             return;
         } else {
-            G::logger.LogInfo("Thread attached to mono runtime: %p", monoThread);
+            LOG_INFO("Thread attached to mono runtime: %p", monoThread);
         }
     }
 
