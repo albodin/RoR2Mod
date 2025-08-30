@@ -3,6 +3,7 @@
 #include "core/MonoTypes.h"
 #include "game/GameStructs.h"
 #include "menu/InputControls.h"
+#include <atomic>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -37,30 +38,6 @@ struct TrackedInteractable {
     int32_t pickupIndex; // Store the pickup index
 };
 
-// Helper structures for depth-based rendering
-struct ESPEntityRenderItem {
-    TrackedEntity* entity;
-    float distance;
-    bool isVisible;
-    bool onScreen;
-    ImVec2 screenPos;
-
-    ESPEntityRenderItem(TrackedEntity* e, float d, bool visible, bool onScr, const ImVec2& pos)
-        : entity(e), distance(d), isVisible(visible), onScreen(onScr), screenPos(pos) {}
-};
-
-struct ESPInteractableRenderItem {
-    TrackedInteractable* interactable;
-    float distance;
-    bool isVisible;
-    bool onScreen;
-    bool isAvailable;
-    ImVec2 screenPos;
-
-    ESPInteractableRenderItem(TrackedInteractable* inter, float d, bool visible, bool onScr, bool available, const ImVec2& pos)
-        : interactable(inter), distance(d), isVisible(visible), onScreen(onScr), isAvailable(available), screenPos(pos) {}
-};
-
 // Hierarchical ESP ordering system
 enum class ESPMainCategory { Players = 0, Enemies, Teleporter, Chests, Shops, Drones, Shrines, Specials, Barrels, ItemPickups, Portals, COUNT };
 
@@ -83,6 +60,7 @@ struct ESPCategoryInfo {
 struct ESPHierarchicalRenderItem {
     ESPMainCategory mainCategory;
     ESPSubCategory subCategory;
+    Vector3 worldPosition;
     float distance;
 
     // Union to hold different ESP item types
@@ -92,27 +70,21 @@ struct ESPHierarchicalRenderItem {
         void* teleporterData;
     };
 
-    ImVec2 screenPos;
     bool isVisible;
-    bool onScreen;
     bool isAvailable; // For interactables
 
     // Constructor for entities
-    ESPHierarchicalRenderItem(ESPMainCategory main, ESPSubCategory sub, TrackedEntity* ent, float dist, const ImVec2& pos, bool visible, bool onScr)
-        : mainCategory(main), subCategory(sub), distance(dist), entity(ent), screenPos(pos), isVisible(visible), onScreen(onScr), isAvailable(true) {}
+    ESPHierarchicalRenderItem(ESPMainCategory main, ESPSubCategory sub, TrackedEntity* ent, Vector3 worldPos, float dist, bool visible)
+        : mainCategory(main), subCategory(sub), distance(dist), entity(ent), worldPosition(worldPos), isVisible(visible), isAvailable(true) {}
 
     // Constructor for interactables
-    ESPHierarchicalRenderItem(ESPMainCategory main, ESPSubCategory sub, TrackedInteractable* inter, float dist, const ImVec2& pos, bool visible, bool onScr,
-                              bool available)
-        : mainCategory(main), subCategory(sub), distance(dist), interactable(inter), screenPos(pos), isVisible(visible), onScreen(onScr),
-          isAvailable(available) {}
+    ESPHierarchicalRenderItem(ESPMainCategory main, ESPSubCategory sub, TrackedInteractable* inter, Vector3 worldPos, float dist, bool visible, bool available)
+        : mainCategory(main), subCategory(sub), distance(dist), interactable(inter), worldPosition(worldPos), isVisible(visible), isAvailable(available) {}
 
     // Constructor for teleporter
-    ESPHierarchicalRenderItem(ESPMainCategory main, ESPSubCategory sub, void* tele, float dist, const ImVec2& pos, bool visible, bool onScr)
-        : mainCategory(main), subCategory(sub), distance(dist), teleporterData(tele), screenPos(pos), isVisible(visible), onScreen(onScr), isAvailable(true) {}
+    ESPHierarchicalRenderItem(ESPMainCategory main, ESPSubCategory sub, void* tele, Vector3 worldPos, float dist, bool visible)
+        : mainCategory(main), subCategory(sub), distance(dist), teleporterData(tele), worldPosition(worldPos), isVisible(visible), isAvailable(true) {}
 };
-
-class ChestESPControl;
 
 // Manager for ESP rendering order hierarchy
 class ESPRenderOrderManager {
@@ -180,6 +152,7 @@ class ESPModule : public ModuleBase {
         }
     };
 
+    std::shared_ptr<std::vector<ESPHierarchicalRenderItem>> collectedItemsBuffer = std::make_shared<std::vector<ESPHierarchicalRenderItem>>();
     std::unique_ptr<RenderOrderConfigControl> m_renderOrderConfigControl;
     std::unique_ptr<ESPControl> teleporterESPControl;
     std::unique_ptr<EntityESPControl> playerESPControl;
@@ -236,7 +209,9 @@ class ESPModule : public ModuleBase {
     // Main category to control lookup table
     ChestESPControl* m_mainCategoryControls[static_cast<int>(ESPMainCategory::COUNT)];
 
-    void RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible, bool onScreen);
+    bool CalcEntityBounds(TrackedEntity* entity, ImVec2& outMin, ImVec2& outMax);
+    void RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible, bool onScreen, bool hasBounds,
+                         ImVec2 screenMin, ImVec2 screenMax);
     std::string GetTimedChestTime(TimedChestController* timedChestController);
     void RenderInteractableESP(TrackedInteractable* interactable, ImVec2 screenPos, float distance, ChestESPSubControl* control, bool isVisible, bool onScreen,
                                bool isAvailable);

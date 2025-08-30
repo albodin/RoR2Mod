@@ -537,9 +537,8 @@ void ESPModule::DrawRenderOrderUI() {
 }
 
 void ESPModule::OnFrameRender() {
-    // Collect all ESP items with their categories
-    std::vector<ESPHierarchicalRenderItem> allItems;
-    CollectAllESPItems(allItems);
+    std::shared_ptr<std::vector<ESPHierarchicalRenderItem>> renderData = std::atomic_load(&collectedItemsBuffer);
+    std::vector<ESPHierarchicalRenderItem> allItems = renderData ? *renderData : std::vector<ESPHierarchicalRenderItem>();
 
     if (allItems.empty())
         return;
@@ -571,6 +570,77 @@ void ESPModule::OnFrameRender() {
     }
 }
 
+bool ESPModule::CalcEntityBounds(TrackedEntity* entity, ImVec2& outMin, ImVec2& outMax) {
+    ImVec2 screenMin(FLT_MAX, FLT_MAX);
+    ImVec2 screenMax(-FLT_MAX, -FLT_MAX);
+    bool boundsFound = false;
+
+    if (entity->body->hurtBoxGroup_backing && entity->body->hurtBoxGroup_backing->hurtBoxes) {
+        Vector3 minBounds(FLT_MAX, FLT_MAX, FLT_MAX);
+        Vector3 maxBounds(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+        uint32_t len = static_cast<uint32_t>((reinterpret_cast<MonoArray_Internal*>(entity->body->hurtBoxGroup_backing->hurtBoxes))->max_length);
+        HurtBox** data = mono_array_addr<HurtBox*>(reinterpret_cast<MonoArray_Internal*>(entity->body->hurtBoxGroup_backing->hurtBoxes));
+
+        for (uint32_t i = 0; i < len; ++i) {
+            HurtBox* hurtBox = data[i];
+            if (hurtBox) {
+                Transform* hurtBoxTransform = static_cast<Transform*>(Hooks::Component_get_transform(hurtBox));
+                if (hurtBoxTransform) {
+                    Vector3 hurtBoxPos;
+                    Hooks::Transform_get_position_Injected(hurtBoxTransform, &hurtBoxPos);
+
+                    if (!boundsFound) {
+                        minBounds = hurtBoxPos;
+                        maxBounds = hurtBoxPos;
+                        boundsFound = true;
+                    } else {
+                        minBounds.x = std::min(minBounds.x, hurtBoxPos.x);
+                        minBounds.y = std::min(minBounds.y, hurtBoxPos.y);
+                        minBounds.z = std::min(minBounds.z, hurtBoxPos.z);
+                        maxBounds.x = std::max(maxBounds.x, hurtBoxPos.x);
+                        maxBounds.y = std::max(maxBounds.y, hurtBoxPos.y);
+                        maxBounds.z = std::max(maxBounds.z, hurtBoxPos.z);
+                    }
+                }
+            }
+        }
+
+        if (boundsFound) {
+            Vector3 corners[8] = {Vector3(minBounds.x, minBounds.y, minBounds.z), Vector3(maxBounds.x, minBounds.y, minBounds.z),
+                                  Vector3(minBounds.x, maxBounds.y, minBounds.z), Vector3(maxBounds.x, maxBounds.y, minBounds.z),
+                                  Vector3(minBounds.x, minBounds.y, maxBounds.z), Vector3(maxBounds.x, minBounds.y, maxBounds.z),
+                                  Vector3(minBounds.x, maxBounds.y, maxBounds.z), Vector3(maxBounds.x, maxBounds.y, maxBounds.z)};
+
+            int visibleCorners = 0;
+
+            for (int i = 0; i < 8; i++) {
+                ImVec2 cornerScreen;
+                if (RenderUtils::WorldToScreen(mainCamera, corners[i], cornerScreen)) {
+                    if (visibleCorners == 0) {
+                        screenMin = cornerScreen;
+                        screenMax = cornerScreen;
+                    } else {
+                        screenMin.x = std::min(screenMin.x, cornerScreen.x);
+                        screenMin.y = std::min(screenMin.y, cornerScreen.y);
+                        screenMax.x = std::max(screenMax.x, cornerScreen.x);
+                        screenMax.y = std::max(screenMax.y, cornerScreen.y);
+                    }
+                    visibleCorners++;
+                }
+            }
+
+            if (visibleCorners == 0) {
+                boundsFound = false;
+            }
+        }
+    }
+
+    outMin = screenMin;
+    outMax = screenMax;
+    return boundsFound;
+}
+
 void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items) {
     if (!G::runInstance || !mainCamera || !G::localPlayer->GetPlayerPosition()) {
         return;
@@ -589,13 +659,8 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
             if (distance > teleporterESPControl->GetDistance())
                 continue;
 
-            ImVec2 screenPos;
-            if (RenderUtils::WorldToScreen(mainCamera, teleporter->position, screenPos)) {
-                bool isVisible = IsVisible(teleporter->position);
-                bool onScreen = !(screenPos.x == 0.0f && screenPos.y == 0.0f);
-
-                items.emplace_back(ESPMainCategory::Teleporter, ESPSubCategory::Single, teleporter.get(), distance, screenPos, isVisible, onScreen);
-            }
+            bool isVisible = IsVisible(teleporter->position);
+            items.emplace_back(ESPMainCategory::Teleporter, ESPSubCategory::Single, teleporter.get(), teleporter->position, distance, isVisible);
         }
     }
 
@@ -620,13 +685,8 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
             if (!control->IsEnabled() || distance > control->GetMaxDistance())
                 continue;
 
-            ImVec2 screenPos;
-            bool onScreen = RenderUtils::WorldToScreen(mainCamera, playerWorldPos, screenPos);
-            if (!onScreen && screenPos.x == 0.0f && screenPos.y == 0.0f)
-                continue;
-
             ESPSubCategory subCat = isVisible ? ESPSubCategory::Visible : ESPSubCategory::NonVisible;
-            items.emplace_back(ESPMainCategory::Players, subCat, entity.get(), distance, screenPos, isVisible, onScreen);
+            items.emplace_back(ESPMainCategory::Players, subCat, entity.get(), playerWorldPos, distance, isVisible);
         }
     }
 
@@ -649,13 +709,8 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
             if (!control->IsEnabled() || distance > control->GetMaxDistance())
                 continue;
 
-            ImVec2 screenPos;
-            bool onScreen = RenderUtils::WorldToScreen(mainCamera, enemyWorldPos, screenPos);
-            if (!onScreen && screenPos.x == 0.0f && screenPos.y == 0.0f)
-                continue;
-
             ESPSubCategory subCat = isVisible ? ESPSubCategory::Visible : ESPSubCategory::NonVisible;
-            items.emplace_back(ESPMainCategory::Enemies, subCat, entity.get(), distance, screenPos, isVisible, onScreen);
+            items.emplace_back(ESPMainCategory::Enemies, subCat, entity.get(), enemyWorldPos, distance, isVisible);
         }
     }
 
@@ -695,15 +750,6 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
             if (!control->IsEnabled() || distance > control->GetMaxDistance())
                 continue;
 
-            Vector3 screenPos3D;
-            Hooks::Camera_WorldToScreenPoint_Injected(mainCamera, &currentPosition, MonoOrStereoscopicEye::Mono, &screenPos3D);
-            if (screenPos3D.z <= 0)
-                continue;
-
-            ImVec2 screenPos(screenPos3D.x, ImGui::GetIO().DisplaySize.y - screenPos3D.y);
-            bool isVisible = IsVisible(currentPosition);
-            bool onScreen = screenPos.x >= 0 && screenPos.x <= ImGui::GetIO().DisplaySize.x && screenPos.y >= 0 && screenPos.y <= ImGui::GetIO().DisplaySize.y;
-
             // Check availability
             bool isAvailable = true;
             if (interactable->category == InteractableCategory::Barrel && interactable->gameObject) {
@@ -728,7 +774,8 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
             if (!isAvailable && !control->ShouldShowUnavailable())
                 continue;
 
-            items.emplace_back(mainCategory, ESPSubCategory::Single, interactable.get(), distance, screenPos, isVisible, onScreen, isAvailable);
+            bool isVisible = IsVisible(currentPosition);
+            items.emplace_back(mainCategory, ESPSubCategory::Single, interactable.get(), currentPosition, distance, isVisible, isAvailable);
         }
     }
 }
@@ -740,13 +787,16 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
         if (!item.teleporterData || !G::localPlayer->GetPlayerPosition())
             return;
 
+        ImVec2 screenPos;
+        bool onScreen = RenderUtils::WorldToScreen(mainCamera, item.worldPosition, screenPos);
+
         TrackedTeleporter* teleporter = static_cast<TrackedTeleporter*>(item.teleporterData);
         const char* baseName = teleporter->displayName.empty() ? "Teleporter" : teleporter->displayName.c_str();
 
         char teleporterText[256];
         snprintf(teleporterText, sizeof(teleporterText), "%s (%dm)", baseName, static_cast<int>(item.distance));
 
-        RenderUtils::RenderText(item.screenPos, teleporterESPControl->GetColorU32(), teleporterESPControl->GetOutlineColorU32(),
+        RenderUtils::RenderText(screenPos, teleporterESPControl->GetColorU32(), teleporterESPControl->GetOutlineColorU32(),
                                 teleporterESPControl->IsOutlineEnabled(), true, "%s", teleporterText);
 
     } else if (item.mainCategory == ESPMainCategory::Players || item.mainCategory == ESPMainCategory::Enemies) {
@@ -755,7 +805,13 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
 
         EntityESPSubControl* subControl = item.isVisible ? control->GetVisibleControl() : control->GetNonVisibleControl();
 
-        RenderEntityESP(item.entity, item.screenPos, item.distance, subControl, item.isVisible, item.onScreen);
+        ImVec2 screenPos;
+        bool onScreen = RenderUtils::WorldToScreen(mainCamera, item.worldPosition, screenPos);
+
+        ImVec2 boundsMin, boundsMax;
+        bool foundBounds = CalcEntityBounds(item.entity, boundsMin, boundsMax);
+
+        RenderEntityESP(item.entity, screenPos, item.distance, subControl, item.isVisible, onScreen, foundBounds, boundsMin, boundsMax);
 
     } else {
         // Render interactable using lookup table
@@ -774,12 +830,23 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
 
         if (categoryControl) {
             ChestESPSubControl* control = categoryControl->GetSubControl();
-            RenderInteractableESP(item.interactable, item.screenPos, item.distance, control, item.isVisible, item.onScreen, item.isAvailable);
+            ImVec2 screenPos;
+            bool onScreen = RenderUtils::WorldToScreen(mainCamera, item.worldPosition, screenPos);
+            RenderInteractableESP(item.interactable, screenPos, item.distance, control, item.isVisible, onScreen, item.isAvailable);
         }
     }
 }
 
-void ESPModule::OnGameUpdate() { mainCamera = Hooks::Camera_get_main(); }
+void ESPModule::OnGameUpdate() {
+    mainCamera = Hooks::Camera_get_main();
+
+    std::shared_ptr<std::vector<ESPHierarchicalRenderItem>> curBuffer = std::atomic_load(&collectedItemsBuffer);
+    std::shared_ptr<std::vector<ESPHierarchicalRenderItem>> newBuffer = std::make_shared<std::vector<ESPHierarchicalRenderItem>>();
+    CollectAllESPItems(*newBuffer);
+
+    while (!std::atomic_compare_exchange_weak(&collectedItemsBuffer, &curBuffer, newBuffer)) {
+    }
+}
 
 void ESPModule::OnTeleporterAwake(void* teleporter) {
     if (!teleporter)
@@ -892,7 +959,8 @@ void ESPModule::OnCharacterBodyDestroyed(void* characterBody) {
         trackedPlayers.end());
 }
 
-void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible, bool onScreen) {
+void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float distance, EntityESPSubControl* control, bool isVisible, bool onScreen,
+                                bool hasBounds, ImVec2 screenMin, ImVec2 screenMax) {
     if (!entity || !control)
         return;
 
@@ -908,81 +976,16 @@ void ESPModule::RenderEntityESP(TrackedEntity* entity, ImVec2 screenPos, float d
     float lineHeight = FontManager::ESPFontSize;
     static float boxBorderThickness = 2.0f;
 
-    ImVec2 screenMin(FLT_MAX, FLT_MAX);
-    ImVec2 screenMax(-FLT_MAX, -FLT_MAX);
-    bool boundsFound = false;
-
-    if (entity->body->hurtBoxGroup_backing && entity->body->hurtBoxGroup_backing->hurtBoxes) {
-        Vector3 minBounds(FLT_MAX, FLT_MAX, FLT_MAX);
-        Vector3 maxBounds(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-
-        uint32_t len = static_cast<uint32_t>((reinterpret_cast<MonoArray_Internal*>(entity->body->hurtBoxGroup_backing->hurtBoxes))->max_length);
-        HurtBox** data = mono_array_addr<HurtBox*>(reinterpret_cast<MonoArray_Internal*>(entity->body->hurtBoxGroup_backing->hurtBoxes));
-
-        for (uint32_t i = 0; i < len; ++i) {
-            HurtBox* hurtBox = data[i];
-            if (hurtBox) {
-                Transform* hurtBoxTransform = static_cast<Transform*>(Hooks::Component_get_transform(hurtBox));
-                if (hurtBoxTransform) {
-                    Vector3 hurtBoxPos;
-                    Hooks::Transform_get_position_Injected(hurtBoxTransform, &hurtBoxPos);
-
-                    if (!boundsFound) {
-                        minBounds = hurtBoxPos;
-                        maxBounds = hurtBoxPos;
-                        boundsFound = true;
-                    } else {
-                        minBounds.x = std::min(minBounds.x, hurtBoxPos.x);
-                        minBounds.y = std::min(minBounds.y, hurtBoxPos.y);
-                        minBounds.z = std::min(minBounds.z, hurtBoxPos.z);
-                        maxBounds.x = std::max(maxBounds.x, hurtBoxPos.x);
-                        maxBounds.y = std::max(maxBounds.y, hurtBoxPos.y);
-                        maxBounds.z = std::max(maxBounds.z, hurtBoxPos.z);
-                    }
-                }
-            }
-        }
-
-        if (boundsFound) {
-            Vector3 corners[8] = {Vector3(minBounds.x, minBounds.y, minBounds.z), Vector3(maxBounds.x, minBounds.y, minBounds.z),
-                                  Vector3(minBounds.x, maxBounds.y, minBounds.z), Vector3(maxBounds.x, maxBounds.y, minBounds.z),
-                                  Vector3(minBounds.x, minBounds.y, maxBounds.z), Vector3(maxBounds.x, minBounds.y, maxBounds.z),
-                                  Vector3(minBounds.x, maxBounds.y, maxBounds.z), Vector3(maxBounds.x, maxBounds.y, maxBounds.z)};
-
-            int visibleCorners = 0;
-
-            for (int i = 0; i < 8; i++) {
-                ImVec2 cornerScreen;
-                if (RenderUtils::WorldToScreen(mainCamera, corners[i], cornerScreen)) {
-                    if (visibleCorners == 0) {
-                        screenMin = cornerScreen;
-                        screenMax = cornerScreen;
-                    } else {
-                        screenMin.x = std::min(screenMin.x, cornerScreen.x);
-                        screenMin.y = std::min(screenMin.y, cornerScreen.y);
-                        screenMax.x = std::max(screenMax.x, cornerScreen.x);
-                        screenMax.y = std::max(screenMax.y, cornerScreen.y);
-                    }
-                    visibleCorners++;
-                }
-            }
-
-            if (visibleCorners == 0) {
-                boundsFound = false;
-            }
-        }
-    }
-
     // Fallback bounds if we couldn't calculate from hurtboxes or bounds are too small
     bool useFallbackBounds = false;
-    if (!boundsFound) {
-        useFallbackBounds = true;
-    } else {
+    if (hasBounds) {
         // Check if bounds are too small (like wisps) - if box is smaller than 5x5 pixels, use fallback
         ImVec2 currentBoxSize(screenMax.x - screenMin.x, screenMax.y - screenMin.y);
         if (currentBoxSize.x < 5.0f || currentBoxSize.y < 5.0f) {
             useFallbackBounds = true;
         }
+    } else {
+        useFallbackBounds = true;
     }
 
     if (useFallbackBounds) {
@@ -1592,6 +1595,9 @@ void ESPModule::ClearData() {
         std::lock_guard<std::mutex> lock(teleportersMutex);
         trackedTeleporters.clear();
     }
+
+    auto emptyBuffer = std::make_shared<std::vector<ESPHierarchicalRenderItem>>();
+    std::atomic_store(&collectedItemsBuffer, emptyBuffer);
 }
 
 void ESPModule::OnStageAdvance(void* stage) {
