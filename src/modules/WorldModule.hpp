@@ -1,7 +1,7 @@
 #pragma once
-#include "ModuleBase.h"
-#include "game/GameStructs.h"
-#include "menu/InputControls.h"
+#include "ModuleBase.hpp"
+#include "game/GameStructs.hpp"
+#include "menu/InputControls.hpp"
 #include <memory>
 
 class WorldModule : public ModuleBase {

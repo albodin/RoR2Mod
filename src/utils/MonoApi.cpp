@@ -1,5 +1,5 @@
-#include "MonoApi.h"
-#include <globals/globals.h>
+#include "MonoApi.hpp"
+#include "globals/globals.hpp"
 #include <iostream>
 #include <map>
 

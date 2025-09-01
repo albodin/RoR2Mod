@@ -1,6 +1,6 @@
-#include "RenderUtils.h"
-#include "fonts/FontManager.h"
-#include "hooks/hooks.h"
+#include "RenderUtils.hpp"
+#include "fonts/FontManager.hpp"
+#include "hooks/hooks.hpp"
 #include <cstdarg>
 #include <cstdio>
 

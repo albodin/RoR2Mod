@@ -1,5 +1,5 @@
 #pragma once
-#include "game/GameStructs.h"
+#include "game/GameStructs.hpp"
 #include <dxgi.h>
 
 #define DECLARE_INTERNAL_CALL(ReturnType, Class, Method, ...)                                                                                                  \

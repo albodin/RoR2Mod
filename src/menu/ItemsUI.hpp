@@ -1,7 +1,7 @@
 #pragma once
-#include "InputControls.h"
-#include "game/GameStructs.h"
-#include "utils/ModStructs.h"
+#include "InputControls.hpp"
+#include "game/GameStructs.hpp"
+#include "utils/ModStructs.hpp"
 #include <map>
 #include <memory>
 #include <vector>

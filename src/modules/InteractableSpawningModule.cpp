@@ -1,6 +1,6 @@
-#include "InteractableSpawningModule.h"
-#include "game/InteractablePaths.h"
-#include "globals/globals.h"
+#include "InteractableSpawningModule.hpp"
+#include "game/InteractablePaths.hpp"
+#include "globals/globals.hpp"
 #include "imgui/imgui.h"
 #include <algorithm>
 

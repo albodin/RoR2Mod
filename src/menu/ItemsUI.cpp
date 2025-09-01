@@ -1,5 +1,5 @@
-#include "ItemsUI.h"
-#include "globals/globals.h"
+#include "ItemsUI.hpp"
+#include "globals/globals.hpp"
 #include <algorithm>
 #include <cctype>
 #include <imgui.h>

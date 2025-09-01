@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/MonoRuntime.h"
-#include "game/GameStructs.h"
-#include "utils/Math.h"
+#include "core/MonoRuntime.hpp"
+#include "game/GameStructs.hpp"
+#include "utils/Math.hpp"
 
 // Nullable<TeamIndex> structure for Mono interop
 #pragma pack(push, 1)

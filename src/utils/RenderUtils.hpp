@@ -1,6 +1,6 @@
 #pragma once
-#include "Math.h"
-#include "game/GameStructs.h"
+#include "Math.hpp"
+#include "game/GameStructs.hpp"
 #include <imgui.h>
 
 namespace RenderUtils {

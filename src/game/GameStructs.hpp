@@ -1,5 +1,5 @@
 #pragma once
-#include "utils/Math.h"
+#include "utils/Math.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>

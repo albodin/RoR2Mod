@@ -1,6 +1,6 @@
-#include "WorldModule.h"
-#include "globals/globals.h"
-#include "hooks/hooks.h"
+#include "WorldModule.hpp"
+#include "globals/globals.hpp"
+#include "hooks/hooks.hpp"
 #include "imgui.h"
 
 WorldModule::WorldModule() : ModuleBase() { Initialize(); }

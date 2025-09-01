@@ -1,5 +1,5 @@
-#include "MonoRuntime.h"
-#include "globals/globals.h"
+#include "MonoRuntime.hpp"
+#include "globals/globals.hpp"
 #include <chrono>
 #include <stdio.h>
 #include <vector>

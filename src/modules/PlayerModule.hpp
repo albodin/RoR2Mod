@@ -1,8 +1,8 @@
 #pragma once
-#include "ModuleBase.h"
-#include "game/GameStructs.h"
-#include "menu/InputControls.h"
-#include "utils/ModStructs.h"
+#include "ModuleBase.hpp"
+#include "game/GameStructs.hpp"
+#include "menu/InputControls.hpp"
+#include "utils/ModStructs.hpp"
 #include <map>
 #include <memory>
 #include <mutex>

@@ -36,8 +36,8 @@ jobs:
     - name: Extract version info
       id: get_version
       run: |
-        # Get version from version.h
-        VERSION=$(grep "VERSION_STRING" src/version.h | cut -d'"' -f2)
+        # Get version from version.hpp
+        VERSION=$(grep "VERSION_STRING" src/version.hpp | cut -d'"' -f2)
         # Get tag name
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           TAG="${{ github.event.inputs.tag }}"
@@ -53,7 +53,7 @@ jobs:
         echo "COMMIT_SHORT=$COMMIT_SHORT" >> $GITHUB_OUTPUT
         echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_OUTPUT
 
-        echo "Version from version.h: $VERSION"
+        echo "Version from version.hpp: $VERSION"
         echo "Tag: $TAG"
         echo "Commit: $COMMIT_SHORT"
         echo "Date: $COMMIT_DATE"

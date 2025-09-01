@@ -1,8 +1,8 @@
 #pragma once
 
-#include "FontAwesome6Solid900.h"
-#include "IconsFontAwesome6.h"
-#include "JetBrainsMonoReg.h"
+#include "FontAwesome6Solid900.hpp"
+#include "IconsFontAwesome6.hpp"
+#include "JetBrainsMonoReg.hpp"
 #include "imgui.h"
 #include <string>
 #include <vector>

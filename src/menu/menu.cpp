@@ -1,9 +1,9 @@
-#include "menu.h"
-#include "NotificationManager.h"
-#include "config/ConfigManager.h"
-#include "fonts/FontManager.h"
-#include "globals/globals.h"
-#include "utils/MonoApi.h"
+#include "menu.hpp"
+#include "NotificationManager.hpp"
+#include "config/ConfigManager.hpp"
+#include "fonts/FontManager.hpp"
+#include "globals/globals.hpp"
+#include "utils/MonoApi.hpp"
 #include <filesystem>
 #include <imgui.h>
 

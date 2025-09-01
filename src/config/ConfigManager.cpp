@@ -1,8 +1,8 @@
-#include "ConfigManager.h"
-#include "fonts/FontManager.h"
-#include "globals/globals.h"
-#include "menu/InputControls.h"
-#include "menu/NotificationManager.h"
+#include "ConfigManager.hpp"
+#include "fonts/FontManager.hpp"
+#include "globals/globals.hpp"
+#include "menu/InputControls.hpp"
+#include "menu/NotificationManager.hpp"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
