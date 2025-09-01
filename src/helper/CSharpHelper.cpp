@@ -1,7 +1,7 @@
-#include "CSharpHelper.h"
-#include "core/MonoRuntime.h"
-#include "generated/RoR2ModHelper_dll.h"
-#include "globals/globals.h"
+#include "CSharpHelper.hpp"
+#include "core/MonoRuntime.hpp"
+#include "generated/RoR2ModHelper_dll.hpp"
+#include "globals/globals.hpp"
 #include <chrono>
 #include <cstring>
 #include <iomanip>

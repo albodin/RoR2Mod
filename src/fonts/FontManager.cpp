@@ -1,5 +1,5 @@
-#include "FontManager.h"
-#include "globals/globals.h"
+#include "FontManager.hpp"
+#include "globals/globals.hpp"
 #include <filesystem>
 
 static float BaseFontSize = 15.0f;

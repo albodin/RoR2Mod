@@ -1,9 +1,9 @@
-#include "PlayerModule.h"
-#include "config/ConfigManager.h"
-#include "globals/globals.h"
-#include "hooks/hooks.h"
+#include "PlayerModule.hpp"
+#include "config/ConfigManager.hpp"
+#include "globals/globals.hpp"
+#include "hooks/hooks.hpp"
 #include "imgui.h"
-#include "menu/ItemsUI.h"
+#include "menu/ItemsUI.hpp"
 #include <algorithm>
 #include <cctype>
 #include <cstring>

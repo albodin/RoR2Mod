@@ -26,16 +26,16 @@ if [ -f "$COMMIT_MSG_FILE" ] && [ -s "$COMMIT_MSG_FILE" ]; then
 
     if [ -n "$COMMIT_MSG" ]; then
         echo "Analyzing commit message for semantic versioning..."
-        ORIGINAL_VERSION=$(grep 'VERSION_STRING ' src/version.h | cut -d'"' -f2 2>/dev/null || echo "unknown")
+        ORIGINAL_VERSION=$(grep 'VERSION_STRING ' src/version.hpp | cut -d'"' -f2 2>/dev/null || echo "unknown")
 
         # Process version bump
         echo "$COMMIT_MSG" | python3 scripts/version_bump.py auto
 
         # Check if version changed and stage it
-        NEW_VERSION=$(grep 'VERSION_STRING ' src/version.h | cut -d'"' -f2 2>/dev/null || echo "unknown")
+        NEW_VERSION=$(grep 'VERSION_STRING ' src/version.hpp | cut -d'"' -f2 2>/dev/null || echo "unknown")
 
         if [ "$ORIGINAL_VERSION" != "$NEW_VERSION" ]; then
-            git add src/version.h
+            git add src/version.hpp
             echo "Version bumped from $ORIGINAL_VERSION to $NEW_VERSION"
         fi
     fi

@@ -1,6 +1,6 @@
-#include "GameFunctions.h"
-#include "globals/globals.h"
-#include "hooks/hooks.h"
+#include "GameFunctions.hpp"
+#include "globals/globals.hpp"
+#include "hooks/hooks.hpp"
 
 GameFunctions::GameFunctions(MonoRuntime* runtime) {
     m_runtime = runtime;

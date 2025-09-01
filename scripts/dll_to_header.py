@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Convert a DLL file to a C++ header file with embedded byte array.
-Usage: dll_to_header.py <input.dll> <output.h>
+Usage: dll_to_header.py <input.dll> <output.hpp>
 """
 
 import sys
@@ -85,7 +85,7 @@ def dll_to_header(dll_path, header_path):
 
 def main():
     if len(sys.argv) != 3:
-        print("Usage: dll_to_header.py <input.dll> <output.h>")
+        print("Usage: dll_to_header.py <input.dll> <output.hpp>")
         sys.exit(1)
 
     dll_path = sys.argv[1]

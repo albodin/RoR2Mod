@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "globals.hpp"
 
 namespace G {
 bool running = true;

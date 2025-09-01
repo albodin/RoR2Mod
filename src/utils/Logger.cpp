@@ -1,4 +1,4 @@
-#include "Logger.h"
+#include "Logger.hpp"
 #include <filesystem>
 #include <plog/Appenders/RollingFileAppender.h>
 #include <plog/Formatters/TxtFormatter.h>

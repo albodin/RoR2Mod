@@ -6,21 +6,21 @@ if [ ! -f "scripts/version_bump.py" ]; then
     exit 0
 fi
 
-# Check if version.h has staged changes (from prepare-commit-msg)
-if ! git diff --quiet --cached src/version.h 2>/dev/null; then
+# Check if version.hpp has staged changes (from prepare-commit-msg)
+if ! git diff --quiet --cached src/version.hpp 2>/dev/null; then
     echo "Adding version changes to commit..."
-    
+
     # Prevent infinite loop
     touch .git/AMENDING_VERSION
-    
-    # Amend the commit to include version.h
+
+    # Amend the commit to include version.hpp
     git commit --amend --no-edit --no-verify
-    
+
     echo "Version file added to commit via amendment"
 fi
 
-# Check if version.h changed in this commit and create tag if appropriate
-if git diff --quiet HEAD~1 HEAD -- src/version.h 2>/dev/null; then
+# Check if version.hpp changed in this commit and create tag if appropriate
+if git diff --quiet HEAD~1 HEAD -- src/version.hpp 2>/dev/null; then
     # No version change, exit
     exit 0
 fi
@@ -30,12 +30,12 @@ echo "Version changed in this commit, checking if tag should be created..."
 
 # Get the commit message and current version
 COMMIT_MSG=$(git log -1 --pretty=%B)
-CURRENT_VERSION=$(grep 'VERSION_STRING ' src/version.h | cut -d'"' -f2 2>/dev/null || echo "unknown")
+CURRENT_VERSION=$(grep 'VERSION_STRING ' src/version.hpp | cut -d'"' -f2 2>/dev/null || echo "unknown")
 
 if [ -n "$COMMIT_MSG" ] && [ "$CURRENT_VERSION" != "unknown" ]; then
     # Analyze commit message to determine bump type (replicate logic from version_bump.py)
     COMMIT_MSG_LOWER=$(echo "$COMMIT_MSG" | tr '[:upper:]' '[:lower:]')
-    
+
     BUMP_TYPE="none"
     if echo "$COMMIT_MSG_LOWER" | grep -qE "(breaking change|!:)"; then
         BUMP_TYPE="major"
@@ -44,7 +44,7 @@ if [ -n "$COMMIT_MSG" ] && [ "$CURRENT_VERSION" != "unknown" ]; then
     elif echo "$COMMIT_MSG_LOWER" | grep -qE "^(fix|fixed|patch|bugfix):"; then
         BUMP_TYPE="patch"
     fi
-    
+
     # Create tag only for major/minor versions
     if [ "$BUMP_TYPE" = "major" ] || [ "$BUMP_TYPE" = "minor" ]; then
         if git tag "v$CURRENT_VERSION" 2>/dev/null; then

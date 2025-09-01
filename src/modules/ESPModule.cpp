@@ -1,9 +1,9 @@
-#include "ESPModule.h"
-#include "config/ConfigManager.h"
-#include "fonts/FontManager.h"
-#include "globals/globals.h"
-#include "hooks/hooks.h"
-#include "utils/RenderUtils.h"
+#include "ESPModule.hpp"
+#include "config/ConfigManager.hpp"
+#include "fonts/FontManager.hpp"
+#include "globals/globals.hpp"
+#include "hooks/hooks.hpp"
+#include "utils/RenderUtils.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>

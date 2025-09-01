@@ -1,6 +1,6 @@
-#include "NotificationManager.h"
-#include "fonts/FontManager.h"
-#include "globals/globals.h"
+#include "NotificationManager.hpp"
+#include "fonts/FontManager.hpp"
+#include "globals/globals.hpp"
 
 namespace {
 constexpr float MARGIN = 10.0f;

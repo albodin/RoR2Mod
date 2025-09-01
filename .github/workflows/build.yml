@@ -29,8 +29,8 @@ jobs:
     - name: Extract version and build info
       id: get_version
       run: |
-        # Get version from version.h
-        VERSION=$(grep "VERSION_STRING" src/version.h | cut -d'"' -f2)
+        # Get version from version.hpp
+        VERSION=$(grep "VERSION_STRING" src/version.hpp | cut -d'"' -f2)
         # Get short commit hash
         COMMIT_SHORT=$(git rev-parse --short HEAD)
         # Get build number (use run number)
@@ -48,11 +48,11 @@ jobs:
         echo "Build: $BUILD_NUM"
         echo "Full Version: $FULL_VERSION"
 
-    - name: Update version.h with commit info
+    - name: Update version.hpp with commit info
       run: |
-        sed -i "s/VERSION_STRING \".*\"/VERSION_STRING \"${{ steps.get_version.outputs.VERSION }}-${{ steps.get_version.outputs.COMMIT_SHORT }}\"/" src/version.h
-        echo "Updated version.h:"
-        grep VERSION_STRING src/version.h
+        sed -i "s/VERSION_STRING \".*\"/VERSION_STRING \"${{ steps.get_version.outputs.VERSION }}-${{ steps.get_version.outputs.COMMIT_SHORT }}\"/" src/version.hpp
+        echo "Updated version.hpp:"
+        grep VERSION_STRING src/version.hpp
 
     - name: Configure CMake (Release)
       run: |

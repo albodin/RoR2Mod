@@ -4,8 +4,8 @@
 #include <thread>
 #include <windows.h>
 
-#include "globals/globals.h"
-#include "hooks/hooks.h"
+#include "globals/globals.hpp"
+#include "hooks/hooks.hpp"
 
 #define MAX_STACK_FRAMES 100
 

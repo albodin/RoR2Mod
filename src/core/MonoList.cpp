@@ -1,5 +1,5 @@
-#include "MonoList.h"
-#include "globals/globals.h"
+#include "MonoList.hpp"
+#include "globals/globals.hpp"
 
 MonoList::MonoList(MonoObject* listObject)
     : list(listObject), getItemMethod(nullptr), addMethod(nullptr), removeMethod(nullptr), clearMethod(nullptr), getCountMethod(nullptr), count(0) {

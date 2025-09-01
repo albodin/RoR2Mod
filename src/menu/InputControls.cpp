@@ -1,8 +1,8 @@
-#include "InputControls.h"
-#include "config/ConfigManager.h"
-#include "fonts/IconsFontAwesome6.h"
-#include "globals/globals.h"
-#include "menu/NotificationManager.h"
+#include "InputControls.hpp"
+#include "config/ConfigManager.hpp"
+#include "fonts/IconsFontAwesome6.hpp"
+#include "globals/globals.hpp"
+#include "menu/NotificationManager.hpp"
 #include <algorithm>
 
 // Static key state arrays

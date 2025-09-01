@@ -8,19 +8,19 @@
 #include <shared_mutex>
 #include <windows.h>
 
-#include "core/MonoRuntime.h"
-#include "game/GameFunctions.h"
-#include "game/GameStructs.h"
-#include "helper/CSharpHelper.h"
-#include "menu/InputControls.h"
-#include "modules/ESPModule.h"
-#include "modules/EnemyModule.h"
-#include "modules/EnemySpawningModule.h"
-#include "modules/InteractableSpawningModule.h"
-#include "modules/PlayerModule.h"
-#include "modules/WorldModule.h"
-#include "utils/Logger.h"
-#include "utils/ModStructs.h"
+#include "core/MonoRuntime.hpp"
+#include "game/GameFunctions.hpp"
+#include "game/GameStructs.hpp"
+#include "helper/CSharpHelper.hpp"
+#include "menu/InputControls.hpp"
+#include "modules/ESPModule.hpp"
+#include "modules/EnemyModule.hpp"
+#include "modules/EnemySpawningModule.hpp"
+#include "modules/InteractableSpawningModule.hpp"
+#include "modules/PlayerModule.hpp"
+#include "modules/WorldModule.hpp"
+#include "utils/Logger.hpp"
+#include "utils/ModStructs.hpp"
 
 typedef long(__stdcall* Present)(IDXGISwapChain*, UINT, UINT);
 

@@ -1,8 +1,8 @@
 #pragma once
-#include "ModuleBase.h"
-#include "core/MonoTypes.h"
-#include "game/GameStructs.h"
-#include "menu/InputControls.h"
+#include "ModuleBase.hpp"
+#include "core/MonoTypes.hpp"
+#include "game/GameStructs.hpp"
+#include "menu/InputControls.hpp"
 #include <atomic>
 #include <map>
 #include <memory>

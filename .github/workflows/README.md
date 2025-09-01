@@ -29,7 +29,7 @@ Every push to master automatically:
 3. Artifacts include version, commit hash, and build number
 
 ### Creating a Release
-1. Update version in `src/version.h`
+1. Update version in `src/version.hpp`
 2. Commit and push changes
 3. Create and push a tag:
    ```bash
@@ -44,6 +44,6 @@ Both workflows can be triggered manually from GitHub Actions tab:
 - **release.yml**: Provide a tag name (e.g., v1.14.2)
 
 ## Version Information
-- Base version is read from `src/version.h`
+- Base version is read from `src/version.hpp`
 - Build artifacts include commit hash and build number
 - Release versions match the tag name

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../menu/InputControls.h"
-#include "ModuleBase.h"
+#include "ModuleBase.hpp"
+#include "menu/InputControls.hpp"
 #include <memory>
 
 class EnemyModule : public ModuleBase {

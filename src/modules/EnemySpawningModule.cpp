@@ -1,9 +1,9 @@
-#include "EnemySpawningModule.h"
-#include "config/ConfigManager.h"
-#include "globals/globals.h"
+#include "EnemySpawningModule.hpp"
+#include "config/ConfigManager.hpp"
+#include "globals/globals.hpp"
 #include "imgui.h"
-#include "menu/InputControls.h"
-#include "menu/ItemsUI.h"
+#include "menu/InputControls.hpp"
+#include "menu/ItemsUI.hpp"
 
 EnemySpawningModule::EnemySpawningModule() : ModuleBase() {
     // Team names for dropdown

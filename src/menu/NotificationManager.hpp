@@ -1,5 +1,5 @@
 #pragma once
-#include "InputControls.h"
+#include "InputControls.hpp"
 #include "imgui/imgui.h"
 #include <deque>
 #include <memory>
