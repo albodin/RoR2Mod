@@ -788,7 +788,9 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
             return;
 
         ImVec2 screenPos;
-        bool onScreen = RenderUtils::WorldToScreen(mainCamera, item.worldPosition, screenPos);
+        bool onScreen = false;
+        if (!RenderUtils::WorldToScreen(mainCamera, item.worldPosition, screenPos, onScreen))
+            return;
 
         TrackedTeleporter* teleporter = static_cast<TrackedTeleporter*>(item.teleporterData);
         const char* baseName = teleporter->displayName.empty() ? "Teleporter" : teleporter->displayName.c_str();
@@ -806,7 +808,9 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
         EntityESPSubControl* subControl = item.isVisible ? control->GetVisibleControl() : control->GetNonVisibleControl();
 
         ImVec2 screenPos;
-        bool onScreen = RenderUtils::WorldToScreen(mainCamera, item.worldPosition, screenPos);
+        bool onScreen = false;
+        if (!RenderUtils::WorldToScreen(mainCamera, item.worldPosition, screenPos, onScreen))
+            return;
 
         ImVec2 boundsMin, boundsMax;
         bool foundBounds = CalcEntityBounds(item.entity, boundsMin, boundsMax);
@@ -831,7 +835,9 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
         if (categoryControl) {
             ChestESPSubControl* control = categoryControl->GetSubControl();
             ImVec2 screenPos;
-            bool onScreen = RenderUtils::WorldToScreen(mainCamera, item.worldPosition, screenPos);
+            bool onScreen = false;
+            if (!RenderUtils::WorldToScreen(mainCamera, item.worldPosition, screenPos, onScreen))
+                return;
             RenderInteractableESP(item.interactable, screenPos, item.distance, control, item.isVisible, onScreen, item.isAvailable);
         }
     }

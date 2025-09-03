@@ -4,6 +4,7 @@
 #include <imgui.h>
 
 namespace RenderUtils {
+bool WorldToScreen(Camera* camera, const Vector3& worldPos, ImVec2& screenPos, bool& onScreen);
 bool WorldToScreen(Camera* camera, const Vector3& worldPos, ImVec2& screenPos);
 ImVec2 RenderText(ImVec2 pos, ImU32 color, ImU32 shadowColor, bool shadow, bool centered, const char* text, ...);
 void RenderBox(ImVec2 pos, ImVec2 size, ImU32 color, float thickness = 1.0f);

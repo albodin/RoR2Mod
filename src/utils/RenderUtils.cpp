@@ -5,7 +5,7 @@
 #include <cstdio>
 
 namespace RenderUtils {
-bool WorldToScreen(Camera* camera, const Vector3& worldPos, ImVec2& screenPos) {
+bool WorldToScreen(Camera* camera, const Vector3& worldPos, ImVec2& screenPos, bool& onScreen) {
     Vector3 tempWorldPos = worldPos;
     Vector3 screenPoint;
     Hooks::Camera_WorldToScreenPoint_Injected(camera, &tempWorldPos, MonoOrStereoscopicEye::Mono, &screenPoint);
@@ -18,10 +18,14 @@ bool WorldToScreen(Camera* camera, const Vector3& worldPos, ImVec2& screenPos) {
     screenPos.y = ImGui::GetIO().DisplaySize.y - screenPoint.y;
 
     // Return true if on screen, false if off-screen (but coordinates are still valid)
-    bool onScreen =
-        (screenPoint.x >= 0 && screenPoint.x <= ImGui::GetIO().DisplaySize.x && screenPoint.y >= 0 && screenPoint.y <= ImGui::GetIO().DisplaySize.y);
+    onScreen = (screenPoint.x >= 0 && screenPoint.x <= ImGui::GetIO().DisplaySize.x && screenPoint.y >= 0 && screenPoint.y <= ImGui::GetIO().DisplaySize.y);
 
-    return onScreen;
+    return true;
+}
+
+bool WorldToScreen(Camera* camera, const Vector3& worldPos, ImVec2& screenPos) {
+    bool onScreen = false;
+    return WorldToScreen(camera, worldPos, screenPos, onScreen);
 }
 
 ImVec2 RenderText(ImVec2 pos, ImU32 color, ImU32 shadowColor, bool shadow, bool centered, const char* text, ...) {
