@@ -3,6 +3,7 @@
 #include "hooks/hooks.hpp"
 #include <cstdarg>
 #include <cstdio>
+#include <xmmintrin.h>
 
 namespace RenderUtils {
 static CachedCameraData g_cameraCache;
