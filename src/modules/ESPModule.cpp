@@ -543,6 +543,8 @@ void ESPModule::OnFrameRender() {
     if (allItems.empty())
         return;
 
+    RenderUtils::PrecomputeViewProjection(mainCamera);
+
     std::vector<ESPCategoryInfo> renderOrder = m_renderOrderManager.GetRenderOrder();
 
     // Group items by category and sub-category, then sort by distance within each group
@@ -585,6 +587,7 @@ bool ESPModule::CalcEntityBounds(TrackedEntity* entity, ImVec2& outMin, ImVec2& 
         for (uint32_t i = 0; i < len; ++i) {
             HurtBox* hurtBox = data[i];
             if (hurtBox) {
+                // TODO: Fix this component access as it can crash
                 Transform* hurtBoxTransform = static_cast<Transform*>(Hooks::Component_get_transform(hurtBox));
                 if (hurtBoxTransform) {
                     Vector3 hurtBoxPos;
@@ -616,7 +619,7 @@ bool ESPModule::CalcEntityBounds(TrackedEntity* entity, ImVec2& outMin, ImVec2& 
 
             for (int i = 0; i < 8; i++) {
                 ImVec2 cornerScreen;
-                if (RenderUtils::WorldToScreen(mainCamera, corners[i], cornerScreen)) {
+                if (RenderUtils::WorldToScreen(corners[i], cornerScreen)) {
                     if (visibleCorners == 0) {
                         screenMin = cornerScreen;
                         screenMax = cornerScreen;
@@ -789,7 +792,7 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
 
         ImVec2 screenPos;
         bool onScreen = false;
-        if (!RenderUtils::WorldToScreen(mainCamera, item.worldPosition, screenPos, onScreen))
+        if (!RenderUtils::WorldToScreen(item.worldPosition, screenPos, onScreen))
             return;
 
         TrackedTeleporter* teleporter = static_cast<TrackedTeleporter*>(item.teleporterData);
@@ -809,7 +812,7 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
 
         ImVec2 screenPos;
         bool onScreen = false;
-        if (!RenderUtils::WorldToScreen(mainCamera, item.worldPosition, screenPos, onScreen))
+        if (!RenderUtils::WorldToScreen(item.worldPosition, screenPos, onScreen))
             return;
 
         ImVec2 boundsMin, boundsMax;
@@ -836,7 +839,7 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
             ChestESPSubControl* control = categoryControl->GetSubControl();
             ImVec2 screenPos;
             bool onScreen = false;
-            if (!RenderUtils::WorldToScreen(mainCamera, item.worldPosition, screenPos, onScreen))
+            if (!RenderUtils::WorldToScreen(item.worldPosition, screenPos, onScreen))
                 return;
             RenderInteractableESP(item.interactable, screenPos, item.distance, control, item.isVisible, onScreen, item.isAvailable);
         }

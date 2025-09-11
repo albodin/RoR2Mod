@@ -128,6 +128,8 @@ DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Transform, get_rotatio
 DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Camera, get_main, 0, Camera*, void);
 DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Camera, WorldToScreenPoint_Injected, 3, void, void* camera, Vector3* position,
                      MonoOrStereoscopicEye eye, Vector3* outPosition);
+DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Camera, get_worldToCameraMatrix_Injected, 1, void, void* camera, Matrix4x4* ret);
+DEFINE_INTERNAL_CALL(UnityEngine.CoreModule, UnityEngine, Camera, get_projectionMatrix_Injected, 1, void, void* camera, Matrix4x4* ret);
 DEFINE_INTERNAL_CALL(UnityEngine.PhysicsModule, UnityEngine, Physics, get_defaultPhysicsScene_Injected, 1, void, PhysicsScene_Value* outScene);
 DEFINE_INTERNAL_CALL(UnityEngine.PhysicsModule, UnityEngine, PhysicsScene, Internal_Raycast_Injected, 6, bool, PhysicsScene_Value*, Ray_Value*, float,
                      RaycastHit_Value*, int32_t, QueryTriggerInteraction_Value);

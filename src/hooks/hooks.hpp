@@ -10,6 +10,8 @@ DECLARE_INTERNAL_CALL(void, Transform, get_position_Injected, void* transform, V
 DECLARE_INTERNAL_CALL(void, Transform, get_rotation_Injected, void* transform, Quaternion* outRotation);
 DECLARE_INTERNAL_CALL(Camera*, Camera, get_main);
 DECLARE_INTERNAL_CALL(void, Camera, WorldToScreenPoint_Injected, void* camera, Vector3* position, MonoOrStereoscopicEye eye, Vector3* outPosition);
+DECLARE_INTERNAL_CALL(void, Camera, get_worldToCameraMatrix_Injected, void* camera, Matrix4x4* ret);
+DECLARE_INTERNAL_CALL(void, Camera, get_projectionMatrix_Injected, void* camera, Matrix4x4* ret);
 DECLARE_INTERNAL_CALL(void, Physics, get_defaultPhysicsScene_Injected, PhysicsScene_Value* outScene);
 DECLARE_INTERNAL_CALL(bool, PhysicsScene, Internal_Raycast_Injected, PhysicsScene_Value* scene, Ray_Value* ray, float maxDistance, RaycastHit_Value* hitInfo,
                       int32_t layerMask, QueryTriggerInteraction_Value queryTriggerInteraction);
