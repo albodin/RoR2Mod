@@ -27,3 +27,11 @@ struct RoR2Enemy {
     std::string masterName;
     std::string displayName;
 };
+
+struct CachedCameraData {
+    Matrix4x4 viewProj;
+    float halfViewportX;
+    float halfViewportY;
+    float displayWidth;
+    float displayHeight;
+};

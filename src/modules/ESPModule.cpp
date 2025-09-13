@@ -543,8 +543,6 @@ void ESPModule::OnFrameRender() {
     if (allItems.empty())
         return;
 
-    RenderUtils::PrecomputeViewProjection(mainCamera);
-
     std::vector<ESPCategoryInfo> renderOrder = m_renderOrderManager.GetRenderOrder();
 
     // Group items by category and sub-category, then sort by distance within each group
@@ -619,7 +617,7 @@ bool ESPModule::CalcEntityBounds(TrackedEntity* entity, ImVec2& outMin, ImVec2& 
 
             for (int i = 0; i < 8; i++) {
                 ImVec2 cornerScreen;
-                if (RenderUtils::WorldToScreen(corners[i], cornerScreen)) {
+                if (RenderUtils::WorldToScreen(cameraCache, corners[i], cornerScreen)) {
                     if (visibleCorners == 0) {
                         screenMin = cornerScreen;
                         screenMax = cornerScreen;
@@ -688,8 +686,11 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
             if (!control->IsEnabled() || distance > control->GetMaxDistance())
                 continue;
 
+            ImVec2 boundsMin, boundsMax;
+            bool foundBounds = CalcEntityBounds(entity.get(), boundsMin, boundsMax);
+
             ESPSubCategory subCat = isVisible ? ESPSubCategory::Visible : ESPSubCategory::NonVisible;
-            items.emplace_back(ESPMainCategory::Players, subCat, entity.get(), playerWorldPos, distance, isVisible);
+            items.emplace_back(ESPMainCategory::Players, subCat, entity.get(), playerWorldPos, distance, isVisible, foundBounds, boundsMin, boundsMax);
         }
     }
 
@@ -712,8 +713,11 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
             if (!control->IsEnabled() || distance > control->GetMaxDistance())
                 continue;
 
+            ImVec2 boundsMin, boundsMax;
+            bool foundBounds = CalcEntityBounds(entity.get(), boundsMin, boundsMax);
+
             ESPSubCategory subCat = isVisible ? ESPSubCategory::Visible : ESPSubCategory::NonVisible;
-            items.emplace_back(ESPMainCategory::Enemies, subCat, entity.get(), enemyWorldPos, distance, isVisible);
+            items.emplace_back(ESPMainCategory::Enemies, subCat, entity.get(), enemyWorldPos, distance, isVisible, foundBounds, boundsMin, boundsMax);
         }
     }
 
@@ -792,7 +796,7 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
 
         ImVec2 screenPos;
         bool onScreen = false;
-        if (!RenderUtils::WorldToScreen(item.worldPosition, screenPos, onScreen))
+        if (!RenderUtils::WorldToScreen(cameraCache, item.worldPosition, screenPos, onScreen))
             return;
 
         TrackedTeleporter* teleporter = static_cast<TrackedTeleporter*>(item.teleporterData);
@@ -812,13 +816,10 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
 
         ImVec2 screenPos;
         bool onScreen = false;
-        if (!RenderUtils::WorldToScreen(item.worldPosition, screenPos, onScreen))
+        if (!RenderUtils::WorldToScreen(cameraCache, item.worldPosition, screenPos, onScreen))
             return;
 
-        ImVec2 boundsMin, boundsMax;
-        bool foundBounds = CalcEntityBounds(item.entity, boundsMin, boundsMax);
-
-        RenderEntityESP(item.entity, screenPos, item.distance, subControl, item.isVisible, onScreen, foundBounds, boundsMin, boundsMax);
+        RenderEntityESP(item.entity, screenPos, item.distance, subControl, item.isVisible, onScreen, item.foundBounds, item.boundsMin, item.boundsMax);
 
     } else {
         // Render interactable using lookup table
@@ -839,7 +840,7 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
             ChestESPSubControl* control = categoryControl->GetSubControl();
             ImVec2 screenPos;
             bool onScreen = false;
-            if (!RenderUtils::WorldToScreen(item.worldPosition, screenPos, onScreen))
+            if (!RenderUtils::WorldToScreen(cameraCache, item.worldPosition, screenPos, onScreen))
                 return;
             RenderInteractableESP(item.interactable, screenPos, item.distance, control, item.isVisible, onScreen, item.isAvailable);
         }
@@ -848,6 +849,15 @@ void ESPModule::RenderESPItem(const ESPHierarchicalRenderItem& item) {
 
 void ESPModule::OnGameUpdate() {
     mainCamera = Hooks::Camera_get_main();
+    if (!mainCamera) {
+        LOG_ERROR("Camera_get_main returned null");
+    }
+
+    std::shared_ptr<CachedCameraData> newCache = std::make_shared<CachedCameraData>();
+    RenderUtils::PrecomputeViewProjection(mainCamera, newCache.get());
+    std::shared_ptr<CachedCameraData> curCache = std::atomic_load(&cameraCache);
+    while (!std::atomic_compare_exchange_weak(&cameraCache, &curCache, newCache)) {
+    }
 
     std::shared_ptr<std::vector<ESPHierarchicalRenderItem>> curBuffer = std::atomic_load(&collectedItemsBuffer);
     std::shared_ptr<std::vector<ESPHierarchicalRenderItem>> newBuffer = std::make_shared<std::vector<ESPHierarchicalRenderItem>>();

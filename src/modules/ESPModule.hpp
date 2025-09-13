@@ -3,6 +3,7 @@
 #include "core/MonoTypes.hpp"
 #include "game/GameStructs.hpp"
 #include "menu/InputControls.hpp"
+#include "utils/ModStructs.hpp"
 #include <atomic>
 #include <map>
 #include <memory>
@@ -73,9 +74,15 @@ struct ESPHierarchicalRenderItem {
     bool isVisible;
     bool isAvailable; // For interactables
 
+    bool foundBounds;
+    ImVec2 boundsMin;
+    ImVec2 boundsMax;
+
     // Constructor for entities
-    ESPHierarchicalRenderItem(ESPMainCategory main, ESPSubCategory sub, TrackedEntity* ent, Vector3 worldPos, float dist, bool visible)
-        : mainCategory(main), subCategory(sub), distance(dist), entity(ent), worldPosition(worldPos), isVisible(visible), isAvailable(true) {}
+    ESPHierarchicalRenderItem(ESPMainCategory main, ESPSubCategory sub, TrackedEntity* ent, Vector3 worldPos, float dist, bool visible, bool foundBounds,
+                              ImVec2 boundsMin, ImVec2 boundsMax)
+        : mainCategory(main), subCategory(sub), distance(dist), entity(ent), worldPosition(worldPos), isVisible(visible), isAvailable(true),
+          foundBounds(foundBounds), boundsMin(boundsMin), boundsMax(boundsMax) {}
 
     // Constructor for interactables
     ESPHierarchicalRenderItem(ESPMainCategory main, ESPSubCategory sub, TrackedInteractable* inter, Vector3 worldPos, float dist, bool visible, bool available)
@@ -168,6 +175,7 @@ class ESPModule : public ModuleBase {
 
     Vector3 playerPosition;
     Camera* mainCamera;
+    std::shared_ptr<CachedCameraData> cameraCache = std::make_shared<CachedCameraData>();
 
     std::vector<std::unique_ptr<TrackedEntity>> trackedEnemies;
     std::vector<std::unique_ptr<TrackedEntity>> trackedPlayers;
