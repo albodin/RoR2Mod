@@ -289,12 +289,14 @@ void Hooks::Init() {
 #endif // DEBUG_PRINT
 
     // Load and cache all pickup names
-    int pickupCount = G::gameFunctions->LoadPickupNames();
-    if (pickupCount > 0) {
-        LOG_INFO("Loaded %d pickup names", pickupCount);
-    } else {
-        LOG_ERROR("Failed to load pickup names");
-    }
+    int pickupCount = -1;
+    do {
+        pickupCount = G::gameFunctions->LoadPickupNames();
+        if (pickupCount == -1) {
+            Sleep(2000);
+        }
+    } while (pickupCount == -1);
+    LOG_INFO("Loaded %d pickup names", pickupCount);
 
     MonoClass* layerMaskClass = G::g_monoRuntime->GetClass("UnityEngine.CoreModule", "UnityEngine", "LayerMask");
     if (layerMaskClass) {
