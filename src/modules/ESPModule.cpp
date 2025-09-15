@@ -1624,6 +1624,11 @@ void ESPModule::OnStageAdvance(void* stage) {
     LOG_INFO("ESP data cleared due to stage change");
 }
 
+void ESPModule::OnStageDisable() {
+    ClearData();
+    LOG_INFO("ESP data cleared due to stage disable");
+}
+
 void ESPModule::OnRunExit() {
     ClearData();
     LOG_INFO("ESP data cleared due to run exit");

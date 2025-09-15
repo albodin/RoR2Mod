@@ -200,6 +200,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, Run, AdvanceStage, 1, "System.Void", {"RoR2.SceneDef"});
     HOOK(RoR2, RoR2, Run, Awake, 0, "System.Void", {});
     HOOK(RoR2, RoR2, Run, OnDisable, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, Stage, OnDisable, 0, "System.Void", {});
     HOOK(RoR2, RoR2, ChestBehavior, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, ShopTerminalBehavior, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, PressurePlateController, Start, 0, "System.Void", {});
@@ -906,6 +907,17 @@ void Hooks::hkRoR2RunOnDisable(void* instance) {
     }
 
     originalFunc(instance);
+}
+
+void Hooks::hkRoR2StageOnDisable(void* instance) {
+    static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2StageOnDisable"]);
+
+    if (G::hooksInitialized) {
+        LOG_INFO("Stage::OnDisable - instance=%p", instance);
+        G::espModule->OnStageDisable();
+    }
+
+    return originalFunc(instance);
 }
 
 void Hooks::hkRoR2ChestBehaviorStart(void* instance) {

@@ -257,6 +257,7 @@ class ESPModule : public ModuleBase {
     void OnPickupPickerControllerSpawned(void* pickupPickerController);
     void OnScrapperControllerSpawned(void* scrapperController);
     void OnStageAdvance(void* stage);
+    void OnStageDisable();
     void OnRunExit();
     void OnChestBehaviorSpawned(void* chestBehavior);
     void OnShopTerminalBehaviorSpawned(void* shopTerminalBehavior);
