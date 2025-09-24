@@ -14,6 +14,7 @@
 struct TrackedEntity {
     CharacterBody* body;
     std::string displayName;
+    std::string nameToken;
 };
 
 enum class InteractableCategory { Chest, Shop, Drone, Shrine, Special, Barrel, ItemPickup, Portal, CommandCube, Unknown };

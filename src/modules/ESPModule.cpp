@@ -571,6 +571,10 @@ void ESPModule::OnFrameRender() {
 }
 
 bool ESPModule::CalcEntityBounds(TrackedEntity* entity, ImVec2& outMin, ImVec2& outMax) {
+    if (entity->nameToken == "JELLYFISH_BODY_NAME") {
+        return false;
+    }
+
     ImVec2 screenMin(FLT_MAX, FLT_MAX);
     ImVec2 screenMax(-FLT_MAX, -FLT_MAX);
     bool boundsFound = false;
@@ -585,8 +589,8 @@ bool ESPModule::CalcEntityBounds(TrackedEntity* entity, ImVec2& outMin, ImVec2& 
         for (uint32_t i = 0; i < len; ++i) {
             HurtBox* hurtBox = data[i];
             if (hurtBox) {
-                // TODO: Fix this component access as it can crash
                 Transform* hurtBoxTransform = static_cast<Transform*>(Hooks::Component_get_transform(hurtBox));
+
                 if (hurtBoxTransform) {
                     Vector3 hurtBoxPos;
                     Hooks::Transform_get_position_Injected(hurtBoxTransform, &hurtBoxPos);
@@ -932,6 +936,7 @@ void ESPModule::OnCharacterBodySpawned(void* characterBody) {
 
     auto newEntity = std::make_unique<TrackedEntity>();
     newEntity->displayName = G::gameFunctions->Language_GetString(static_cast<MonoString*>(body->baseNameToken));
+    newEntity->nameToken = G::g_monoRuntime->StringToUtf8(static_cast<MonoString*>(body->baseNameToken));
     newEntity->body = body;
 
     TeamIndex_Value teamIndex = body->teamComponent_backing->_teamIndex;
