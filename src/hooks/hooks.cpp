@@ -207,6 +207,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, PressurePlateController, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, HoldoutZoneController, Update, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TimedChestController, GetInteractability, 1, "RoR2.Interactability", {"RoR2.Interactor"});
+    HOOK(RoR2, RoR2, PurchaseInteraction, GetInteractability, 1, "RoR2.Interactability", {"RoR2.Interactor"});
     HOOK(RoR2, RoR2, PortalSpawner, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, CharacterMaster, GetDeployableSameSlotLimit, 1, "System.Int32", {"RoR2.DeployableSlot"});
     HOOK(RoR2, RoR2, CharacterMaster, SpawnBody, 2, "RoR2.CharacterBody", {"UnityEngine.Vector3", "UnityEngine.Quaternion"});
@@ -1007,6 +1008,24 @@ int Hooks::hkRoR2TimedChestControllerGetInteractability(void* instance, void* ac
         TimedChestController* tcc = static_cast<TimedChestController*>(instance);
         // Only override if it's expired (not purchased)
         if (!tcc->purchased) {
+            return static_cast<int>(Interactability_Value::Available);
+        }
+    }
+
+    return result;
+}
+
+int Hooks::hkRoR2PurchaseInteractionGetInteractability(void* instance, void* activator) {
+    static auto originalFunc = reinterpret_cast<int (*)(void*, void*)>(hooks["RoR2PurchaseInteractionGetInteractability"]);
+    int result = originalFunc(instance, activator);
+
+    if (!G::hooksInitialized)
+        return result;
+
+    if (G::worldModule->GetOpenLockedInteractablesControl()->IsEnabled() && result == static_cast<int>(Interactability_Value::Disabled)) {
+        PurchaseInteraction* pi = static_cast<PurchaseInteraction*>(instance);
+
+        if (pi && pi->lockGameObject != nullptr && pi->available == true) {
             return static_cast<int>(Interactability_Value::Available);
         }
     }

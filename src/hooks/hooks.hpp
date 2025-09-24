@@ -62,6 +62,7 @@ void hkRoR2ShopTerminalBehaviorStart(void*);
 void hkRoR2PressurePlateControllerStart(void*);
 void hkRoR2HoldoutZoneControllerUpdate(void*);
 int hkRoR2TimedChestControllerGetInteractability(void*, void*);
+int hkRoR2PurchaseInteractionGetInteractability(void*, void*);
 void hkRoR2PortalSpawnerStart(void*);
 void hkRoR2TeamManagerOnEnable(void*);
 void hkRoR2TeamManagerOnDisable(void*);

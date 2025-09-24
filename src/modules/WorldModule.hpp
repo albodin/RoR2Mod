@@ -9,6 +9,7 @@ class WorldModule : public ModuleBase {
     std::unique_ptr<ToggleControl> instantTeleporterControl;
     std::unique_ptr<ToggleControl> instantHoldoutZoneControl;
     std::unique_ptr<ToggleControl> openExpiredTimedChestsControl;
+    std::unique_ptr<ToggleControl> openLockedInteractablesControl;
     std::unique_ptr<ToggleControl> forceBluePortalControl;
     std::unique_ptr<ToggleControl> forceGoldenPortalControl;
     std::unique_ptr<ToggleControl> forceCelestialPortalControl;
@@ -26,6 +27,7 @@ class WorldModule : public ModuleBase {
     void DrawUI() override;
 
     ToggleControl* GetOpenExpiredTimedChestsControl() const { return openExpiredTimedChestsControl.get(); }
+    ToggleControl* GetOpenLockedInteractablesControl() const { return openLockedInteractablesControl.get(); }
     ToggleControl* GetForceAllPortalsControl() const { return forceAllPortalsControl.get(); }
 
     void OnLocalUserUpdate(void* localUser);

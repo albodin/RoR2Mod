@@ -11,6 +11,7 @@ void WorldModule::Initialize() {
     instantTeleporterControl = std::make_unique<ToggleControl>("Instant Teleporter", "instantTeleporter", false);
     instantHoldoutZoneControl = std::make_unique<ToggleControl>("Instant Holdout Zone", "instantHoldoutZone", false);
     openExpiredTimedChestsControl = std::make_unique<ToggleControl>("Open Expired Timed Chests", "openExpiredTimedChests", false);
+    openLockedInteractablesControl = std::make_unique<ToggleControl>("Open Locked Interactables", "openLockedInteractables", false);
     forceBluePortalControl = std::make_unique<ToggleControl>("Force Blue Portal (Bazaar)", "forceBluePortal", false);
     forceGoldenPortalControl = std::make_unique<ToggleControl>("Force Golden Portal (Gilded Coast)", "forceGoldenPortal", false);
     forceCelestialPortalControl = std::make_unique<ToggleControl>("Force Celestial Portal (Moon)", "forceCelestialPortal", false);
@@ -32,6 +33,7 @@ void WorldModule::Update() {
     instantTeleporterControl->Update();
     instantHoldoutZoneControl->Update();
     openExpiredTimedChestsControl->Update();
+    openLockedInteractablesControl->Update();
     forceBluePortalControl->Update();
     forceGoldenPortalControl->Update();
     forceCelestialPortalControl->Update();
@@ -45,6 +47,7 @@ void WorldModule::DrawUI() {
     instantTeleporterControl->Draw();
     instantHoldoutZoneControl->Draw();
     openExpiredTimedChestsControl->Draw();
+    openLockedInteractablesControl->Draw();
 
     ImGui::Separator();
     ImGui::Text("Portal Forcing");
