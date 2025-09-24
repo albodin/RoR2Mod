@@ -46,6 +46,7 @@ void hkRoR2BullseyeSearchRefreshCandidates(void*);
 void hkRoR2PurchaseInteractionStart(void*);
 void hkRoR2BarrelInteractionStart(void*);
 void hkRoR2GenericPickupControllerStart(void*);
+void hkRoR2GenericPickupControllerOnDisable(void*);
 void hkRoR2TimedChestControllerOnEnable(void*);
 void hkRoR2TimedChestControllerOnDisable(void*);
 void hkRoR2GenericInteractionOnEnable(void*);

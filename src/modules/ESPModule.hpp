@@ -252,6 +252,7 @@ class ESPModule : public ModuleBase {
     void OnPurchaseInteractionDestroyed(void* purchaseInteraction);
     void OnBarrelInteractionSpawned(void* barrelInteraction);
     void OnGenericPickupControllerSpawned(void* genericPickupController);
+    void OnGenericPickupControllerDisabled(void* genericPickupController);
     void OnTimedChestControllerSpawned(void* timedChestController);
     void OnTimedChestControllerDespawned(void* timedChestController);
     void OnGenericInteractionSpawned(void* genericInteraction);

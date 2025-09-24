@@ -189,6 +189,7 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, PurchaseInteraction, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, BarrelInteraction, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, GenericPickupController, Start, 0, "System.Void", {});
+    HOOK(RoR2, RoR2, GenericPickupController, OnDisable, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TimedChestController, OnEnable, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TimedChestController, OnDisable, 0, "System.Void", {});
     HOOK(RoR2, RoR2, TeamManager, OnEnable, 0, "System.Void", {});
@@ -780,6 +781,17 @@ void Hooks::hkRoR2GenericPickupControllerStart(void* instance) {
 
     LOG_INFO("GenericPickupController::Start - instance=%p", instance);
     G::espModule->OnGenericPickupControllerSpawned(instance);
+}
+
+void Hooks::hkRoR2GenericPickupControllerOnDisable(void* instance) {
+    static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2GenericPickupControllerOnDisable"]);
+    originalFunc(instance);
+
+    if (!G::hooksInitialized)
+        return;
+
+    LOG_INFO("GenericPickupController::OnDisable - instance=%p", instance);
+    G::espModule->OnGenericPickupControllerDisabled(instance);
 }
 
 void Hooks::hkRoR2TimedChestControllerOnEnable(void* instance) {

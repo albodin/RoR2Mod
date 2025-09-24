@@ -1470,6 +1470,18 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
     trackedInteractables.push_back(std::move(trackedInteractable));
 }
 
+void ESPModule::OnGenericPickupControllerDisabled(void* genericPickupController) {
+    if (!genericPickupController)
+        return;
+
+    std::lock_guard<std::mutex> lock(interactablesMutex);
+    trackedInteractables.erase(std::remove_if(trackedInteractables.begin(), trackedInteractables.end(),
+                                              [genericPickupController](const std::unique_ptr<TrackedInteractable>& tracked) {
+                                                  return tracked->gameObject == genericPickupController;
+                                              }),
+                               trackedInteractables.end());
+}
+
 void ESPModule::OnTimedChestControllerSpawned(void* timedChestController) {
     if (!timedChestController)
         return;
