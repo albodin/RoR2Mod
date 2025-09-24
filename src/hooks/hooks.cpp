@@ -359,6 +359,8 @@ void Hooks::Init() {
 void Hooks::Unhook() {
     LOG_INFO("Starting unhook process...");
 
+    G::hooksInitialized = false;
+
     if (G::oWndProc && G::windowHwnd) {
         LOG_INFO("Restoring window procedure...");
         G::oWndProc = reinterpret_cast<WNDPROC>(SetWindowLongPtr(G::windowHwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(G::oWndProc)));
