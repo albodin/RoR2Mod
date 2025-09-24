@@ -2,9 +2,9 @@
 
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 21
-#define VERSION_PATCH 8
+#define VERSION_PATCH 9
 
-#define VERSION_STRING "1.21.8"
+#define VERSION_STRING "1.21.9"
 
 // Auto-generated version info
 // This file is automatically updated by version_bump.py

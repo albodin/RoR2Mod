@@ -863,6 +863,8 @@ void ESPModule::OnGameUpdate() {
     while (!std::atomic_compare_exchange_weak(&cameraCache, &curCache, newCache)) {
     }
 
+    UpdateShrineCosts();
+
     std::shared_ptr<std::vector<ESPHierarchicalRenderItem>> curBuffer = std::atomic_load(&collectedItemsBuffer);
     std::shared_ptr<std::vector<ESPHierarchicalRenderItem>> newBuffer = std::make_shared<std::vector<ESPHierarchicalRenderItem>>();
     CollectAllESPItems(*newBuffer);
@@ -1276,6 +1278,7 @@ void ESPModule::OnPurchaseInteractionSpawned(void* purchaseInteraction) {
 
     // Get the localized cost string
     trackedInteractable->costString = "";
+    trackedInteractable->cachedCost = pi->cost;
     if (pi->cost > 0) {
         trackedInteractable->costString = GetCostString(pi->costType, pi->cost);
     }
@@ -1356,6 +1359,7 @@ void ESPModule::OnBarrelInteractionSpawned(void* barrelInteraction) {
     trackedInteractable->specialType = SpecialInteractableType::None;
     trackedInteractable->consumed = false;
     trackedInteractable->costString = "";
+    trackedInteractable->cachedCost = 0;
 
     // Add to tracked interactables
     std::lock_guard<std::mutex> lock(interactablesMutex);
@@ -1420,6 +1424,7 @@ void ESPModule::OnGenericInteractionSpawned(void* genericInteraction) {
     trackedInteractable->specialType = SpecialInteractableType::None;
     trackedInteractable->consumed = false;
     trackedInteractable->costString = "";
+    trackedInteractable->cachedCost = 0;
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
     trackedInteractables.push_back(std::move(trackedInteractable));
@@ -1464,6 +1469,7 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
     trackedInteractable->specialType = SpecialInteractableType::None;
     trackedInteractable->consumed = false;
     trackedInteractable->costString = "";
+    trackedInteractable->cachedCost = 0;
     trackedInteractable->pickupIndex = gpc->pickupIndex;
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
@@ -1510,6 +1516,7 @@ void ESPModule::OnTimedChestControllerSpawned(void* timedChestController) {
     trackedInteractable->specialType = SpecialInteractableType::TimedChest;
     trackedInteractable->consumed = false;
     trackedInteractable->costString = "";
+    trackedInteractable->cachedCost = 0;
 
     {
         std::lock_guard<std::mutex> lock(interactablesMutex);
@@ -1579,6 +1586,7 @@ void ESPModule::OnPickupPickerControllerSpawned(void* pickupPickerController) {
     trackedInteractable->pickupIndex = -1;
     trackedInteractable->itemName = "";
     trackedInteractable->costString = "";
+    trackedInteractable->cachedCost = 0;
 
     trackedInteractables.push_back(std::move(trackedInteractable));
 }
@@ -1610,6 +1618,7 @@ void ESPModule::OnScrapperControllerSpawned(void* scrapperController) {
     trackedInteractable->specialType = SpecialInteractableType::None;
     trackedInteractable->consumed = false;
     trackedInteractable->costString = "";
+    trackedInteractable->cachedCost = 0;
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
     trackedInteractables.push_back(std::move(trackedInteractable));
@@ -1857,6 +1866,7 @@ void ESPModule::OnPressurePlateControllerSpawned(void* pressurePlateController) 
     trackedInteractable->pickupIndex = -1;
     trackedInteractable->itemName = "";
     trackedInteractable->costString = "";
+    trackedInteractable->cachedCost = 0;
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
     trackedInteractables.push_back(std::move(trackedInteractable));
@@ -1969,4 +1979,29 @@ std::string ESPModule::GetCostString(CostTypeIndex_Value costType, int cost) {
     }
 
     return format;
+}
+
+void ESPModule::UpdateShrineCosts() {
+    std::lock_guard<std::mutex> lock(interactablesMutex);
+
+    for (auto& interactable : trackedInteractables) {
+        if (interactable->category != InteractableCategory::Shrine || !interactable->purchaseInteraction) {
+            continue;
+        }
+
+        PurchaseInteraction* pi = static_cast<PurchaseInteraction*>(interactable->purchaseInteraction);
+        if (!pi) {
+            continue;
+        }
+
+        if (pi->cost != interactable->cachedCost) {
+            LOG_INFO("Shrine cost updated: %d -> %d - instance=%p", interactable->cachedCost, pi->cost, interactable->gameObject);
+
+            interactable->cachedCost = pi->cost;
+            interactable->costString = "";
+            if (pi->cost > 0) {
+                interactable->costString = GetCostString(pi->costType, pi->cost);
+            }
+        }
+    }
 }

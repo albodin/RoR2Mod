@@ -33,6 +33,7 @@ struct TrackedInteractable {
     std::string itemName;   // Name of the item in chest/shop
     std::string nameToken;  // Store the language-independent token
     std::string costString; // Store the localized cost string
+    int32_t cachedCost;     // Store the cost value used to generate costString
     Vector3 position;
     InteractableCategory category;
     SpecialInteractableType specialType;
@@ -231,6 +232,7 @@ class ESPModule : public ModuleBase {
     void InitializeCategoryMappings();
     std::string GetPickupName(int32_t pickupIndex);
     std::string GetCostString(CostTypeIndex_Value costType, int cost);
+    void UpdateShrineCosts();
     void ClearData();
 
   public:
