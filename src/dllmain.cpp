@@ -7,8 +7,6 @@
 #include "globals/globals.hpp"
 #include "hooks/hooks.hpp"
 
-#define MAX_STACK_FRAMES 100
-
 void WaitForDebugger() {
     volatile bool g_DebuggerAttached = false;
     while (!g_DebuggerAttached) {
@@ -46,12 +44,17 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         break;
     }
     case DLL_THREAD_ATTACH:
-        // LOG_INFO("Thread attached");
+        LOG_INFO("DLL_THREAD_ATTACH: Thread %d attached", GetCurrentThreadId());
         break;
     case DLL_THREAD_DETACH:
-        // LOG_INFO("Thread detached");
+        LOG_INFO("DLL_THREAD_DETACH: Thread %d detaching", GetCurrentThreadId());
         break;
     case DLL_PROCESS_DETACH:
+        if (lpReserved == nullptr) {
+            LOG_INFO("DLL_PROCESS_DETACH: Unloading via FreeLibrary");
+        } else {
+            LOG_INFO("DLL_PROCESS_DETACH: Process termination");
+        }
         // Cleanup handled in Run thread
         break;
     }
