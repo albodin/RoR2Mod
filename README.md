@@ -122,6 +122,37 @@
 
 </details>
 
+## Updating After a Game Update
+
+### 1. Build and inject to see what broke
+
+Build and inject the mod into the updated game. If any hooks fail, the mod will automatically enter config-only mode and log each failure (`Failed to hook ...`). This tells you what hooks need to be fixed.
+
+### 2. Update game structs
+
+Run the update script to sync `GameStructs.hpp` with the new game dump:
+
+```bash
+# Auto-detects the gameDump path (checks common Steam install locations)
+python3 scripts/update_game_structs.py
+
+# Preview changes without applying them
+python3 scripts/update_game_structs.py --dry-run
+
+# Specify path manually if auto-detection fails
+python3 scripts/update_game_structs.py --game-dump-path "/path/to/Risk of Rain 2/gameDump"
+```
+
+### 3. Fix method signature changes
+
+For any hooks that failed, find the corresponding `HOOK(...)` or `DEFINE_INTERNAL_CALL(...)` in `src/hooks/hooks.cpp`, or the `GetMethod` call in `src/game/GameFunctions.cpp`. The first argument is the assembly name. Check the matching `<AssemblyName>.h` file in the gameDump directory to see if the method signature changed.
+
+Update any methods that were renamed, had parameters added/removed, or changed return type. If a hook's signature changed, also update the corresponding `hk...` function body in `src/hooks/` to match.
+
+### 4. Rebuild and verify
+
+Rebuild and inject again. All hooks should now load successfully and the mod should function normally.
+
 ## Building
 
 ### Method 1: Using the terminal

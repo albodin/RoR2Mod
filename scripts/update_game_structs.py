@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to update GameStructs.h based on the latest RoR2.h dump.
+Script to update GameStructs.hpp based on the latest RoR2.h dump.
 Compares structs and updates them if they don't match.
 """
 
@@ -186,7 +186,7 @@ class StructUpdater:
             sys.exit(1)
 
         if not self.game_structs_path.exists():
-            logger.error(f"GameStructs.h not found at {self.game_structs_path}")
+            logger.error(f"GameStructs.hpp not found at {self.game_structs_path}")
             sys.exit(1)
 
         logger.info(f"Loading structs from {self.game_dump_path}")
@@ -246,7 +246,7 @@ class StructUpdater:
         return Struct(game_struct.name, new_members, new_generation_comment)
 
     def update_file(self, dry_run: bool = False):
-        """Update the GameStructs.h file."""
+        """Update the GameStructs.hpp file."""
         dump_structs, game_structs = self.load_structs()
 
         updates_needed = []
@@ -394,19 +394,30 @@ class StructUpdater:
 
         logger.info(f"Successfully updated {len(updates_needed)} struct(s)")
 
+GAME_DUMP_CANDIDATES = [
+    Path.home() / ".local/share/Steam/steamapps/common/Risk of Rain 2/gameDump",
+    Path.home() / ".steam/debian-installation/steamapps/common/Risk of Rain 2/gameDump",
+]
+
+def find_game_dump_path() -> Optional[Path]:
+    for candidate in GAME_DUMP_CANDIDATES:
+        if (candidate / "RoR2.h").exists():
+            return candidate
+    return None
+
 def main():
-    parser = argparse.ArgumentParser(description="Update GameStructs.h based on RoR2.h dump")
+    parser = argparse.ArgumentParser(description="Update GameStructs.hpp based on RoR2.h dump")
     parser.add_argument(
         "--game-dump-path",
         type=Path,
-        default=Path.home() / ".steam/debian-installation/steamapps/common/Risk of Rain 2/gameDump",
+        default=None,
         help="Path to the gameDump directory containing RoR2.h"
     )
     parser.add_argument(
         "--game-structs-path",
         type=Path,
-        default=Path(__file__).parent.parent / "src/game/GameStructs.h",
-        help="Path to GameStructs.h file"
+        default=Path(__file__).parent.parent / "src/game/GameStructs.hpp",
+        help="Path to GameStructs.hpp file"
     )
     parser.add_argument(
         "--dry-run",
@@ -433,7 +444,15 @@ def main():
         Colors.RESET = ''
         Colors.BOLD = ''
 
-    updater = StructUpdater(args.game_dump_path, args.game_structs_path)
+    game_dump_path = args.game_dump_path
+    if game_dump_path is None:
+        game_dump_path = find_game_dump_path()
+        if game_dump_path is None:
+            logger.error("Could not find gameDump directory. Tried:\n" + "\n".join(f"  {p}" for p in GAME_DUMP_CANDIDATES))
+            sys.exit(1)
+        logger.info(f"Auto-detected game dump path: {game_dump_path}")
+
+    updater = StructUpdater(game_dump_path, args.game_structs_path)
     updater.update_file(args.dry_run)
 
 if __name__ == "__main__":
