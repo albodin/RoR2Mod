@@ -317,7 +317,12 @@ void DrawConfigTab() {
 void DrawMenu() {
     ImGui::Begin("Risk of Rain 2 Mod");
 
-    if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_DrawSelectedOverline)) {
+    if (!G::allHooksLoaded) {
+        ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.0f, 1.0f), "Some hooks failed to load. Game may have updated.");
+        ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.0f, 1.0f), "Use 'Dump Game' to regenerate game structures.");
+        ImGui::Separator();
+        DrawConfigTab();
+    } else if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_DrawSelectedOverline)) {
         if (ImGui::BeginTabItem("Player")) {
             DrawPlayerTab();
             ImGui::EndTabItem();

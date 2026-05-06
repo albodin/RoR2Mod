@@ -68,7 +68,7 @@ bool CreateHook(const char* assemblyName, const char* nameSpace, const char* cla
             LOG_INFO(STRINGIFY(Hooked ns##class##method));                                                                                                     \
         } else {                                                                                                                                               \
             LOG_ERROR(STRINGIFY(Failed to hook ns##class##method));                                                                                            \
-            G::running = false;                                                                                                                                \
+            G::allHooksLoaded = false;                                                                                                                         \
         }                                                                                                                                                      \
     }
 
@@ -82,7 +82,7 @@ bool CreateHook(const char* assemblyName, const char* nameSpace, const char* cla
             LOG_INFO(STRINGIFY(Hooked ns##parentclass##nestedclass##method));                                                                                  \
         } else {                                                                                                                                               \
             LOG_ERROR(STRINGIFY(Failed to hook ns##parentclass##nestedclass##method));                                                                         \
-            G::running = false;                                                                                                                                \
+            G::allHooksLoaded = false;                                                                                                                         \
         }                                                                                                                                                      \
     }
 

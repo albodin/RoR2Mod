@@ -4,6 +4,7 @@ namespace G {
 bool running = true;
 bool initialized = false;
 bool hooksInitialized = false;
+bool allHooksLoaded = true;
 std::unique_ptr<MonoRuntime> g_monoRuntime = nullptr;
 HMODULE hModule = nullptr;
 HANDLE mainThread = nullptr;

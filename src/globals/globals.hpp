@@ -28,6 +28,7 @@ namespace G {
 extern bool running;
 extern bool initialized;
 extern bool hooksInitialized;
+extern bool allHooksLoaded;
 extern std::unique_ptr<MonoRuntime> g_monoRuntime;
 extern HMODULE hModule;
 extern HANDLE mainThread;
