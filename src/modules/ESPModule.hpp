@@ -259,7 +259,6 @@ class ESPModule : public ModuleBase {
     void OnTimedChestControllerDespawned(void* timedChestController);
     void OnGenericInteractionSpawned(void* genericInteraction);
     void OnPickupPickerControllerSpawned(void* pickupPickerController);
-    void OnScrapperControllerSpawned(void* scrapperController);
     void OnStageAdvance(void* stage);
     void OnStageDisable();
     void OnRunExit();

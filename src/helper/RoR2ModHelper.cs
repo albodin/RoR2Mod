@@ -162,14 +162,13 @@ namespace RoR2ModHelper
                         return;
                     }
 
-                    var obj = UnityEngine.Object.Instantiate(spawnCard.prefab);
+                    var spawnPosition = new Vector3(x, y, z);
+                    var obj = UnityEngine.Object.Instantiate(spawnCard.prefab, spawnPosition, Quaternion.identity);
                     if (obj == null)
                     {
                         Debug.LogError($"RoR2ModHelper: Failed to instantiate prefab: {addressablePath}");
                         return;
                     }
-
-                    obj.transform.position = new Vector3(x, y, z);
                     Debug.Log($"RoR2ModHelper: Successfully spawned {addressablePath} at ({x:F2}, {y:F2}, {z:F2})");
                 }
                 catch (Exception ex)

@@ -380,7 +380,7 @@ void ESPModule::Update() {
                                                           }
                                                       } else if (tracked->category == InteractableCategory::CommandCube && tracked->gameObject) {
                                                           PickupPickerController* ppc = static_cast<PickupPickerController*>(tracked->gameObject);
-                                                          if (!ppc->available) {
+                                                          if (!ppc->available_backing) {
                                                               return true;
                                                           }
                                                       }
@@ -776,7 +776,7 @@ void ESPModule::CollectAllESPItems(std::vector<ESPHierarchicalRenderItem>& items
                 isAvailable = !gpc->consumed && !gpc->Recycled;
             } else if (interactable->category == InteractableCategory::CommandCube) {
                 PickupPickerController* pcc = static_cast<PickupPickerController*>(interactable->gameObject);
-                isAvailable = pcc->available;
+                isAvailable = pcc->available_backing;
             } else if (interactable->purchaseInteraction) {
                 PurchaseInteraction* pi = static_cast<PurchaseInteraction*>(interactable->purchaseInteraction);
                 isAvailable = pi->available;
@@ -1448,14 +1448,14 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
     }
 
     // Don't track pickups with invalid pickup index
-    if (gpc->pickupIndex <= 0) {
-        LOG_INFO("GenericPickupController spawned with invalid pickup index: %d", gpc->pickupIndex);
+    if (gpc->_pickupState.pickupIndex <= 0) {
+        LOG_INFO("GenericPickupController spawned with invalid pickup index: %d", gpc->_pickupState.pickupIndex);
         return;
     }
 
-    std::string displayName = GetPickupName(gpc->pickupIndex);
+    std::string displayName = GetPickupName(gpc->_pickupState.pickupIndex);
 
-    LOG_INFO("GenericPickupController (%p) spawned: pickupIndex=%d, name='%s', consumed=%d, recycled=%d", genericPickupController, gpc->pickupIndex,
+    LOG_INFO("GenericPickupController (%p) spawned: pickupIndex=%d, name='%s', consumed=%d, recycled=%d", genericPickupController, gpc->_pickupState.pickupIndex,
              displayName.c_str(), gpc->consumed, gpc->Recycled);
 
     // Create tracking info - categorize as item pickup
@@ -1470,7 +1470,7 @@ void ESPModule::OnGenericPickupControllerSpawned(void* genericPickupController) 
     trackedInteractable->consumed = false;
     trackedInteractable->costString = "";
     trackedInteractable->cachedCost = 0;
-    trackedInteractable->pickupIndex = gpc->pickupIndex;
+    trackedInteractable->pickupIndex = gpc->_pickupState.pickupIndex;
 
     std::lock_guard<std::mutex> lock(interactablesMutex);
     trackedInteractables.push_back(std::move(trackedInteractable));
@@ -1542,9 +1542,10 @@ void ESPModule::OnPickupPickerControllerSpawned(void* pickupPickerController) {
     LOG_INFO("PickupPickerController (%p) Spawned: contextToken='%s'", pcc, contextToken.c_str());
 
     static const std::unordered_map<std::string, std::string> tokenTransformMap = {{"ARTIFACT_COMMAND_CUBE_INTERACTION_PROMPT", "ARTIFACT_COMMAND_NAME"},
-                                                                                   {"AURELIONITE_FRAGMENT_PICKUP_PROMPT", "AURELIONITE_FRAGMENT_PICKUP_NAME"}};
+                                                                                   {"AURELIONITE_FRAGMENT_PICKUP_PROMPT", "AURELIONITE_FRAGMENT_PICKUP_NAME"},
+                                                                                   {"SCRAPPER_CONTEXT", "SCRAPPER_NAME"}};
 
-    static const std::unordered_set<std::string> ignoredTokens = {"DELUSION_MEMORYGAME_PROMPT", "SCRAPPER_CONTEXT"};
+    static const std::unordered_set<std::string> ignoredTokens = {"DELUSION_MEMORYGAME_PROMPT"};
 
     if (ignoredTokens.find(contextToken) != ignoredTokens.end()) {
         return;
@@ -1574,13 +1575,15 @@ void ESPModule::OnPickupPickerControllerSpawned(void* pickupPickerController) {
     MonoString* nameTokenMono = G::g_monoRuntime->CreateString(nameToken.c_str());
     std::string displayName = G::gameFunctions->Language_GetString(nameTokenMono);
 
+    bool isScrapper = (contextToken == "SCRAPPER_CONTEXT");
+
     auto trackedInteractable = std::make_unique<TrackedInteractable>();
     trackedInteractable->gameObject = pickupPickerController;
     trackedInteractable->purchaseInteraction = nullptr;
     trackedInteractable->position = position;
     trackedInteractable->displayName = displayName;
-    trackedInteractable->nameToken = contextToken;
-    trackedInteractable->category = InteractableCategory::CommandCube;
+    trackedInteractable->nameToken = nameToken;
+    trackedInteractable->category = isScrapper ? InteractableCategory::Shop : InteractableCategory::CommandCube;
     trackedInteractable->specialType = SpecialInteractableType::None;
     trackedInteractable->consumed = false;
     trackedInteractable->pickupIndex = -1;
@@ -1588,40 +1591,10 @@ void ESPModule::OnPickupPickerControllerSpawned(void* pickupPickerController) {
     trackedInteractable->costString = "";
     trackedInteractable->cachedCost = 0;
 
-    trackedInteractables.push_back(std::move(trackedInteractable));
-}
-
-void ESPModule::OnScrapperControllerSpawned(void* scrapperController) {
-    if (!scrapperController)
-        return;
-
-    void* gameObject = scrapperController;
-
-    Vector3 position = {0, 0, 0};
-    if (Hooks::Component_get_transform && Hooks::Transform_get_position_Injected) {
-        void* transform = Hooks::Component_get_transform(scrapperController);
-        if (transform) {
-            Hooks::Transform_get_position_Injected(transform, &position);
-        }
+    {
+        std::lock_guard<std::mutex> lock(interactablesMutex);
+        trackedInteractables.push_back(std::move(trackedInteractable));
     }
-
-    std::string displayName = G::gameFunctions->Language_GetString(G::g_monoRuntime->CreateString("SCRAPPER_NAME"));
-
-    // Create tracking info
-    auto trackedInteractable = std::make_unique<TrackedInteractable>();
-    trackedInteractable->gameObject = gameObject;
-    trackedInteractable->purchaseInteraction = nullptr;
-    trackedInteractable->position = position;
-    trackedInteractable->displayName = displayName;
-    trackedInteractable->nameToken = "SCRAPPER_NAME";
-    trackedInteractable->category = InteractableCategory::Shop;
-    trackedInteractable->specialType = SpecialInteractableType::None;
-    trackedInteractable->consumed = false;
-    trackedInteractable->costString = "";
-    trackedInteractable->cachedCost = 0;
-
-    std::lock_guard<std::mutex> lock(interactablesMutex);
-    trackedInteractables.push_back(std::move(trackedInteractable));
 }
 
 void ESPModule::ClearData() {
@@ -1821,14 +1794,14 @@ void ESPModule::OnShopTerminalBehaviorSpawned(void* shopTerminalBehavior) {
         // Check if positions match
         if (tracked->position == shopPos && tracked->category == InteractableCategory::Shop) {
             // Get the pickup index from the shop
-            if (shop->pickupIndex != -1) {
-                tracked->pickupIndex = shop->pickupIndex;
+            if (shop->pickup.pickupIndex != -1) {
+                tracked->pickupIndex = shop->pickup.pickupIndex;
                 // Get pickup name from pickup index using PickupCatalog
-                PickupDef* pickupDef = G::gameFunctions->GetPickupDef(shop->pickupIndex);
+                PickupDef* pickupDef = G::gameFunctions->GetPickupDef(shop->pickup.pickupIndex);
                 if (pickupDef && pickupDef->nameToken) {
                     tracked->itemName = G::gameFunctions->Language_GetString(static_cast<MonoString*>(pickupDef->nameToken));
                 } else {
-                    tracked->itemName = "Unknown [" + std::to_string(shop->pickupIndex) + "]";
+                    tracked->itemName = "Unknown [" + std::to_string(shop->pickup.pickupIndex) + "]";
                 }
             }
             break;

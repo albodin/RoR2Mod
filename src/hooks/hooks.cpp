@@ -197,7 +197,6 @@ void Hooks::Init() {
     HOOK(RoR2, RoR2, GenericInteraction, OnEnable, 0, "System.Void", {});
     HOOK(RoR2, RoR2, PickupPickerController, Awake, 0, "System.Void", {});
     HOOK(RoR2, RoR2, PickupPickerController, OnDisable, 0, "System.Void", {});
-    HOOK(RoR2, RoR2, ScrapperController, Start, 0, "System.Void", {});
     HOOK(RoR2, RoR2, Run, AdvanceStage, 1, "System.Void", {"RoR2.SceneDef"});
     HOOK(RoR2, RoR2, Run, Awake, 0, "System.Void", {});
     HOOK(RoR2, RoR2, Run, OnDisable, 0, "System.Void", {});
@@ -873,21 +872,11 @@ void Hooks::hkRoR2PickupPickerControllerOnDisable(void* instance) {
 
     LOG_INFO("PickupPickerController::OnDisable - instance=%p", instance);
     PickupPickerController* pcc = static_cast<PickupPickerController*>(instance);
-    pcc->available = false;
+    pcc->available_backing = false;
 
     originalFunc(instance);
 }
 
-void Hooks::hkRoR2ScrapperControllerStart(void* instance) {
-    static auto originalFunc = reinterpret_cast<void (*)(void*)>(hooks["RoR2ScrapperControllerStart"]);
-    originalFunc(instance);
-
-    if (!G::hooksInitialized)
-        return;
-
-    LOG_INFO("ScrapperController::Start - instance=%p", instance);
-    G::espModule->OnScrapperControllerSpawned(instance);
-}
 
 void Hooks::hkRoR2RunAdvanceStage(void* instance, void* nextScene) {
     static auto originalFunc = reinterpret_cast<void (*)(void*, void*)>(hooks["RoR2RunAdvanceStage"]);

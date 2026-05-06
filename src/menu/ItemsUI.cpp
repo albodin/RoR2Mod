@@ -51,8 +51,6 @@ void ItemsUI::DrawItemsSection(const std::vector<RoR2Item>& items, std::map<int,
 
 void ItemsUI::DrawFilteredItems(ItemTier_Value tier, const std::vector<RoR2Item>& items, std::map<int, std::unique_ptr<IntControl>>& itemControls,
                                 const std::vector<int>* itemStacks, const char* searchText) {
-    std::shared_lock<std::shared_mutex> lock(G::itemsMutex);
-
     for (const auto& item : items) {
         if (item.tier != tier)
             continue;

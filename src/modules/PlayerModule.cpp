@@ -594,7 +594,8 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
 
     // Process any queued item changes
     std::unique_lock<std::mutex> lock(queuedGiveItemsMutex);
-    int* arrayData = (int*)(localUser_ptr->cachedBody_backing->inventory_backing->itemStacks + 8); // Adjusted offset of array with header
+    auto* sparseValues = static_cast<MonoArray_Internal*>(localUser_ptr->cachedBody_backing->inventory_backing->permanentItemStacks.inner);
+    int* arrayData = mono_array_addr<int>(sparseValues);
     for (; !queuedGiveItems.empty(); queuedGiveItems.pop()) {
         auto item = queuedGiveItems.front();
         int itemIndex = std::get<0>(item);
@@ -605,7 +606,7 @@ void PlayerModule::OnLocalUserUpdate(void* localUser) {
 
 void PlayerModule::OnInventoryChanged(void* inventory) {
     Inventory* inventory_ptr = static_cast<Inventory*>(inventory);
-    if (!inventory_ptr || !inventory_ptr->itemStacks) {
+    if (!inventory_ptr || !inventory_ptr->permanentItemStacks.inner) {
         return;
     }
 
@@ -615,7 +616,10 @@ void PlayerModule::OnInventoryChanged(void* inventory) {
     }
 
     std::unique_lock<std::shared_mutex> lock(G::itemsMutex);
-    int* arrayData = (int*)(inventory_ptr->itemStacks + 8); // Adjusted offset of array with header
+    auto* sparseValues = static_cast<MonoArray_Internal*>(inventory_ptr->permanentItemStacks.inner);
+    if (!sparseValues)
+        return;
+    int* arrayData = mono_array_addr<int>(sparseValues);
     for (int i = 0; i < itemStacks.size(); i++) {
         itemStacks[i] = arrayData[i];
         if (itemControls.count(i) > 0) {
